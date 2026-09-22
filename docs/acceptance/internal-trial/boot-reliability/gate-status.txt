@@ -1,0 +1,3 @@
+web_api_health=FAIL
+api_direct_health=FAIL
+web_static=PASS

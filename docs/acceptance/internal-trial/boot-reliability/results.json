@@ -1,0 +1,37 @@
+{
+  "suite": "boot-reliability",
+  "ran_at": "2026-09-22T15:42:32Z",
+  "host_os": "Linux (bot box)",
+  "goal": "start reliability only — health gate before OK+URL; no business feature changes",
+  "compose_file": "docker-compose.internal-trial.yml",
+  "hairpin_overlay": false,
+  "db_redis_host_ports": "none",
+  "firewall_changes": false,
+  "new_public_tunnel": false,
+  "verify_project": "salesos_trial_bootcheck",
+  "verify_ports": { "web": "127.0.0.1:19280", "api": "127.0.0.1:39200" },
+  "synthetic_env": "/tmp/salesos_trial_bootcheck.env (not committed)",
+  "scripts": {
+    "Start-InternalTrial.ps1": "hardened",
+    "Test-InternalTrial.ps1": "added",
+    "check-internal-trial.sh": "added"
+  },
+  "gates": {
+    "web_api_health_json_ok_sales_os_api": "FAIL",
+    "web_static_http_200": "PASS (not accepted as ready)",
+    "api_direct_health": "FAIL",
+    "chromium_ui_login_type_credentials": "FAIL",
+    "windows_host_verify": "PENDING"
+  },
+  "classification": "api-or-db-not-ready (bot bridge: api↔postgres/redis TCP timeout)",
+  "ui_login": {
+    "path": "/login",
+    "localStorage_inject": false,
+    "api_login_alone_not_proof": true,
+    "overall": "FAIL",
+    "evidence": "browser/ui-login.json + screenshots"
+  },
+  "stop_at_acceptance": true,
+  "overall_bot": "FAIL — shipped bridge path not healthy on this bot; scripts correctly refuse OK",
+  "overall_delivery": "SHIPPED scripts+docs; Windows host PENDING"
+}

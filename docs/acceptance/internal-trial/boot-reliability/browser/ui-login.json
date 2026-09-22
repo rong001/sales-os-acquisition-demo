@@ -1,0 +1,17 @@
+{
+  "at": "2026-09-22T15:42:13.392Z",
+  "base": "http://127.0.0.1:19280",
+  "method": "chromium_type_credentials_on_/login",
+  "localStorage_inject": false,
+  "api_login_alone": false,
+  "steps": {
+    "goto_login": "PASS",
+    "type_credentials": "PASS",
+    "login_http": "no_/auth/login_response",
+    "after_url": "http://127.0.0.1:19280/login",
+    "localStorage_token_set_by_app": false,
+    "ui_error": ""
+  },
+  "overall": "FAIL",
+  "evidence": "UI login did not establish session (expected on bot if bridge/api not ready)"
+}

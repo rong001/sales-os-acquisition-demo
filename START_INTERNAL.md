@@ -12,7 +12,7 @@ Bot 机器上的 `http://127.0.0.1:18180` **不能**当作你的试用入口。
 
 ### Windows（推荐）
 
-见 **START_WINDOWS.md**：复制 `.env.internal-trial.example` → `.env`，运行 `scripts/windows/Start-InternalTrial.ps1`，打开 `http://127.0.0.1:18180`。
+见 **START_WINDOWS.md**：复制 `.env.internal-trial.example` → `.env`，运行 `scripts/windows/Start-InternalTrial.ps1`（成功条件含 Web `/api/health`），打开 `http://127.0.0.1:18180`。自检：`Test-InternalTrial.ps1`。
 
 ### Linux / macOS — Docker Compose（与 Windows 同栈）
 

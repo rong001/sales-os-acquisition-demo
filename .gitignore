@@ -35,3 +35,6 @@ releases/sales-os-internal-trial-local/sales-os-app/
 
 # Windows Compose 启动验收原始响应含 JWT
 docs/acceptance/internal-trial/windows-compose-boot/.raw/
+
+# Boot reliability raw
+docs/acceptance/internal-trial/boot-reliability/.raw/
