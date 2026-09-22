@@ -8,7 +8,7 @@
 |---|---|---|---|---|---|---|
 | 抢票 | 待发布（`rong001/ticket-grab-cloud` 仍私有） | [已交付](http://159.75.71.192:18090/)（HTTP 200，非 HTTPS） | 腾讯云轻量 Compose + Caddy | 查票/盯票/定时/协助登录+官方支付跳转；非代售；live≠自动购票 | 未通过 ToC 自助闭环 | 私有仓；HTTPS/域名；法律边界；访客闭环 |
 | USGate | 待发布（本地 `usgate-demo` 已备，未公开） | 待发布（**勿**将 VPS IP/面板口当公开 demo） | 预期：VPS + 3X-UI + Compose/Caddy + Android APK | 隧道/重连/流量已测；门户本地 mock；Android APK 已构建 | 隧道 PASS；真机 E2E BLOCKED；HTTPS MIXED | 公开仓未推；无域名/证书；真机安装；面板凭据用户侧 |
-| 获客（本仓库） | 待发布（push 后更新） | 本地 npm/Compose，无公网演示 | npm / compose | 获客全切片（见下） | E2E 见 docs/acceptance | Docker 可选；公网需人工 |
+| 获客（本仓库） | [已交付](https://github.com/rong001/sales-os-acquisition-demo) | 本地 npm/Compose，无公网演示 | npm / compose | 获客全切片（见下） | E2E 见 docs/acceptance | Docker 可选；公网需人工 |
 
 
 面向 **抢票产品（ticket-grab）** 与 **USGate** 的获客经营垂直切片：公开落地页留资 → 同意证据 → UTM/邀请码归因 → 去重建档 → 技能组负载分配 → 跟进时间线 → 预约披露确认 → 转化漏斗。

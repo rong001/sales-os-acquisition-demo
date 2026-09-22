@@ -10,3 +10,5 @@ coverage
 *.pem
 *.key
 secrets/
+docs/acceptance/e2e-logs/TOKEN.txt
+*.pem
