@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Manage sales-os prod processes with auto-restart (no systemd / no root).
+# Linux/macOS bash only — NOT for Windows PowerShell (/proc, ss, pkill, nohup).
+# Windows internal trial: see START_WINDOWS.md + docker-compose.internal-trial.yml.
 # ONLY sales-os: API :3100, gateway :18180, worker, cloudflared→18180.
 # NEVER touch 4173/8080/8765/3000/3001/5173 or other cloudflared.
 set -euo pipefail

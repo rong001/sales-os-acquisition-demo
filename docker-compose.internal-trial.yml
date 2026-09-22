@@ -1,0 +1,104 @@
+# Internal trial pack — Windows (Docker Desktop) + Linux/macOS.
+# Reuses apps/*/Dockerfile and scripts/sql/001_schema.sql.
+# Postgres/Redis: internal network only (no host ports).
+# Published ports bind 127.0.0.1 only. Defaults: web 18180, api 3100.
+#
+# Usage:
+#   cp .env.internal-trial.example .env   # fill CHANGE_ME
+#   docker compose -f docker-compose.internal-trial.yml --env-file .env up -d --build
+#   open http://127.0.0.1:18180
+#
+# Isolated verify (bot): COMPOSE_PROJECT_NAME=salesos_trial_clean HOST_WEB_PORT=19180 HOST_API_PORT=39100 ...
+
+name: ${COMPOSE_PROJECT_NAME:-salesos_internal_trial}
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sales}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME}
+      POSTGRES_DB: ${POSTGRES_DB:-sales_os}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/sql/001_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sales} -d ${POSTGRES_DB:-sales_os}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-sales}:${POSTGRES_PASSWORD:-CHANGE_ME}@postgres:5432/${POSTGRES_DB:-sales_os}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-CHANGE_ME}
+      API_PORT: "3000"
+      SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
+      DEMO_AGENT_PASSWORD: ${DEMO_AGENT_PASSWORD:-CHANGE_ME}
+      DEMO_AGENT2_PASSWORD: ${DEMO_AGENT2_PASSWORD:-CHANGE_ME}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-CHANGE_ME}
+      DEMO_MANAGER_PASSWORD: ${DEMO_MANAGER_PASSWORD:-CHANGE_ME}
+      DEMO_VIEWER_PASSWORD: ${DEMO_VIEWER_PASSWORD:-CHANGE_ME}
+      DEMO_TENANT_SLUG: ${DEMO_TENANT_SLUG:-demo}
+      REAL_SMS_ENABLED: ${REAL_SMS_ENABLED:-false}
+      REAL_CALL_ENABLED: ${REAL_CALL_ENABLED:-false}
+      REAL_EMAIL_ENABLED: ${REAL_EMAIL_ENABLED:-false}
+    ports:
+      - "127.0.0.1:${HOST_API_PORT:-3100}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-sales}:${POSTGRES_PASSWORD:-CHANGE_ME}@postgres:5432/${POSTGRES_DB:-sales_os}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE: /api
+    environment:
+      VITE_API_BASE: /api
+    ports:
+      - "127.0.0.1:${HOST_WEB_PORT:-18180}:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

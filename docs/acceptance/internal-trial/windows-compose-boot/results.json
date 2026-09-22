@@ -1,0 +1,36 @@
+{
+  "suite": "windows-compose-boot",
+  "ran_at": "2026-09-22T15:15:37.409839Z",
+  "host_os": "Linux (bot box)",
+  "windows_host_verify": "PENDING — not run on Windows; user PC path is Docker Desktop + PowerShell",
+  "compose_file": "docker-compose.internal-trial.yml",
+  "verify_project": "salesos_trial_clean",
+  "verify_ports": {
+    "web": "127.0.0.1:19180",
+    "api": "127.0.0.1:39100"
+  },
+  "documented_defaults": {
+    "web": "http://127.0.0.1:18180",
+    "api_via_web": "/api",
+    "api_optional": "http://127.0.0.1:3100"
+  },
+  "postgres_redis_host_ports": "none (unpublished in shipped compose)",
+  "bot_bridge_networking": "FAIL — container↔container TCP timed out on this Linux bot (nftables/bridge)",
+  "bot_verify_workaround": "docker-compose.internal-trial.bot-hairpin.verify.yml (NOT shipped): publish PG/Redis to host and point api/worker at host.docker.internal",
+  "steps": {
+    "compose_config": "PASS",
+    "compose_build_up": "PASS",
+    "api_health": "PASS (via hairpin workaround on bot)",
+    "web_static_http_200": "PASS",
+    "web_nginx_to_api": "FAIL on bot (bridge); expected PASS on Docker Desktop Windows",
+    "manager_login_supervisor": "PASS",
+    "sales1_login": "PASS",
+    "manager_assign_to_sales1": "PASS",
+    "sales_followup_due_path": "PASS",
+    "followup_handle": "PASS",
+    "restart_without_v_data_retained": "PASS"
+  },
+  "case_id": "cf02a216-297b-4753-82b9-d637bd431a98",
+  "overall_bot": "PARTIAL_PASS — business smoke OK via hairpin workaround; pure bridge compose path FAIL on this bot",
+  "overall_delivery": "SHIPPED — cross-platform Compose + Windows docs/scripts; Windows host 待验"
+}
