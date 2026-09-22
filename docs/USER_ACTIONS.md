@@ -25,3 +25,6 @@
 
 6. **（可选）Cursor Pro / Origin**  
    本演示不依赖。
+
+7. **抢票演示仓**  
+   已公开：https://github.com/rong001/ticket-grab-cloud-demo（commit `88f93f3`）。无需再改可见性。现网：https://159.75.71.192:18444/ 与 `/intake`。真实购票闭环仍需产品侧推进。

@@ -1,0 +1,30 @@
+{
+  "case_id": "8b5f5e1b-6940-401a-b96e-f333f9601ccd",
+  "product_code": "ticket-grab",
+  "stage": "NEW",
+  "identity_phone_masked": "138****8001",
+  "identity_name": "截图测试用户",
+  "source": {
+    "utm_source": "browser_e2e",
+    "utm_medium": "shot",
+    "utm_campaign": "toc",
+    "utm_content": null,
+    "utm_term": null,
+    "invite_code": "INVSHOT1",
+    "type": "landing_form",
+    "landing_url": "https://cons-make-empire-treaty.trycloudflare.com/p/ticket-grab?utm_source=browser_e2e&utm_medium=shot&utm_campaign=toc&…"
+  },
+  "consents": [
+    {
+      "consent_version": "v1.0-2026",
+      "channels": null,
+      "granted_at": "2026-09-22T04:36:21.130Z"
+    },
+    {
+      "consent_version": "v1.0-2026",
+      "channels": null,
+      "granted_at": "2026-09-22T04:36:21.130Z"
+    }
+  ],
+  "note": "synthetic browser_e2e data; phone redacted; no real customer PII"
+}

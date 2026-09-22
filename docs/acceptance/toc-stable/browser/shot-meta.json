@@ -1,0 +1,15 @@
+{
+  "base": "https://cons-make-empire-treaty.trycloudflare.com",
+  "qs": "utm_source=browser_e2e&utm_medium=shot&utm_campaign=toc&invite=INVSHOT1",
+  "results": {
+    "ticket-grab": {
+      "url": "https://cons-make-empire-treaty.trycloudflare.com/p/ticket-grab?utm_source=browser_e2e&utm_medium=shot&utm_campaign=toc&invite=INVSHOT1",
+      "caseIdPrefix": "8b5f5e1b"
+    },
+    "usgate": {
+      "url": "https://cons-make-empire-treaty.trycloudflare.com/p/usgate?utm_source=browser_e2e&utm_medium=shot&utm_campaign=toc&invite=INVSHOT1",
+      "caseIdPrefix": "709b8e3e"
+    }
+  },
+  "at": "2026-09-22T04:36:23.298Z"
+}

@@ -11,5 +11,5 @@
 | 细粒度 RBAC | 现 agent / admin / **viewer（只读）**（supervisor 映射 admin） |
 | i18n 完整英文 | UI 以中文为主 |
 | Compose 实测 | 有 `docker-compose.yml`；本机无 Docker 引擎则未实测 |
-| 抢票真实成交 | stub / 未通过 |
+| 抢票真实成交 / 自动购票 | stub / 未通过；公开仓 [ticket-grab-cloud-demo](https://github.com/rong001/ticket-grab-cloud-demo)（`88f93f3`）已交付演示边界 |
 | USGate 真实面板/订阅 | 未交付；演示为 MOCK 门户 |

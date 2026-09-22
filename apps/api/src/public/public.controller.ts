@@ -15,6 +15,10 @@ export class PublicController {
       name_zh: p.name_zh,
       name_en: p.name_en,
       tagline: p.tagline,
+      demo_live_url: p.demo_live_url || null,
+      intake_url: p.intake_url || null,
+      repo_url: p.repo_url || null,
+      capabilities: p.capabilities || [],
     }));
   }
 
@@ -23,6 +27,10 @@ export class PublicController {
     const p = getProduct(code);
     return {
       ...p,
+      demo_live_url: p.demo_live_url || null,
+      intake_url: p.intake_url || null,
+      repo_url: p.repo_url || null,
+      capabilities: p.capabilities || [],
       consent_text: CONSENT_TEXT_V1,
       consent_version: CONSENT_VERSION,
     };

@@ -6,7 +6,7 @@
 
 | 项目 | 仓库 | 线上演示 | 部署方式 | 当前能力 | 验收状态 | 阻塞 |
 |---|---|---|---|---|---|---|
-| 抢票 | 待发布（`rong001/ticket-grab-cloud` 仍私有） | [已交付 HTTPS](https://159.75.71.192:18444/) | 腾讯云轻量 Compose + Caddy | 查票/盯票/定时/协助登录+官方支付跳转；非代售；live≠自动购票 | 未通过 ToC 自助闭环 | 私有仓；法律边界；访客闭环 |
+| 抢票 | [已交付](https://github.com/rong001/ticket-grab-cloud-demo)（`88f93f3`） | [已交付 HTTPS](https://159.75.71.192:18444/) · [/intake](https://159.75.71.192:18444/intake) | 腾讯云轻量 Compose + Caddy | 查票 live、盯票、intake 对话；诚实边界（非未授权代购）；真实成交/自动购票 stub | 未通过 ToC 自助闭环 | 真实购票闭环；合法边界 |
 | USGate | [demo](https://github.com/rong001/usgate-demo) · [client](https://github.com/rong001/usgate-client) | [已交付](https://117.55.227.224:8443/) | 见 docs/PROJECT_MATRIX.md |
 | 获客（本仓库） | [已交付](https://github.com/rong001/sales-os-acquisition-demo) | 公网 **临时** trycloudflare（见 `docs/acceptance/public-https/PUBLIC_URL.txt`） | 生产静态 dist + gateway :18180 + supervise；可选 cloudflared | 获客全切片；触达/成单 MOCK/stub；viewer 只读 | 本机+负面+公网(临时) E2E | 隧道临时；真实触达/成交 |
 
