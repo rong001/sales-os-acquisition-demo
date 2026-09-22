@@ -7,7 +7,7 @@
 | 项目 | 仓库 | 线上演示 | 部署方式 | 当前能力 | 验收状态 | 阻塞 |
 |---|---|---|---|---|---|---|
 | 抢票 | 待发布（`rong001/ticket-grab-cloud` 仍私有） | [已交付 HTTPS](https://159.75.71.192:18444/) | 腾讯云轻量 Compose + Caddy | 查票/盯票/定时/协助登录+官方支付跳转；非代售；live≠自动购票 | 未通过 ToC 自助闭环 | 私有仓；法律边界；访客闭环 |
-| USGate | [demo](https://github.com/rong001/usgate-demo) · [client](https://github.com/rong001/usgate-client) | 待发布 | 见 [docs/PROJECT_MATRIX.md](./docs/PROJECT_MATRIX.md) | — | — | 无已核验对公门户 URL |
+| USGate | [demo](https://github.com/rong001/usgate-demo) · [client](https://github.com/rong001/usgate-client) | [已交付](https://117.55.227.224:8443/) | 见 docs/PROJECT_MATRIX.md |
 | 获客（本仓库） | [已交付](https://github.com/rong001/sales-os-acquisition-demo) | [已交付 HTTPS](https://shoes-midnight-reload-noted.trycloudflare.com)（临时隧道） | npm + gateway :18180 + cloudflared | 获客全切片（见下） | 本机+公网 E2E PASS | 隧道临时；自定义域名需用户 |
 
 面向 **抢票产品（ticket-grab）** 与 **USGate** 的获客经营垂直切片：公开落地页留资 → 同意证据 → UTM/邀请码归因 → 去重建档 → 技能组负载分配 → 跟进时间线 → 预约披露确认 → 转化漏斗。
