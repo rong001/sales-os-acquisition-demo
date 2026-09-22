@@ -6,8 +6,8 @@
 
 | 项目 | 仓库 | 线上演示 | 部署方式 | 当前能力 | 验收状态 | 阻塞 |
 |---|---|---|---|---|---|---|
-| 抢票 | 待发布（`rong001/ticket-grab-cloud` 仍私有） | [已交付](http://159.75.71.192:18090/)（HTTP 200，非 HTTPS） | 腾讯云轻量 Compose + Caddy | 查票/盯票/定时/协助登录+官方支付跳转；非代售；live≠自动购票 | 未通过 ToC 自助闭环 | 私有仓；HTTPS/域名；法律边界；访客闭环 |
-| USGate | [已交付](https://github.com/rong001/usgate-demo) | 待发布 | 预期：VPS + 3X-UI + Compose/Caddy + Android APK | 隧道/重连/流量已测；门户本地 mock；Android APK 已构建 | 隧道 PASS；真机 E2E BLOCKED；HTTPS MIXED | 公开仓未推；无域名/证书；真机安装；面板凭据用户侧 |
+| 抢票 | 待发布（`rong001/ticket-grab-cloud` 仍私有） | [已交付](https://159.75.71.192:18444/)（HTTP 200，非 HTTPS） | 腾讯云轻量 Compose + Caddy | 查票/盯票/定时/协助登录+官方支付跳转；非代售；live≠自动购票 | 未通过 ToC 自助闭环 | 私有仓；HTTPS/域名；法律边界；访客闭环 |
+| USGate | [demo](https://github.com/rong001/usgate-demo) · [client](https://github.com/rong001/usgate-client) | 待发布 | 见 [docs/PROJECT_MATRIX.md](./docs/PROJECT_MATRIX.md) |
 | 获客（本仓库） | [已交付](https://github.com/rong001/sales-os-acquisition-demo) | 本地 npm/Compose，无公网演示 | npm / compose | 获客全切片（见下） | E2E 见 docs/acceptance | Docker 可选；公网需人工 |
 
 
@@ -35,6 +35,12 @@ sales-os-app/
   scripts/       冒烟 / E2E
 ```
 
+## 端口说明
+
+- Web（Vite）默认 **5173**；端口被占用时会自动改用 **5174** 等下一个可用端口，以终端打印的 `Local:` 为准。
+- API 本地开发默认 **3100**（Compose 内映射常见为 3000，见 `docker-compose.yml`）。
+- `/api` 由 Vite 代理到 `VITE_PROXY_TARGET`（默认 `http://127.0.0.1:3100`）。
+
 ## 快速启动
 
 ```bash
@@ -42,7 +48,7 @@ cp .env.example .env
 # 编辑 .env：设置 DEMO_AGENT_PASSWORD / DEMO_ADMIN_PASSWORD / JWT_SECRET / DATABASE_URL
 npm install
 npm run start:dev -w @sales-os/api    # 默认 :3100
-npm run dev -w @sales-os/web          # :5173，/api 代理到 API
+npm run dev -w @sales-os/web          # 默认 :5173（若占用则 Vite 自动用 5174…）；/api 代理到 API :3100
 ```
 
 Docker（若可用）：
@@ -57,10 +63,10 @@ docker compose up --build
 
 | 入口 | URL |
 |---|---|
-| 抢票落地页 | http://127.0.0.1:5174/p/ticket-grab?utm_source=demo&utm_medium=readme&invite=INV01 |
-| USGate 落地页 | http://127.0.0.1:5174/p/usgate?utm_source=demo&utm_medium=readme&invite=INV02 |
-| 坐席作战台 | http://127.0.0.1:5174/ （登录后；默认 Vite 端口 5173，本机若占用可改） |
-| 转化漏斗 | http://127.0.0.1:5174/admin/funnel （管理员） |
+| 抢票落地页 | http://127.0.0.1:5173/p/ticket-grab?utm_source=demo&utm_medium=readme&invite=INV01 |
+| USGate 落地页 | http://127.0.0.1:5173/p/usgate?utm_source=demo&utm_medium=readme&invite=INV02 |
+| 坐席作战台 | http://127.0.0.1:5173/ （登录后；默认 Vite 端口 5173，本机若占用可改） |
+| 转化漏斗 | http://127.0.0.1:5173/admin/funnel （管理员） |
 
 演示账号邮箱：`agent@demo.local` / `admin@demo.local`。  
 **密码仅来自本地 `.env` 的 `DEMO_*_PASSWORD`，勿写入公开 README。**
@@ -99,6 +105,6 @@ API_BASE=http://127.0.0.1:3100 bash scripts/e2e-acquisition.sh
 ## 可访问地址
 
 - **GitHub（公开制品）**: https://github.com/rong001/sales-os-acquisition-demo
-- **本机落地页**（当前演示机）: http://127.0.0.1:5174/p/ticket-grab 、 http://127.0.0.1:5174/p/usgate
+- **本机落地页**（当前演示机）: http://127.0.0.1:5173/p/ticket-grab 、 http://127.0.0.1:5173/p/usgate
 - **本机 API**: http://127.0.0.1:3100/health
 - **公网隧道**: 无（demo 本地运行；GitHub 为公开制品）
