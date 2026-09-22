@@ -16,38 +16,63 @@ async function main() {
   const groups = ds.getRepository(SkillGroup);
   const seats = ds.getRepository(AgentSeat);
 
-  let tenant = await tenants.findOne({ where: { name: '演示销售公司' } });
+  let tenant = await tenants.findOne({ where: { slug: 'demo' } });
+  if (!tenant) tenant = await tenants.findOne({ where: { name: '演示销售公司' } });
   if (!tenant) {
     tenant = await tenants.save(tenants.create({
       name: '演示销售公司',
+      slug: 'demo',
       mode_flags: ['LEAD_INBOUND', 'HYBRID'],
     }));
   }
   let group = await groups.findOne({ where: { tenant_id: tenant.id, name: '默认技能组' } });
   if (!group) {
     group = await groups.save(groups.create({
-      tenant_id: tenant.id, name: '默认技能组', skills: ['general'], max_in_progress: 50,
+      tenant_id: tenant.id,
+      name: '默认技能组',
+      skills: ['general', 'demo', 'ticket-grab', 'usgate'],
+      max_in_progress: 50,
     }));
   }
-  for (const [email, name, role] of [
-    ['agent@demo.local', '演示坐席', 'agent'],
-    ['admin@demo.local', '演示主管', 'supervisor'],
+
+  const agentPass = process.env.DEMO_AGENT_PASSWORD && process.env.DEMO_AGENT_PASSWORD !== 'CHANGE_ME'
+    ? process.env.DEMO_AGENT_PASSWORD : (process.env.DEMO_DEFAULT_PASSWORD || 'demo1234');
+  const adminPass = process.env.DEMO_ADMIN_PASSWORD && process.env.DEMO_ADMIN_PASSWORD !== 'CHANGE_ME'
+    ? process.env.DEMO_ADMIN_PASSWORD : (process.env.DEMO_DEFAULT_PASSWORD || 'demo1234');
+  const viewerPass = process.env.DEMO_VIEWER_PASSWORD && process.env.DEMO_VIEWER_PASSWORD !== 'CHANGE_ME'
+    ? process.env.DEMO_VIEWER_PASSWORD : 'demo-viewer';
+
+  for (const [email, name, role, pass] of [
+    ['agent@demo.local', '演示坐席', 'agent', agentPass],
+    ['admin@demo.local', '演示管理员', 'admin', adminPass],
+    ['viewer@demo.local', '演示访客(只读)', 'viewer', viewerPass],
   ] as const) {
     let u = await users.findOne({ where: { tenant_id: tenant.id, email } });
+    const password_hash = await bcrypt.hash(pass, 10);
     if (!u) {
       u = await users.save(users.create({
-        tenant_id: tenant.id, email, display_name: name, role,
-        password_hash: await bcrypt.hash('demo1234', 10),
+        tenant_id: tenant.id, email, display_name: name, role, password_hash,
       }));
+    } else {
+      u.role = role;
+      u.display_name = name;
+      u.password_hash = password_hash;
+      await users.save(u);
     }
+    if (role === 'viewer') continue;
     const seat = await seats.findOne({ where: { user_id: u.id } });
     if (!seat) {
       await seats.save(seats.create({
-        tenant_id: tenant.id, user_id: u.id, skill_group_id: group.id, online: true,
+        tenant_id: tenant.id,
+        user_id: u.id,
+        skill_group_id: group.id,
+        online: true,
+        current_load: 0,
+        shift: 'day',
       }));
     }
   }
-  console.log('Seed OK. Login: agent@demo.local / demo1234');
+  console.log('Seed OK. Logins: agent@demo.local / admin@demo.local / viewer@demo.local (passwords from .env)');
   await ds.destroy();
 }
 

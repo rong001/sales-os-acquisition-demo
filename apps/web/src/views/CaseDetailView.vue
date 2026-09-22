@@ -25,12 +25,13 @@
             · invite {{ detail.source?.invite_code || '—' }}
           </dd>
         </dl>
-        <div class="row" style="flex-wrap:wrap">
+        <div v-if="canWrite" class="row" style="flex-wrap:wrap">
           <button class="btn" :disabled="busy" @click="doQualify">核验合格</button>
           <button class="btn" :disabled="busy" @click="doAssign">分配给我</button>
           <button class="btn" :disabled="busy" @click="doAttempt">发起触达 <span class="tag mock">MOCK</span></button>
           <button class="btn" :disabled="busy" @click="doReceipt">模拟接通意向 <span class="tag mock">MOCK</span></button>
         </div>
+        <p v-else class="muted" style="margin:0">只读访客：不可分配/触达/改写</p>
         <div v-if="isAdmin" class="row" style="flex-wrap:wrap;margin-top:4px">
           <select class="input" style="width:auto;min-width:160px" v-model="assignSeat">
             <option value="">选择坐席…</option>
@@ -46,7 +47,7 @@
         <strong>推荐下一步</strong>
         <p class="muted" style="margin:0">{{ nextHint }}</p>
         <button
-          v-if="draftAppt"
+          v-if="draftAppt && canWrite"
           class="btn btn-primary"
           @click="showConfirm = true"
         >一键确认预约</button>
@@ -73,7 +74,7 @@
         <div class="muted" style="font-size:12px">{{ a.kind }} · {{ formatTime(a.created_at) }}</div>
       </div>
       <div v-if="!(detail.activities || []).length" class="muted">暂无跟进记录</div>
-      <div class="row">
+      <div v-if="canWrite" class="row">
         <input class="input grow" v-model="note" placeholder="添加跟进备注…" @keyup.enter="doNote" />
         <button class="btn btn-primary" :disabled="busy || !note.trim()" @click="doNote">添加</button>
       </div>
@@ -125,6 +126,7 @@ const assignSeat = ref('');
 const user = ref(null);
 try { user.value = JSON.parse(localStorage.getItem('salesos_user') || 'null'); } catch { /* */ }
 const isAdmin = computed(() => ['admin', 'supervisor'].includes(user.value?.role));
+const canWrite = computed(() => user.value?.role !== 'viewer');
 
 const draftAppt = computed(() =>
   (detail.value?.appointments || []).find((a) => a.status === 'draft') || null,

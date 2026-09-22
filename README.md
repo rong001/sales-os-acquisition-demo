@@ -8,7 +8,7 @@
 |---|---|---|---|---|---|---|
 | 抢票 | 待发布（`rong001/ticket-grab-cloud` 仍私有） | [已交付 HTTPS](https://159.75.71.192:18444/) | 腾讯云轻量 Compose + Caddy | 查票/盯票/定时/协助登录+官方支付跳转；非代售；live≠自动购票 | 未通过 ToC 自助闭环 | 私有仓；法律边界；访客闭环 |
 | USGate | [demo](https://github.com/rong001/usgate-demo) · [client](https://github.com/rong001/usgate-client) | [已交付](https://117.55.227.224:8443/) | 见 docs/PROJECT_MATRIX.md |
-| 获客（本仓库） | [已交付](https://github.com/rong001/sales-os-acquisition-demo) | [已交付 HTTPS](https://shoes-midnight-reload-noted.trycloudflare.com)（临时隧道） | npm + gateway :18180 + cloudflared | 获客全切片（见下） | 本机+公网 E2E PASS | 隧道临时；自定义域名需用户 |
+| 获客（本仓库） | [已交付](https://github.com/rong001/sales-os-acquisition-demo) | 公网 **临时** trycloudflare（见 `docs/acceptance/public-https/PUBLIC_URL.txt`） | 生产静态 dist + gateway :18180 + supervise；可选 cloudflared | 获客全切片；触达/成单 MOCK/stub；viewer 只读 | 本机+负面+公网(临时) E2E | 隧道临时；真实触达/成交 |
 
 面向 **抢票产品（ticket-grab）** 与 **USGate** 的获客经营垂直切片：公开落地页留资 → 同意证据 → UTM/邀请码归因 → 去重建档 → 技能组负载分配 → 跟进时间线 → 预约披露确认 → 转化漏斗。
 
@@ -69,14 +69,14 @@ docker compose up --build
 
 当前核验 URL（**cloudflared 临时域名，进程重启会变**）：
 
-**https://shoes-midnight-reload-noted.trycloudflare.com**
+**https://cons-make-empire-treaty.trycloudflare.com**
 
 | 入口 | URL |
 |---|---|
-| 抢票落地页 | https://shoes-midnight-reload-noted.trycloudflare.com/p/ticket-grab |
-| USGate 落地页 | https://shoes-midnight-reload-noted.trycloudflare.com/p/usgate |
-| 坐席登录 / 作战台 | https://shoes-midnight-reload-noted.trycloudflare.com/ |
-| 转化漏斗（管理员） | https://shoes-midnight-reload-noted.trycloudflare.com/admin/funnel |
+| 抢票落地页 | https://cons-make-empire-treaty.trycloudflare.com/p/ticket-grab |
+| USGate 落地页 | https://cons-make-empire-treaty.trycloudflare.com/p/usgate |
+| 坐席登录 / 作战台 | https://cons-make-empire-treaty.trycloudflare.com/ |
+| 转化漏斗（管理员） | https://cons-make-empire-treaty.trycloudflare.com/admin/funnel |
 
 重新发布（不中断其他项目隧道/端口）：
 
@@ -100,8 +100,8 @@ bash scripts/deploy-public-https.sh
 | 坐席作战台 | http://127.0.0.1:5173/ |
 | 转化漏斗 | http://127.0.0.1:5173/admin/funnel （管理员） |
 
-演示账号邮箱：`agent@demo.local` / `admin@demo.local`。  
-**密码仅来自本地 `.env` 的 `DEMO_*_PASSWORD`，勿写入公开 README。**
+演示账号邮箱：`agent@demo.local` / `admin@demo.local` / `viewer@demo.local`（只读）。  
+**密码仅来自本地 `.env` 的 `DEMO_*_PASSWORD`（含 `DEMO_VIEWER_PASSWORD`），勿写入公开 README。**
 
 ## 能力清单
 
@@ -133,6 +133,9 @@ API_BASE="$(cat docs/acceptance/public-https/PUBLIC_URL.txt)/api" \
 
 ## 相关文档
 
+- `docs/STABLE_DEPLOY.md` — 生产静态构建 + 受管进程
+
+
 - `docs/UNFINISHED.md` — 未完成项
 - `docs/USER_ACTIONS.md` — 需人工完成的步骤
 - `docs/screenshots/` — 界面截图
@@ -141,6 +144,6 @@ API_BASE="$(cat docs/acceptance/public-https/PUBLIC_URL.txt)/api" \
 ## 可访问地址
 
 - **GitHub（公开制品）**: https://github.com/rong001/sales-os-acquisition-demo
-- **公网 HTTPS（临时）**: https://shoes-midnight-reload-noted.trycloudflare.com
+- **公网 HTTPS（临时）**: https://cons-make-empire-treaty.trycloudflare.com
 - **本机落地页**: http://127.0.0.1:5173/p/ticket-grab 、 http://127.0.0.1:5173/p/usgate（占用时改 5174）
 - **本机 API**: http://127.0.0.1:3100/health

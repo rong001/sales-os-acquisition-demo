@@ -18,7 +18,8 @@
       </button>
       <p v-if="error" class="tag warn" style="margin:0">{{ error }}</p>
       <p class="muted" style="margin:0;font-size:12px">
-        账号见本地 <code>.env</code>（<code>DEMO_AGENT_PASSWORD</code> / <code>DEMO_ADMIN_PASSWORD</code>），勿将真实密码写入 README。
+        演示账号：<code>agent@demo.local</code> / <code>admin@demo.local</code> / <code>viewer@demo.local</code>（只读）。
+        密码仅见本地 <code>.env</code> 的 <code>DEMO_*_PASSWORD</code>，勿写入公开文档。
       </p>
       <p class="muted" style="margin:0;font-size:12px">
         落地页：<a href="/p/ticket-grab">抢票</a> · <a href="/p/usgate">USGate</a>

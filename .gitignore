@@ -12,3 +12,8 @@ coverage
 secrets/
 docs/acceptance/e2e-logs/TOKEN.txt
 *.pem
+
+# runtime / backups (local only)
+var/
+docs/acceptance/**/*.log
+!docs/acceptance/**/*.log.txt

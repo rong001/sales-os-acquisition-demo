@@ -10,21 +10,24 @@ import { CurrentUser } from '../common/tenant.decorator';
 import { AuthUser } from '../common/types';
 
 @Controller()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class LeadsController {
   constructor(private readonly leads: LeadsService) {}
 
   @Post('leads/intake')
+  @Roles('agent', 'admin', 'supervisor')
   intake(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
     return this.leads.intake(user, body as never);
   }
 
   @Post('leads/:caseId/qualify')
+  @Roles('agent', 'admin', 'supervisor')
   qualify(@CurrentUser() user: AuthUser, @Param('caseId') caseId: string) {
     return this.leads.qualify(user, caseId);
   }
 
   @Post('leads/:caseId/assign')
+  @Roles('agent', 'admin', 'supervisor')
   assign(
     @CurrentUser() user: AuthUser,
     @Param('caseId') caseId: string,
@@ -39,6 +42,7 @@ export class LeadsController {
   }
 
   @Post('leads/:caseId/reach-attempts')
+  @Roles('agent', 'admin', 'supervisor')
   createAttempt(
     @CurrentUser() user: AuthUser,
     @Param('caseId') caseId: string,
@@ -48,6 +52,7 @@ export class LeadsController {
   }
 
   @Post('reach-attempts/:attemptId/mock-receipt')
+  @Roles('agent', 'admin', 'supervisor')
   mockReceipt(
     @CurrentUser() user: AuthUser,
     @Param('attemptId') attemptId: string,
@@ -57,16 +62,19 @@ export class LeadsController {
   }
 
   @Post('leads/:caseId/appointments/draft')
+  @Roles('agent', 'admin', 'supervisor')
   draft(@CurrentUser() user: AuthUser, @Param('caseId') caseId: string) {
     return this.leads.draftAppointment(user, caseId);
   }
 
   @Post('appointments/:id/confirm')
+  @Roles('agent', 'admin', 'supervisor')
   confirm(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.leads.confirmAppointment(user, id);
   }
 
   @Post('leads/:caseId/activities')
+  @Roles('agent', 'admin', 'supervisor')
   addActivity(
     @CurrentUser() user: AuthUser,
     @Param('caseId') caseId: string,
@@ -91,15 +99,13 @@ export class LeadsController {
   }
 
   @Get('admin/funnel')
-  @UseGuards(RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'supervisor', 'viewer')
   funnel(@CurrentUser() user: AuthUser, @Query('product') product?: string) {
     return this.leads.funnelStats(user, product);
   }
 
   @Get('admin/leads/export.csv')
-  @UseGuards(RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'supervisor')
   async exportCsv(@CurrentUser() user: AuthUser, @Res() res: Response) {
     const csv = await this.leads.exportLeadsCsv(user);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');

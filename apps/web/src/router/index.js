@@ -11,7 +11,7 @@ const router = createRouter({
     { path: '/login', component: LoginView },
     { path: '/', component: WorkbenchView, meta: { auth: true } },
     { path: '/cases/:id', component: CaseDetailView, meta: { auth: true } },
-    { path: '/admin/funnel', component: FunnelView, meta: { auth: true, admin: true } },
+    { path: '/admin/funnel', component: FunnelView, meta: { auth: true, funnel: true } },
     { path: '/p/:product', component: LandingView },
     { path: '/landing/ticket-grab', redirect: '/p/ticket-grab' },
     { path: '/landing/usgate', redirect: '/p/usgate' },
@@ -22,10 +22,10 @@ router.beforeEach((to) => {
   const token = localStorage.getItem('salesos_token');
   if (to.meta.auth && !token) return '/login';
   if (to.path === '/login' && token) return '/';
-  if (to.meta.admin) {
+  if (to.meta.funnel) {
     try {
       const u = JSON.parse(localStorage.getItem('salesos_user') || '{}');
-      if (!['admin', 'supervisor'].includes(u.role)) return '/';
+      if (!['admin', 'supervisor', 'viewer'].includes(u.role)) return '/';
     } catch {
       return '/';
     }

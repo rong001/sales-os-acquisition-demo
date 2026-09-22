@@ -12,7 +12,8 @@
           <option value="ticket-grab">抢票助手</option>
           <option value="usgate">USGate</option>
         </select>
-        <button class="btn" @click="exportCsv">导出 CSV</button>
+        <button v-if="canExport" class="btn" @click="exportCsv">导出 CSV</button>
+        <span v-else class="tag">只读（无导出）</span>
       </div>
     </div>
 
@@ -40,13 +41,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, inject } from 'vue';
+import { ref, computed, onMounted, inject } from 'vue';
 import { LeadApi } from '../api/client';
 
 const toast = inject('toast', () => {});
 const data = ref(null);
 const product = ref('');
 const error = ref('');
+let _user = null;
+try { _user = JSON.parse(localStorage.getItem('salesos_user') || 'null'); } catch { /* */ }
+const canExport = computed(() => ['admin', 'supervisor'].includes(_user?.role));
 const labels = {
   intake: '进线 intake',
   qualified: '合格 qualified',

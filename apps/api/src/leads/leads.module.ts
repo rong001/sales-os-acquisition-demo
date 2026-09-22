@@ -4,6 +4,7 @@ import { LeadsService } from './leads.service';
 import { LeadsController } from './leads.controller';
 import { EventsService } from '../events/events.service';
 import { RolesGuard } from '../common/roles.guard';
+import { JwtAuthGuard } from '../common/jwt-auth.guard';
 import {
   LeadIdentity, LeadSource, LeadCase, ConsentGrant, Ownership, PoolItem,
   ReachPlan, ReachAttempt, ReachReceipt, Appointment, AgentSeat, SkillGroup,
@@ -19,7 +20,7 @@ import {
     ]),
   ],
   controllers: [LeadsController],
-  providers: [LeadsService, EventsService, RolesGuard],
+  providers: [LeadsService, EventsService, RolesGuard, JwtAuthGuard],
   exports: [LeadsService, EventsService],
 })
 export class LeadsModule {}

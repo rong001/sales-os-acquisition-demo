@@ -1,0 +1,1 @@
+{"ok":true,"service":"sales-os-public-gateway","api":"http://127.0.0.1:3100","web_mode":"static","web":"/workspace/sales-os-app/apps/web/dist"}

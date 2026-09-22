@@ -8,7 +8,7 @@
       <div class="row">
         <a class="btn" href="/p/ticket-grab" target="_blank">落地页·抢票</a>
         <a class="btn" href="/p/usgate" target="_blank">落地页·USGate</a>
-        <button v-if="isAdmin" class="btn" @click="$router.push('/admin/funnel')">漏斗</button>
+        <button v-if="canFunnel" class="btn" @click="$router.push('/admin/funnel')">漏斗</button>
         <button class="btn" @click="logout">退出</button>
       </div>
     </div>
@@ -23,7 +23,8 @@
       <div class="card stack" style="grid-column: span 2">
         <div class="row" style="justify-content:space-between">
           <strong>案件列表</strong>
-          <button class="btn btn-primary" :disabled="busy" @click="runHappyPath">{{ busy ? '处理中…' : '新建演示线索并跑通' }}</button>
+          <button v-if="canWrite" class="btn btn-primary" :disabled="busy" @click="runHappyPath">{{ busy ? '处理中…' : '新建演示线索并跑通' }}</button>
+          <span v-else class="tag">只读演示</span>
         </div>
         <div v-if="!data?.cases?.length" class="muted">暂无案件。可从落地页留资，或点击上方按钮跑通演示路径。</div>
         <div
@@ -67,6 +68,9 @@ const user = ref(null);
 
 try { user.value = JSON.parse(localStorage.getItem('salesos_user') || 'null'); } catch { /* ignore */ }
 const isAdmin = computed(() => ['admin', 'supervisor'].includes(user.value?.role));
+const isViewer = computed(() => user.value?.role === 'viewer');
+const canWrite = computed(() => !isViewer.value);
+const canFunnel = computed(() => isAdmin.value || isViewer.value);
 
 function stageLabel(s) {
   const map = {

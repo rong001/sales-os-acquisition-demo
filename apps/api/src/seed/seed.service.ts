@@ -20,13 +20,16 @@ export class SeedService implements OnModuleInit {
     await this.ensureDemo();
   }
 
-  private demoPassword(which: 'agent' | 'admin') {
+  private demoPassword(which: 'agent' | 'admin' | 'viewer') {
     const fromEnv =
       which === 'agent'
         ? process.env.DEMO_AGENT_PASSWORD
-        : process.env.DEMO_ADMIN_PASSWORD;
+        : which === 'admin'
+          ? process.env.DEMO_ADMIN_PASSWORD
+          : process.env.DEMO_VIEWER_PASSWORD;
     if (fromEnv && fromEnv !== 'CHANGE_ME') return fromEnv;
     // Local-only fallback when .env provides nothing; never commit real secrets.
+    if (which === 'viewer') return process.env.DEMO_DEFAULT_PASSWORD || 'demo-viewer';
     return process.env.DEMO_DEFAULT_PASSWORD || 'demo1234';
   }
 
@@ -69,9 +72,10 @@ export class SeedService implements OnModuleInit {
     }
     if (!defaultGroup) throw new Error('default skill group missing');
 
-    const accounts: Array<[string, string, string, 'agent' | 'admin']> = [
+    const accounts: Array<[string, string, string, 'agent' | 'admin' | 'viewer']> = [
       ['agent@demo.local', '演示坐席', 'agent', 'agent'],
       ['admin@demo.local', '演示管理员', 'admin', 'admin'],
+      ['viewer@demo.local', '演示访客(只读)', 'viewer', 'viewer'],
     ];
 
     for (const [email, name, role, pwdKey] of accounts) {
@@ -93,6 +97,8 @@ export class SeedService implements OnModuleInit {
         user.display_name = name;
         await this.users.save(user);
       }
+      // Viewer is read-only: no agent seat / no write capacity.
+      if (role === 'viewer') continue;
       const seat = await this.seats.findOne({ where: { tenant_id: tenant.id, user_id: user.id } });
       if (!seat) {
         await this.seats.save(this.seats.create({

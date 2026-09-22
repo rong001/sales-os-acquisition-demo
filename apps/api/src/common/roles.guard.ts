@@ -16,6 +16,6 @@ export class RolesGuard implements CanActivate {
     const role = user?.role || '';
     const normalized = role === 'supervisor' ? 'admin' : role;
     if (roles.includes(normalized) || roles.includes(role)) return true;
-    throw new ForbiddenException('需要管理员权限');
+    throw new ForbiddenException('权限不足');
   }
 }

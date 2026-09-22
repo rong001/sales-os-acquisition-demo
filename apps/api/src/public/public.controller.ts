@@ -35,10 +35,7 @@ export class PublicController {
       req.socket?.remoteAddress ||
       undefined;
     const user_agent = req.headers['user-agent'];
-    return this.leads.publicIntake({
-      ...(body as never),
-      ip,
-      user_agent,
-    });
+    const payload = Object.assign({}, body, { ip, user_agent });
+    return this.leads.publicIntake(payload as never);
   }
 }
