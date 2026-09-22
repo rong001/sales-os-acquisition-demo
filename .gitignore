@@ -23,3 +23,6 @@ docs/acceptance/internal-trial/.raw-run/
 
 # 预约确认 RBAC E2E 原始响应含 JWT
 docs/acceptance/internal-trial/confirm-appointment-rbac/.raw/
+
+# 到期跟进提醒 E2E 原始响应含 JWT
+docs/acceptance/internal-trial/followup-reminders/.raw/

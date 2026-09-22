@@ -2,18 +2,25 @@
 
 > 本文件列出**不能**仅凭当前自动化勾选为已证明的事项。域名不是当前第一阻塞。
 
+## 已本轮证明（站内）
+
+| 项 | 说明 |
+|---|---|
+| **站内到期跟进待办** | `LeadCase.next_follow_at` + 作战台 `due_follow_ups` +「已处理」；见 `followup-reminders/`。**外部消息送达仍待接入**。 |
+| **本功能重启持久化** | `e2e:followup` 在 `supervise.sh restart` 后仍保留归属、跟进时间与 open 待办。 |
+
 ## 待验证（PENDING_VERIFY）
 
 | 项 | 为何不能勾已证明 | 建议复测 |
 |---|---|---|
-| **经理角色独立证明** | 旧版 `e2e-internal-sales.sh` 曾静默 `manager→admin` 回退，用 admin 跑通不能独立证明 `manager@` 的 supervisor 鉴权路径。本轮已去掉静默回退；预约确认套件**强制** manager 登录成功。若经理登录失败，记 `manager_role: PENDING_VERIFY` 并 FAIL。 | `npm run e2e:confirm-appt`（强制 manager）；或人工用 `manager@demo.local` 登录看 role |
-| **进程重启持久化** | 内部试用 E2E 将 `persist_restart` 标为跳过/待验证，未在本轮做 stop→start 后再读案。 | `bash scripts/supervise.sh restart` 后 GET 同一 case，核对 stage/activities |
-| **到期跟进提醒已触发** | 写入 `meta.next_follow_at` 或确认预约，**只证明字段/阶段落库**，不证明 worker 到点发出提醒/触达。 | 查 worker 日志/计划任务/reach attempt；或构造已到期 `next_follow_at` 观察调度 |
+| **经理角色独立证明（全套件）** | 预约确认与跟进提醒套件已强制 manager；旧内部闭环痕迹需以最新 `e2e:internal`（已禁 admin 回退）为准。 | `npm run e2e:confirm-appt` / `e2e:followup` / `e2e:internal` |
+| **外部到期提醒触达** | 站内待办 ≠ SMS/Call/Email/worker 到点外发。 | 查 worker/计划任务/reach attempt；接通真实凭据后另测 |
+| **全库任意字段重启** | 跟进提醒套件已证本功能；未声称对历史所有表做完整 stop→start 审计。 | 按需扩大 |
 
 ## 主阻塞排序（内部试用）
 
-1. **预约确认鉴权前置（本轮已修并 E2E 字段级验证）** — 非归属销售不得通过幂等捷径确认他人预约；孤儿 case 返回 404。
-2. 上表三项 **待验证**（经理角色独立性、重启持久化、到期提醒实触发）。
+1. **外部消息送达**（SMS/Call/Email）仍待接入 — 站内提醒已可用。
+2. 上表待验证项。
 3. **固定域名 / DNS / Cloudflare** — **待用户确认**，不是当前第一功能阻塞；本机 `:3100` + gateway `:18180` 可复测。
 
 ## 明确未声称

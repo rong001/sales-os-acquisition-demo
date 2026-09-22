@@ -17,6 +17,7 @@
     "start:dev": "npm run start:dev -w @sales-os/api",
     "e2e": "bash scripts/e2e-acquisition.sh",
     "e2e:internal": "bash scripts/e2e-internal-sales.sh",
-    "e2e:confirm-appt": "bash scripts/e2e-confirm-appointment-rbac.sh"
+    "e2e:confirm-appt": "bash scripts/e2e-confirm-appointment-rbac.sh",
+    "e2e:followup": "bash scripts/e2e-followup-reminders.sh"
   }
 }

@@ -646,12 +646,28 @@ export class LeadsService {
     return { appointment: appt, event: 'conversion.appointment_valid' };
   }
 
-  async addActivity(user: AuthUser, caseId: string, body: { kind?: string; body: string; meta?: Record<string, unknown> }) {
+  async addActivity(user: AuthUser, caseId: string, body: {
+    kind?: string; body: string; meta?: Record<string, unknown>; next_follow_at?: string | null;
+  }) {
     const c = await this.cases.findOne({ where: { id: caseId } });
     if (!c) throw new NotFoundException('案件不存在');
     this.assertTenant(c.tenant_id, user);
     this.assertCaseAccess(user, c, 'write');
     if (!body.body?.trim()) throw new BadRequestException('跟进内容不能为空');
+
+    const meta = { ...(body.meta || {}) };
+    const rawNext = body.next_follow_at !== undefined
+      ? body.next_follow_at
+      : (meta.next_follow_at as string | null | undefined);
+    let parsedNext: Date | null | undefined;
+    if (rawNext === null || rawNext === '') {
+      parsedNext = null;
+    } else if (typeof rawNext === 'string') {
+      const d = new Date(rawNext);
+      if (Number.isNaN(d.getTime())) throw new BadRequestException('next_follow_at 无效');
+      parsedNext = d;
+      meta.next_follow_at = d.toISOString();
+    }
 
     const activity = await this.activities.save(this.activities.create({
       tenant_id: user.tenant_id,
@@ -659,19 +675,35 @@ export class LeadsService {
       actor_user_id: user.sub,
       kind: body.kind || 'note',
       body: body.body.trim(),
-      meta: body.meta || {},
+      meta,
     }));
+
+    if (parsedNext !== undefined) {
+      c.next_follow_at = parsedNext;
+      c.follow_up_status = parsedNext ? 'open' : null;
+      await this.cases.save(c);
+    }
 
     await this.events.emit({
       tenant_id: user.tenant_id, case_id: caseId, type: 'case.followup_added',
-      actor: user.sub, payload: { activity_id: activity.id, kind: activity.kind },
+      actor: user.sub,
+      payload: {
+        activity_id: activity.id,
+        kind: activity.kind,
+        next_follow_at: c.next_follow_at ? new Date(c.next_follow_at).toISOString() : null,
+        follow_up_status: c.follow_up_status,
+      },
     });
     await this.events.audit({
       tenant_id: user.tenant_id, actor_user_id: user.sub, action: 'case.activity_add',
-      resource_type: 'CaseActivity', resource_id: activity.id, detail: { case_id: caseId, kind: activity.kind },
+      resource_type: 'CaseActivity', resource_id: activity.id,
+      detail: {
+        case_id: caseId, kind: activity.kind,
+        next_follow_at: c.next_follow_at ? new Date(c.next_follow_at).toISOString() : null,
+      },
     });
 
-    return activity;
+    return { activity, case: { id: c.id, next_follow_at: c.next_follow_at, follow_up_status: c.follow_up_status } };
   }
 
   async listActivities(user: AuthUser, caseId: string) {
@@ -753,16 +785,75 @@ export class LeadsService {
       take: 20,
     });
 
+    const dueFollowUps = await this.listDueFollowUps(user);
+
     return {
       stats: {
         my_open: cases.filter((c) => c.owner_agent_id === seatId).length,
         pending_confirm: pendingConfirm.length,
         reaching: cases.filter((c) => c.stage === 'REACHING' || c.stage === 'IN_DIALOG').length,
         appointed: cases.filter((c) => c.stage === 'APPOINTED' || c.stage === 'APPOINTMENT_PENDING').length,
+        due_follow_ups: dueFollowUps.length,
       },
       cases,
       pending_appointments: pendingConfirm,
+      due_follow_ups: dueFollowUps,
     };
+  }
+
+  /** 到期跟进待办：next_follow_at <= now、status=open；销售仅本人名下，经理/管理员看全租户 */
+  async listDueFollowUps(user: AuthUser) {
+    const now = new Date();
+    const qb = this.cases.createQueryBuilder('c')
+      .where('c.tenant_id = :tid', { tid: user.tenant_id })
+      .andWhere('c.next_follow_at IS NOT NULL')
+      .andWhere('c.next_follow_at <= :now', { now })
+      .andWhere('c.follow_up_status = :st', { st: 'open' })
+      .orderBy('c.next_follow_at', 'ASC')
+      .take(50);
+    if (!this.isAdmin(user)) {
+      const seat = user.agent_seat_id;
+      if (!seat) return [];
+      qb.andWhere('c.owner_agent_id = :seat', { seat });
+    }
+    const rows = await qb.getMany();
+    return rows.map((c) => ({
+      case_id: c.id,
+      owner_agent_id: c.owner_agent_id,
+      stage: c.stage,
+      product_code: c.product_code,
+      next_follow_at: c.next_follow_at,
+      follow_up_status: c.follow_up_status,
+      updated_at: c.updated_at,
+    }));
+  }
+
+  /** 标记到期跟进已处理：不再出现在待办列表 */
+  async handleFollowUp(user: AuthUser, caseId: string) {
+    const c = await this.cases.findOne({ where: { id: caseId } });
+    if (!c) throw new NotFoundException('案件不存在');
+    this.assertTenant(c.tenant_id, user);
+    this.assertCaseAccess(user, c, 'write');
+    if (!c.next_follow_at || c.follow_up_status !== 'open') {
+      return {
+        case: c,
+        idempotent: true,
+        message: '无需处理或已处理',
+      };
+    }
+    c.follow_up_status = 'handled';
+    await this.cases.save(c);
+    await this.events.emit({
+      tenant_id: user.tenant_id, case_id: caseId, type: 'case.followup_handled',
+      actor: user.sub,
+      payload: { next_follow_at: new Date(c.next_follow_at).toISOString(), follow_up_status: 'handled' },
+    });
+    await this.events.audit({
+      tenant_id: user.tenant_id, actor_user_id: user.sub, action: 'case.followup_handle',
+      resource_type: 'LeadCase', resource_id: c.id,
+      detail: { next_follow_at: new Date(c.next_follow_at).toISOString() },
+    });
+    return { case: c, idempotent: false };
   }
 
   /**

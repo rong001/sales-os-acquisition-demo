@@ -58,6 +58,9 @@ export const LeadApi = {
     api(`/leads/${id}/mark-result`, { method: 'POST', body: JSON.stringify({ result, note }) }),
   getCase: (id) => api(`/leads/${id}`),
   today: () => api('/workbench/today'),
+  dueFollowUps: () => api('/workbench/due-follow-ups'),
+  handleFollowUp: (id) =>
+    api(`/leads/${id}/follow-up/handle`, { method: 'POST', body: '{}' }),
   addActivity: (id, body) =>
     api(`/leads/${id}/activities`, { method: 'POST', body: JSON.stringify(body) }),
   listActivities: (id) => api(`/leads/${id}/activities`),

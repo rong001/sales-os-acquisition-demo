@@ -78,19 +78,14 @@ MANAGER_USED="manager@demo.local"
 if MTOKEN=$(login "manager@demo.local" "$MANAGER_PASS" "$RAW/01-login-manager.json"); then
   MROLE=$(python3 -c 'import json; print(json.load(open("'"$RAW"'/01-login-manager.json")).get("user",{}).get("role",""))')
   if [[ "$MROLE" != "supervisor" && "$MROLE" != "manager" ]]; then
-    echo "WARN: manager login role=$MROLE (expected supervisor/manager) — manager_role=PENDING_VERIFY" | tee -a "$OUT_DIR/run.log"
+    echo "FAIL: manager login role=$MROLE (expected supervisor/manager) — NOT falling back to admin" | tee -a "$OUT_DIR/run.log"
     MANAGER_ROLE_STATUS="PENDING_VERIFY"
+    fail "manager role invalid ($MROLE); admin fallback forbidden"
   fi
 else
   echo "FAIL: manager@demo.local login failed — NOT falling back to admin; manager_role=PENDING_VERIFY" | tee -a "$OUT_DIR/run.log"
   MANAGER_ROLE_STATUS="PENDING_VERIFY"
-  # 写标记后仍尝试用 admin 仅跑非经理鉴权闭环，但 results 必须标 PENDING
-  if MTOKEN=$(login "admin@demo.local" "$ADMIN_PASS" "$RAW/01-login-manager-fallback.json"); then
-    MANAGER_USED="admin@demo.local (FALLBACK — manager_role PENDING_VERIFY)"
-    echo "WARN: using admin fallback for operational continuity; cannot independently prove manager role" | tee -a "$OUT_DIR/run.log"
-  else
-    fail "neither manager nor admin login succeeded"
-  fi
+  fail "manager login failed; admin fallback forbidden"
 fi
 S1TOKEN=$(login "agent@demo.local" "$AGENT_PASS" "$RAW/02-login-sales1.json")
 S2TOKEN=$(login "agent2@demo.local" "$AGENT2_PASS" "$RAW/03-login-sales2.json")
@@ -195,7 +190,7 @@ NEXT_AT=$(python3 -c 'from datetime import datetime,timedelta,timezone; print((d
 ACT=$(curl -sf -X POST "$API/leads/$CASE_A/activities" -H "$S1AUTH" -H 'Content-Type: application/json' -d "{
   \"kind\":\"note\",
   \"body\":\"内部试用跟进：已电话介绍通用销售流程与产品边界\",
-  \"meta\":{\"next_follow_at\":\"$NEXT_AT\",\"channel\":\"call\",\"source\":\"internal_trial\"}
+  \"next_follow_at\":\"$NEXT_AT\",\"meta\":{\"channel\":\"call\",\"source\":\"internal_trial\"}
 }")
 echo "$ACT" > "$RAW/11-activity.json"
 echo "$ACT" | mask_json > "$OUT_DIR/activity-redacted.json"
@@ -303,7 +298,7 @@ summary={
     "mark_result":"PASS",
     "manager_view":"PASS",
     "negative_rbac":"PASS",
-    "persist_restart":"PENDING_VERIFY_SKIPPED"
+    "persist_restart":"SEE_e2e_followup_reminders"
   },
   "roles_used":{
     "管理员":"admin@demo.local",
@@ -314,8 +309,8 @@ summary={
   "manager_role":"$MANAGER_ROLE_STATUS",
   "caveats":{
     "manager_role_independent_proof":"$MANAGER_ROLE_STATUS",
-    "persist_restart":"PENDING_VERIFY_SKIPPED",
-    "next_follow_at_vs_due_reminder":"PENDING_VERIFY — meta.next_follow_at / 预约确认 ≠ 到期提醒已触发"
+    "persist_restart":"SEE_e2e_followup_reminders",
+    "next_follow_at_vs_due_reminder":"IN_APP_PASS — LeadCase.next_follow_at + workbench due list；外部消息送达仍待接入"
   },
   "redaction":"no phones/JWT/passwords in this file"
 }

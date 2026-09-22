@@ -1,67 +1,304 @@
 {
   "case": {
-    "id": "5dee65ad-b32c-478c-a7dc-14af470903a3",
-    "stage": "NURTURE",
+    "id": "73236ed2-9d1b-4eff-af70-f20900c40669",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "identity_id": "acf0bc30-f3eb-4b0b-9ad3-d31e8255bc70",
+    "source_id": "a0bf4b41-ba0a-4016-b718-cde6e93cc5a0",
+    "scene_id": "landing:usgate",
     "product_code": "usgate",
-    "owner_agent_id": "a152762d-a1b4-4581-9a4a-8433bf61c24e",
     "path": "STANDARD",
+    "stage": "NURTURE",
+    "owner_agent_id": "a152762d-a1b4-4581-9a4a-8433bf61c24e",
+    "skill_group_id": "9bbce901-5aa5-414d-8018-c1f61d30540c",
     "flags": {
       "result": "nurture",
-      "result_at": "2026-09-22T13:57:44.700Z",
+      "result_at": "2026-09-22T14:26:44.817Z",
       "result_by": "06a56a0c-5bbd-4591-80d8-f9597f8b5a09"
-    }
+    },
+    "intent_level": "unknown",
+    "intent_qualified": false,
+    "next_follow_at": "2026-09-23T02:00:00.000Z",
+    "follow_up_status": "open",
+    "created_at": "2026-09-22T14:26:44.204Z",
+    "updated_at": "2026-09-22T14:26:44.818Z"
+  },
+  "identity": {
+    "id": "acf0bc30-f3eb-4b0b-9ad3-d31e8255bc70",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "phone": "138****7210",
+    "wechat_id": null,
+    "email": "tr***@example.com",
+    "name": "内部试用线索B",
+    "company_name": "合成客户B（通用销售流程）",
+    "merge_key": "phone:138****7210",
+    "created_at": "2026-09-22T14:26:44.201Z"
   },
   "source": {
+    "id": "a0bf4b41-ba0a-4016-b718-cde6e93cc5a0",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
     "type": "manual_import",
+    "campaign": "internal_sales_loop",
+    "adset": null,
+    "creative": null,
+    "landing_url": null,
+    "form_id": "landing:usgate",
+    "import_batch_id": null,
     "utm_source": "internal_trial",
     "utm_medium": "manual",
     "utm_campaign": "internal_sales_loop",
     "utm_content": "lead_b",
+    "utm_term": null,
     "invite_code": "TRIAL02",
-    "product_code": "usgate"
+    "product_code": "usgate",
+    "raw_payload": {
+      "utm": {
+        "medium": "manual",
+        "source": "internal_trial",
+        "content": "lead_b",
+        "campaign": "internal_sales_loop"
+      },
+      "invite_code": "TRIAL02",
+      "product_code": "usgate"
+    },
+    "created_at": "2026-09-22T14:26:44.203Z"
   },
   "ownership": {
-    "id": "9933a25d-045d-4c61-ab13-1442d7ccbe79",
+    "id": "d2ab85ef-d3ee-4c35-a7e9-b92c35758337",
     "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
-    "case_id": "5dee65ad-b32c-478c-a7dc-14af470903a3",
+    "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
     "agent_id": "a152762d-a1b4-4581-9a4a-8433bf61c24e",
     "reason": "admin_assign",
-    "protect_until": "2026-09-24T13:57:44.374Z",
+    "protect_until": "2026-09-24T14:26:44.490Z",
     "status": "active",
-    "created_at": "2026-09-22T13:57:44.374Z"
+    "created_at": "2026-09-22T14:26:44.490Z"
   },
+  "plan": {
+    "id": "27dac171-344f-4852-9dec-436d66a9b24e",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
+    "sequence": [
+      {
+        "channel": "mock_call",
+        "max_attempts": 1,
+        "template_ref": "demo-script-usgate"
+      }
+    ],
+    "parallel_group": null,
+    "status": "active",
+    "version": 1,
+    "created_at": "2026-09-22T14:26:44.414Z"
+  },
+  "attempts": [],
+  "receipts": [],
+  "appointments": [],
+  "consents": [
+    {
+      "id": "0e219f90-1393-4dd9-9c83-e09c0d38b8a0",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "identity_id": "acf0bc30-f3eb-4b0b-9ad3-d31e8255bc70",
+      "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
+      "channel": "call",
+      "status": "granted",
+      "evidence_ref": "consent:v1.0-2026:57d15d2f63f1",
+      "consent_text": "我已阅读并同意贵司在业务沟通范围内通过电话/短信联系我，了解所咨询产品的服务说明。同意可随时撤回。",
+      "consent_text_hash": "57d15d2f63f169f90e1bf9c812928a07e8c0fa22f0a4752204ecb0cb6e658b18",
+      "consent_version": "v1.0-2026",
+      "source_channel": "manual_import",
+      "consent_accepted_at": "2026-09-22T14:26:44.206Z",
+      "ip": null,
+      "user_agent": null,
+      "granted_at": "2026-09-22T14:26:44.206Z",
+      "expires_at": null,
+      "created_at": "2026-09-22T14:26:44.206Z"
+    }
+  ],
   "activities": [
     {
-      "id": "8b50542a-16c0-47f8-840c-4ac23100cfc1",
+      "id": "0c4fa995-7219-43a2-8784-8ff7b715fbc9",
       "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
-      "case_id": "5dee65ad-b32c-478c-a7dc-14af470903a3",
+      "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
       "actor_user_id": "06a56a0c-5bbd-4591-80d8-f9597f8b5a09",
       "kind": "note",
       "body": "销售2跟进记录（合成）",
       "meta": {
-        "next_follow_at": "2026-09-23T10:00:00+08:00"
+        "next_follow_at": "2026-09-23T02:00:00.000Z"
       },
-      "created_at": "2026-09-22T13:57:44.679Z"
+      "created_at": "2026-09-22T14:26:44.791Z"
     },
     {
-      "id": "6a4eca41-7e78-494d-b213-815becc63a09",
+      "id": "3c5c5646-c0cf-4698-b3f3-668e3b0913b5",
       "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
-      "case_id": "5dee65ad-b32c-478c-a7dc-14af470903a3",
+      "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
       "actor_user_id": "06a56a0c-5bbd-4591-80d8-f9597f8b5a09",
       "kind": "result",
       "body": "继续培育",
       "meta": {
         "result": "nurture"
       },
-      "created_at": "2026-09-22T13:57:44.704Z"
+      "created_at": "2026-09-22T14:26:44.819Z"
     }
   ],
-  "appointments": [],
-  "identity_masked": {
-    "name": "内部试用线索B",
-    "phone": "138****5470",
-    "email": "tr***@example.com",
-    "company_name": "合成客户B（通用销售流程）"
-  },
-  "note": "脱敏摘要；完整事件流未入库"
+  "events": [
+    {
+      "id": "b08b115e-9c49-4b3b-ae96-6c0fb4cc1ea7",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
+      "type": "lead.captured",
+      "occurred_at": "2026-09-22T14:26:44.207Z",
+      "received_at": "2026-09-22T14:26:44.207Z",
+      "actor": "a8141459-5469-4e2f-906a-e2232a6add74",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "merged": false,
+        "merge_key": "phone:138****7210",
+        "source_id": "a0bf4b41-ba0a-4016-b718-cde6e93cc5a0",
+        "identity_id": "acf0bc30-f3eb-4b0b-9ad3-d31e8255bc70",
+        "invite_code": "TRIAL02",
+        "product_code": "usgate"
+      },
+      "version": 1
+    },
+    {
+      "id": "07b8fbc9-9c7a-454d-ba35-490d6d80ef6f",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
+      "type": "lead.qualified",
+      "occurred_at": "2026-09-22T14:26:44.415Z",
+      "received_at": "2026-09-22T14:26:44.415Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "path": "STANDARD"
+      },
+      "version": 1
+    },
+    {
+      "id": "c8e24793-65e1-400e-a731-7ad5fe07fa70",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
+      "type": "lead.path_assigned",
+      "occurred_at": "2026-09-22T14:26:44.421Z",
+      "received_at": "2026-09-22T14:26:44.421Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "path": "STANDARD"
+      },
+      "version": 1
+    },
+    {
+      "id": "4530b9da-567c-4f78-9c04-c436aaa3b3d7",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
+      "type": "reach.plan_created",
+      "occurred_at": "2026-09-22T14:26:44.425Z",
+      "received_at": "2026-09-22T14:26:44.425Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "plan_id": "27dac171-344f-4852-9dec-436d66a9b24e"
+      },
+      "version": 1
+    },
+    {
+      "id": "1e82b2c5-375d-4440-a840-9f5da9cb8edb",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
+      "type": "case.assigned",
+      "occurred_at": "2026-09-22T14:26:44.496Z",
+      "received_at": "2026-09-22T14:26:44.496Z",
+      "actor": "a8141459-5469-4e2f-906a-e2232a6add74",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "agent_id": "a152762d-a1b4-4581-9a4a-8433bf61c24e"
+      },
+      "version": 1
+    },
+    {
+      "id": "c9cc4ed6-768f-4a15-99f0-b79bc77e17c9",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
+      "type": "ownership.bound",
+      "occurred_at": "2026-09-22T14:26:44.501Z",
+      "received_at": "2026-09-22T14:26:44.501Z",
+      "actor": "a8141459-5469-4e2f-906a-e2232a6add74",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "ownership_id": "d2ab85ef-d3ee-4c35-a7e9-b92c35758337",
+        "protect_until": "2026-09-24T14:26:44.490Z"
+      },
+      "version": 1
+    },
+    {
+      "id": "bb0b8809-8f29-441c-b1ec-7c10547307cf",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
+      "type": "case.followup_added",
+      "occurred_at": "2026-09-22T14:26:44.795Z",
+      "received_at": "2026-09-22T14:26:44.795Z",
+      "actor": "06a56a0c-5bbd-4591-80d8-f9597f8b5a09",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "kind": "note",
+        "activity_id": "0c4fa995-7219-43a2-8784-8ff7b715fbc9",
+        "next_follow_at": "2026-09-23T02:00:00.000Z",
+        "follow_up_status": "open"
+      },
+      "version": 1
+    },
+    {
+      "id": "c713bb07-6641-4e1d-bf26-3741a4c1ada1",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "73236ed2-9d1b-4eff-af70-f20900c40669",
+      "type": "case.result_marked",
+      "occurred_at": "2026-09-22T14:26:44.820Z",
+      "received_at": "2026-09-22T14:26:44.820Z",
+      "actor": "06a56a0c-5bbd-4591-80d8-f9597f8b5a09",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "result": "nurture"
+      },
+      "version": 1
+    }
+  ],
+  "product": {
+    "code": "usgate",
+    "name_zh": "USGate",
+    "name_en": "USGate",
+    "tagline": "跨境合规咨询入口 · 自愿留资（MOCK 演示）",
+    "amount_hint": "首次咨询免费；正式方案报价另行确认，不含结果承诺",
+    "cancel_policy": "预约开始前 2 小时可取消；临近 2 小时取消记入爽约统计",
+    "commitment_boundary": "本预约不构成签证/合规结果或价格承诺；成单需另行确认",
+    "skill": "usgate",
+    "demo_live_url": "https://117.55.227.224:8443/",
+    "intake_url": "https://117.55.227.224:8443/",
+    "repo_url": "https://github.com/rong001/usgate-demo",
+    "repo_tip": "809bf29",
+    "secondary_repos": [
+      {
+        "name": "usgate-client",
+        "url": "https://github.com/rong001/usgate-client",
+        "tip": "53a9afb"
+      }
+    ],
+    "status_label": "MOCK 演示+脱敏源码 · 不可标 ToC 真实可用/可售",
+    "service_disclaimer": "本页为「演示留资」入口，不等于正式服务合同。USGate 现网仅为 MOCK 门户（mock_xui:true），非真面板/真机验收。",
+    "capabilities": [
+      "MOCK 门户公网可开（Let’s Encrypt IP；mock_xui:true）",
+      "demo@809bf29 · client@53a9afb 脱敏源码已公开"
+    ],
+    "honesty": [
+      "未接真实 3X-UI；Android 真机 E2E 未通过",
+      "未交付：真面板验收、真订阅、真机出口证据、GH Actions CI workflow 上线",
+      "不可标 ToC 真实可用/可售"
+    ]
+  }
 }

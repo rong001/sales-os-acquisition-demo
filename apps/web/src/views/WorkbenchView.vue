@@ -18,7 +18,35 @@
     <div class="grid-3" style="margin-bottom:12px">
       <div class="card"><div class="muted">我的在办</div><div style="font-size:28px">{{ data?.stats?.my_open ?? '—' }}</div></div>
       <div class="card"><div class="muted">待确认预约</div><div style="font-size:28px">{{ data?.stats?.pending_confirm ?? '—' }}</div></div>
-      <div class="card"><div class="muted">触达中</div><div style="font-size:28px">{{ data?.stats?.reaching ?? '—' }}</div></div>
+      <div class="card"><div class="muted">到期跟进</div><div style="font-size:28px" data-testid="due-follow-count">{{ data?.stats?.due_follow_ups ?? '—' }}</div></div>
+    </div>
+
+    <div class="card stack" style="margin-bottom:12px" data-testid="due-follow-ups">
+      <div class="row" style="justify-content:space-between">
+        <strong>到期跟进</strong>
+        <span class="tag warn">站内提醒 · 外部消息待接入</span>
+      </div>
+      <div v-if="!(data?.due_follow_ups || []).length" class="muted">暂无到期待办</div>
+      <div
+        v-for="r in data?.due_follow_ups || []"
+        :key="r.case_id"
+        class="list-item row"
+        data-testid="due-follow-item"
+      >
+        <div class="grow" style="cursor:pointer" @click="$router.push(`/cases/${r.case_id}`)">
+          <div>{{ r.case_id.slice(0, 8) }} · {{ stageLabel(r.stage) }}
+            <span v-if="r.product_code" class="tag" style="margin-left:6px">{{ r.product_code }}</span>
+          </div>
+          <div class="muted" style="font-size:12px">到期 {{ formatTime(r.next_follow_at) }}</div>
+        </div>
+        <button
+          v-if="canWrite"
+          class="btn btn-primary"
+          :disabled="busyId === r.case_id"
+          data-testid="due-follow-handle"
+          @click.stop="doHandle(r.case_id)"
+        >已处理</button>
+      </div>
     </div>
 
     <div class="grid-3">
@@ -38,6 +66,7 @@
           <div class="grow">
             <div>{{ c.id.slice(0, 8) }} · {{ stageLabel(c.stage) }}
               <span v-if="c.product_code" class="tag" style="margin-left:6px">{{ c.product_code }}</span>
+              <span v-if="c.follow_up_status === 'open' && c.next_follow_at" class="tag warn" style="margin-left:6px">下次跟进</span>
             </div>
             <div class="muted" style="font-size:12px">路径 {{ c.path }} · 更新 {{ formatTime(c.updated_at) }}</div>
           </div>
@@ -66,6 +95,7 @@ const router = useRouter();
 const toast = inject('toast', () => {});
 const data = ref(null);
 const busy = ref(false);
+const busyId = ref('');
 const user = ref(null);
 
 try { user.value = JSON.parse(localStorage.getItem('salesos_user') || 'null'); } catch { /* ignore */ }
@@ -78,6 +108,7 @@ function stageLabel(s) {
   const map = {
     NEW: '新建', QUALIFIED: '已合格', ASSIGNED: '已分配', REACHING: '触达中', IN_DIALOG: '会话中',
     APPOINTMENT_PENDING: '待确认预约', APPOINTED: '已预约', NURTURE: '培育', BLOCKED: '冻结',
+    WON: '赢单', LOST: '丢单',
   };
   return map[s] || s;
 }
@@ -88,6 +119,19 @@ function formatTime(v) {
 
 async function load() {
   data.value = await LeadApi.today();
+}
+
+async function doHandle(caseId) {
+  busyId.value = caseId;
+  try {
+    await LeadApi.handleFollowUp(caseId);
+    toast('已标记跟进处理');
+    await load();
+  } catch (e) {
+    toast(e.message || '处理失败');
+  } finally {
+    busyId.value = '';
+  }
 }
 
 async function runHappyPath() {

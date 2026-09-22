@@ -88,9 +88,22 @@ export class LeadsController {
   addActivity(
     @CurrentUser() user: AuthUser,
     @Param('caseId') caseId: string,
-    @Body() body: { kind?: string; body: string; meta?: Record<string, unknown> },
+    @Body() body: {
+      kind?: string; body: string; meta?: Record<string, unknown>; next_follow_at?: string | null;
+    },
   ) {
     return this.leads.addActivity(user, caseId, body);
+  }
+
+  @Get('workbench/due-follow-ups')
+  dueFollowUps(@CurrentUser() user: AuthUser) {
+    return this.leads.listDueFollowUps(user);
+  }
+
+  @Post('leads/:caseId/follow-up/handle')
+  @Roles('agent', 'admin', 'supervisor')
+  handleFollowUp(@CurrentUser() user: AuthUser, @Param('caseId') caseId: string) {
+    return this.leads.handleFollowUp(user, caseId);
   }
 
   @Get('leads/:caseId/activities')

@@ -100,6 +100,10 @@ export class LeadCase {
   @Column({ type: 'jsonb', default: {} }) flags!: Record<string, unknown>;
   @Column({ type: 'varchar', default: 'unknown' }) intent_level!: string;
   @Column({ default: false }) intent_qualified!: boolean;
+  /** 下次跟进到期时间（站内待办；非 SMS/Call 送达） */
+  @Column({ type: 'timestamptz', nullable: true }) next_follow_at!: Date | null;
+  /** open=待处理；handled=已处理（不再出现在到期列表） */
+  @Column({ type: 'varchar', nullable: true, default: null }) follow_up_status!: string | null;
   @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
   @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
 }

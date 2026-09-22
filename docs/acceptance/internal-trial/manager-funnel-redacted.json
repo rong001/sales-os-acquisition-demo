@@ -1,24 +1,25 @@
 {
   "funnel": {
-    "intake": 71,
-    "qualified": 14,
-    "assigned": 12,
-    "reached_intent": 7,
-    "appointed": 11,
+    "intake": 81,
+    "qualified": 23,
+    "assigned": 21,
+    "reached_intent": 13,
+    "appointed": 18,
     "ordered": 0,
-    "won": 4,
+    "won": 5,
     "lost": 0
   },
   "by_product": {
     "unknown": 1,
-    "ticket-grab": 53,
-    "usgate": 17
+    "ticket-grab": 59,
+    "usgate": 21
   },
   "stages": {
-    "APPOINTED": 7,
-    "NEW": 57,
-    "WON": 4,
+    "APPOINTED": 13,
+    "NEW": 58,
+    "WON": 5,
     "REACHING": 1,
-    "NURTURE": 2
+    "NURTURE": 3,
+    "ASSIGNED": 1
   }
 }

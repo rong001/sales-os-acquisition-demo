@@ -81,14 +81,37 @@
 
     <div class="card stack" style="margin-top:12px">
       <strong>跟进时间线</strong>
+      <div v-if="detail.case.next_follow_at" class="list-item" style="cursor:default" data-testid="case-next-follow">
+        <div>下次跟进：{{ formatTime(detail.case.next_follow_at) }}
+          <span class="tag" :class="detail.case.follow_up_status === 'open' ? 'warn' : 'ok'" style="margin-left:6px">
+            {{ detail.case.follow_up_status === 'open' ? '待处理' : (detail.case.follow_up_status || '—') }}
+          </span>
+        </div>
+        <div class="muted" style="font-size:12px">站内提醒；到期后出现在作战台「到期跟进」</div>
+      </div>
       <div v-for="a in detail.activities || []" :key="a.id" class="list-item" style="cursor:default">
         <div>{{ a.body }}</div>
-        <div class="muted" style="font-size:12px">{{ a.kind }} · {{ formatTime(a.created_at) }}</div>
+        <div class="muted" style="font-size:12px">{{ a.kind }} · {{ formatTime(a.created_at) }}
+          <span v-if="a.meta?.next_follow_at"> · 约 {{ formatTime(a.meta.next_follow_at) }}</span>
+        </div>
       </div>
       <div v-if="!(detail.activities || []).length" class="muted">暂无跟进记录</div>
-      <div v-if="canWrite" class="row">
-        <input class="input grow" v-model="note" placeholder="添加跟进备注…" @keyup.enter="doNote" />
-        <button class="btn btn-primary" :disabled="busy || !note.trim()" @click="doNote">添加</button>
+      <div v-if="canWrite" class="stack" style="gap:8px">
+        <div class="row">
+          <input class="input grow" v-model="note" placeholder="添加跟进备注…" @keyup.enter="doNote" />
+          <button class="btn btn-primary" :disabled="busy || !note.trim()" @click="doNote">添加</button>
+        </div>
+        <div class="row" style="flex-wrap:wrap">
+          <label class="muted" style="font-size:12px">下次跟进时间</label>
+          <input class="input" style="width:auto;min-width:220px" type="datetime-local" v-model="nextFollowLocal" data-testid="next-follow-at" />
+          <button
+            v-if="detail.case.follow_up_status === 'open'"
+            class="btn"
+            :disabled="busy"
+            data-testid="handle-follow-detail"
+            @click="doHandleFollow"
+          >已处理跟进</button>
+        </div>
       </div>
     </div>
 
@@ -133,6 +156,7 @@ const busy = ref(false);
 const showConfirm = ref(false);
 const showHistory = ref(false);
 const note = ref('');
+const nextFollowLocal = ref('');
 const agents = ref([]);
 const assignSeat = ref('');
 const resultMark = ref('');
@@ -225,11 +249,29 @@ function doConfirm() {
     toast(res.event || '预约已确认');
   });
 }
+function toIsoFromLocal(v) {
+  if (!v) return undefined;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toISOString();
+}
+
 function doNote() {
   return wrap(async () => {
-    await LeadApi.addActivity(route.params.id, { kind: 'note', body: note.value });
+    const payload = { kind: 'note', body: note.value };
+    const iso = toIsoFromLocal(nextFollowLocal.value);
+    if (iso) payload.next_follow_at = iso;
+    await LeadApi.addActivity(route.params.id, payload);
     note.value = '';
-    toast('已添加跟进');
+    nextFollowLocal.value = '';
+    toast(iso ? '已添加跟进并设定下次提醒' : '已添加跟进');
+  });
+}
+
+function doHandleFollow() {
+  return wrap(async () => {
+    await LeadApi.handleFollowUp(route.params.id);
+    toast('已标记跟进处理');
   });
 }
 
