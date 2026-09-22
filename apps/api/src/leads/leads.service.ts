@@ -55,6 +55,21 @@ export class LeadsService {
     return user.role === 'admin' || user.role === 'supervisor';
   }
 
+  /** 销售仅可访问未分配或本人名下案件；管理员/经理/只读访客可看全量。 */
+  private assertCaseAccess(user: AuthUser, c: LeadCase, mode: 'read' | 'write' = 'read') {
+    if (this.isAdmin(user)) return;
+    if (user.role === 'viewer') {
+      if (mode === 'write') throw new ForbiddenException('只读访客禁止写操作');
+      return;
+    }
+    // agent / 其他业务角色：归属校验
+    const seat = user.agent_seat_id;
+    if (!seat) throw new ForbiddenException('无坐席身份，禁止访问案件');
+    if (c.owner_agent_id && c.owner_agent_id !== seat) {
+      throw new ForbiddenException('无权访问其他销售的客户');
+    }
+  }
+
   async resolveDemoTenant(): Promise<Tenant> {
     const slug = process.env.DEMO_TENANT_SLUG || 'demo';
     let t = await this.tenants.findOne({ where: { slug } });
@@ -221,6 +236,7 @@ export class LeadsService {
     const c = await this.cases.findOne({ where: { id: caseId } });
     if (!c) throw new NotFoundException('案件不存在');
     this.assertTenant(c.tenant_id, user);
+    this.assertCaseAccess(user, c, 'write');
     if (c.stage !== 'NEW' && c.stage !== 'REJECTED') return { case: c };
 
     const callConsent = await this.consents.findOne({
@@ -274,6 +290,7 @@ export class LeadsService {
     const c = await this.cases.findOne({ where: { id: caseId } });
     if (!c) throw new NotFoundException('案件不存在');
     this.assertTenant(c.tenant_id, user);
+    this.assertCaseAccess(user, c, 'write');
     if (c.stage === 'NEW') throw new BadRequestException('请先核验合格');
 
     let seat: AgentSeat | null = null;
@@ -370,6 +387,7 @@ export class LeadsService {
     const c = await this.cases.findOne({ where: { id: caseId } });
     if (!c) throw new NotFoundException('案件不存在');
     this.assertTenant(c.tenant_id, user);
+    this.assertCaseAccess(user, c, 'write');
 
     const emailChannel = channel === 'email' || channel === 'mock_email';
     const realEnabled =
@@ -466,6 +484,7 @@ export class LeadsService {
 
     const c = await this.cases.findOne({ where: { id: attempt.case_id } });
     if (!c) throw new NotFoundException('案件不存在');
+    this.assertCaseAccess(user, c, 'write');
 
     await this.events.emit({
       tenant_id: user.tenant_id, case_id: c.id, type: 'reach.receipt_mapped',
@@ -522,6 +541,7 @@ export class LeadsService {
     const c = await this.cases.findOne({ where: { id: caseId } });
     if (!c) throw new NotFoundException('案件不存在');
     this.assertTenant(c.tenant_id, user);
+    this.assertCaseAccess(user, c, 'write');
 
     const existing = await this.appointments.findOne({ where: { case_id: caseId, status: 'draft' } });
     if (existing) return existing;
@@ -577,6 +597,7 @@ export class LeadsService {
 
     const c = await this.cases.findOne({ where: { id: appt.case_id } });
     if (c) {
+      this.assertCaseAccess(user, c, 'write');
       c.stage = 'APPOINTED';
       await this.cases.save(c);
       const own = await this.ownerships.findOne({ where: { case_id: c.id, status: 'active' } });
@@ -619,6 +640,7 @@ export class LeadsService {
     const c = await this.cases.findOne({ where: { id: caseId } });
     if (!c) throw new NotFoundException('案件不存在');
     this.assertTenant(c.tenant_id, user);
+    this.assertCaseAccess(user, c, 'write');
     if (!body.body?.trim()) throw new BadRequestException('跟进内容不能为空');
 
     const activity = await this.activities.save(this.activities.create({
@@ -646,6 +668,7 @@ export class LeadsService {
     const c = await this.cases.findOne({ where: { id: caseId } });
     if (!c) throw new NotFoundException('案件不存在');
     this.assertTenant(c.tenant_id, user);
+    this.assertCaseAccess(user, c, 'read');
     return this.activities.find({
       where: { tenant_id: user.tenant_id, case_id: caseId },
       order: { created_at: 'ASC' },
@@ -656,6 +679,7 @@ export class LeadsService {
     const c = await this.cases.findOne({ where: { id: caseId } });
     if (!c) throw new NotFoundException('案件不存在');
     this.assertTenant(c.tenant_id, user);
+    this.assertCaseAccess(user, c, 'read');
 
     const identity = await this.identities.findOne({ where: { id: c.identity_id } });
     const source = c.source_id ? await this.sources.findOne({ where: { id: c.source_id } }) : null;
@@ -792,6 +816,7 @@ export class LeadsService {
     const c = await this.cases.findOne({ where: { id: caseId } });
     if (!c) throw new NotFoundException('案件不存在');
     this.assertTenant(c.tenant_id, user);
+    this.assertCaseAccess(user, c, 'write');
 
     const stageMap: Record<string, string> = {
       won: 'WON',

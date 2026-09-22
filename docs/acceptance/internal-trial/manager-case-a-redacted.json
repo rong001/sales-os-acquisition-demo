@@ -1,0 +1,78 @@
+{
+  "case": {
+    "id": "0cddfe2c-58f8-4bbc-b323-ad1c44c2370b",
+    "stage": "WON",
+    "product_code": "ticket-grab",
+    "owner_agent_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+    "path": "STANDARD",
+    "flags": {
+      "result": "won",
+      "result_at": "2026-09-22T13:57:44.625Z",
+      "result_by": "f28f595b-b43c-4962-905a-7bd278568681"
+    }
+  },
+  "source": {
+    "type": "manual_import",
+    "utm_source": "internal_trial",
+    "utm_medium": "manual",
+    "utm_campaign": "internal_sales_loop",
+    "utm_content": "lead_a",
+    "invite_code": "TRIAL01",
+    "product_code": "ticket-grab"
+  },
+  "ownership": {
+    "id": "2764f2f4-ce83-4e31-a5ed-1272cb9765b2",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "case_id": "0cddfe2c-58f8-4bbc-b323-ad1c44c2370b",
+    "agent_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+    "reason": "admin_assign",
+    "protect_until": "2026-09-24T14:00:00.000Z",
+    "status": "active",
+    "created_at": "2026-09-22T13:57:44.350Z"
+  },
+  "activities": [
+    {
+      "id": "b04e9f19-4a1a-4a87-936b-5e6bb6e7c2af",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "0cddfe2c-58f8-4bbc-b323-ad1c44c2370b",
+      "actor_user_id": "f28f595b-b43c-4962-905a-7bd278568681",
+      "kind": "note",
+      "body": "内部试用跟进：已电话介绍通用销售流程与产品边界",
+      "meta": {
+        "source": "internal_trial",
+        "channel": "call",
+        "next_follow_at": "2026-09-23T10:00:00+08:00"
+      },
+      "created_at": "2026-09-22T13:57:44.462Z"
+    },
+    {
+      "id": "8ab8c6a1-cf14-497e-b462-b4f22cb96a57",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "0cddfe2c-58f8-4bbc-b323-ad1c44c2370b",
+      "actor_user_id": "f28f595b-b43c-4962-905a-7bd278568681",
+      "kind": "result",
+      "body": "内部试用：合成商机标记为成交(won)",
+      "meta": {
+        "result": "won"
+      },
+      "created_at": "2026-09-22T13:57:44.628Z"
+    }
+  ],
+  "appointments": [
+    {
+      "id": "bceb757f-0298-4946-bd68-b623850109f7",
+      "status": "confirmed",
+      "valid": true,
+      "slot_start": "2026-09-23T13:00:00.000Z",
+      "slot_end": "2026-09-23T14:00:00.000Z",
+      "owner_agent_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69"
+    }
+  ],
+  "identity_masked": {
+    "name": "内部试用线索A",
+    "phone": "139****5463",
+    "email": "tr***@example.com",
+    "company_name": "合成客户A（通用销售流程）"
+  },
+  "note": "脱敏摘要；完整事件流未入库"
+}

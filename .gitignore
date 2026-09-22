@@ -17,3 +17,6 @@ docs/acceptance/e2e-logs/TOKEN.txt
 var/
 docs/acceptance/**/*.log
 !docs/acceptance/**/*.log.txt
+
+# 内部试用原始响应含 JWT，不入库
+docs/acceptance/internal-trial/.raw-run/

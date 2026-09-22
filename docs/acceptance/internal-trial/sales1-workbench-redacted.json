@@ -1,0 +1,34 @@
+{
+  "stats": {
+    "my_open": 4,
+    "pending_confirm": 0,
+    "reaching": 1,
+    "appointed": 1
+  },
+  "cases_trial_only": [
+    {
+      "id": "0cddfe2c-58f8-4bbc-b323-ad1c44c2370b",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "identity_id": "214b0280-06d0-470d-95eb-cc7117f8e787",
+      "source_id": "73320f6c-4de0-49fb-9424-b4f849b1ca43",
+      "scene_id": "landing:ticket-grab",
+      "product_code": "ticket-grab",
+      "path": "STANDARD",
+      "stage": "WON",
+      "owner_agent_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+      "skill_group_id": "9bbce901-5aa5-414d-8018-c1f61d30540c",
+      "flags": {
+        "result": "won",
+        "result_at": "2026-09-22T13:57:44.625Z",
+        "result_by": "f28f595b-b43c-4962-905a-7bd278568681"
+      },
+      "intent_level": "unknown",
+      "intent_qualified": false,
+      "created_at": "2026-09-22T13:57:44.022Z",
+      "updated_at": "2026-09-22T13:57:44.626Z"
+    }
+  ],
+  "cases_total_in_original_dump": 50,
+  "note": "已裁剪为本次合成试用案件，避免提交历史全量列表",
+  "pending_appointments_count": 0
+}

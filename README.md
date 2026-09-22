@@ -8,10 +8,12 @@
 |---|---|---|---|---|---|---|
 | 抢票 | [已交付](https://github.com/rong001/ticket-grab-cloud-demo) tip `9ee80b0` | [HTTPS](https://159.75.71.192:18444/) · [/intake](https://159.75.71.192:18444/intake) | Compose+Caddy | 火车 live；机票库存/票价监控不可用；邮件未实达；成交 stub | 未通过完整 ToC | 机票 Key；SMTP；真实购票 |
 | USGate | demo@`809bf29` · client@`53a9afb` | [MOCK](https://117.55.227.224:8443/) | 见矩阵 | MOCK 门户；非真面板/真机 | 不可标可售 | 真面板/真机/CI |
-| 获客（本仓库） | [已交付](https://github.com/rong001/sales-os-acquisition-demo) | 公网 **临时** trycloudflare（见 PUBLIC_URL.txt）；**固定域名未启用（条件待用户确认）** | dist+gateway:18180+supervise；Named Tunnel 占位已备，启用前须用户确认域名与 DNS/Cloudflare | 获客全切片+限流+内容页+渠道/转化；触达 MOCK；邮件未配置=未送达 | **临时演示可维护；固定域名与独立端到端验收未通过**（勿标生产稳定已完成） | 域名与 DNS/Cloudflare 条件待用户确认；凭证；真实触达 |
+| 获客（本仓库） | [已交付](https://github.com/rong001/sales-os-acquisition-demo) | 公网 **临时** trycloudflare（见 PUBLIC_URL.txt）；**固定域名未启用（条件待用户确认）** | dist+gateway:18180+supervise；Named Tunnel 占位已备，启用前须用户确认域名与 DNS/Cloudflare | **内部销售闭环**+限流+内容页+渠道/转化；触达 MOCK；邮件未配置=未送达 | **临时演示可维护；固定域名与独立端到端验收未通过**（勿标生产稳定已完成） | 域名与 DNS/Cloudflare 条件待用户确认；凭证；真实触达 |
 
 
-面向 **抢票产品（ticket-grab）** 与 **USGate** 的获客经营垂直切片：公开落地页留资 → 同意证据 → UTM/邀请码归因 → 去重建档 → 技能组负载分配 → 跟进时间线 → 预约披露确认 → 转化漏斗。
+面向销售公司 **内部获客与跟进**：线索录入/导入 → 去重 → 经理分配 → 销售跟进与下次提醒 → 商机/成交结果 → 经理查看（含 RBAC）。  
+历史演示渠道含 **抢票（ticket-grab）** / **USGate** 落地页留资（UTM/邀请码/同意证据），**仅为进线演示，不是整体系统验收 Done**。  
+域名与 DNS/Cloudflare 条件**待用户确认**；勿宣称生产稳定或可售。
 
 设计对齐见同级目录 `../sales-os/`（00–06）。
 
@@ -36,6 +38,14 @@ sales-os-app/
   docs/          未完成项、用户操作、验收证据
   scripts/       冒烟 / E2E / 公网部署
 ```
+
+## 内部试用复测
+
+```bash
+npm run e2e:internal   # 合成线索闭环 + 跨销售 403；产物 docs/acceptance/internal-trial/
+```
+
+登录邮箱见 `docs/acceptance/internal-trial/INVENTORY.md`；密码仅在本地 `.env` 的 `DEMO_*`。
 
 ## 端口说明（统一）
 

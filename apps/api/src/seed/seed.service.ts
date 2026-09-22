@@ -27,13 +27,15 @@ export class SeedService implements OnModuleInit {
     await this.ensureDemo();
   }
 
-  private demoPassword(which: 'agent' | 'admin' | 'viewer') {
-    const fromEnv =
-      which === 'agent'
-        ? process.env.DEMO_AGENT_PASSWORD
-        : which === 'admin'
-          ? process.env.DEMO_ADMIN_PASSWORD
-          : process.env.DEMO_VIEWER_PASSWORD;
+  private demoPassword(which: 'agent' | 'admin' | 'viewer' | 'agent2' | 'manager') {
+    const map: Record<string, string | undefined> = {
+      agent: process.env.DEMO_AGENT_PASSWORD,
+      agent2: process.env.DEMO_AGENT2_PASSWORD || process.env.DEMO_AGENT_PASSWORD,
+      manager: process.env.DEMO_MANAGER_PASSWORD || process.env.DEMO_ADMIN_PASSWORD,
+      admin: process.env.DEMO_ADMIN_PASSWORD,
+      viewer: process.env.DEMO_VIEWER_PASSWORD,
+    };
+    const fromEnv = map[which];
     if (fromEnv && fromEnv !== 'CHANGE_ME') return fromEnv;
     if (which === 'viewer') return process.env.DEMO_DEFAULT_PASSWORD || 'demo-viewer';
     return process.env.DEMO_DEFAULT_PASSWORD || 'demo1234';
@@ -78,8 +80,10 @@ export class SeedService implements OnModuleInit {
     }
     if (!defaultGroup) throw new Error('default skill group missing');
 
-    const accounts: Array<[string, string, string, 'agent' | 'admin' | 'viewer']> = [
-      ['agent@demo.local', '演示坐席', 'agent', 'agent'],
+    const accounts: Array<[string, string, string, 'agent' | 'admin' | 'viewer' | 'agent2' | 'manager']> = [
+      ['agent@demo.local', '演示销售1', 'agent', 'agent'],
+      ['agent2@demo.local', '演示销售2', 'agent', 'agent2'],
+      ['manager@demo.local', '演示经理', 'supervisor', 'manager'],
       ['admin@demo.local', '演示管理员', 'admin', 'admin'],
       ['viewer@demo.local', '演示访客(只读)', 'viewer', 'viewer'],
     ];

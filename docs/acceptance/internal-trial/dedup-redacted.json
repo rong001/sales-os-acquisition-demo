@@ -1,0 +1,57 @@
+{
+  "case": {
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "identity_id": "214b0280-06d0-470d-95eb-cc7117f8e787",
+    "source_id": "b52908f3-3b91-4264-8bd1-bcbb1530ab2e",
+    "scene_id": "landing:ticket-grab",
+    "product_code": "ticket-grab",
+    "path": "STANDARD",
+    "stage": "NEW",
+    "owner_agent_id": null,
+    "skill_group_id": null,
+    "id": "c04b09ac-16dd-4e64-af2b-f24b4d3561fe",
+    "flags": {},
+    "intent_level": "unknown",
+    "intent_qualified": false,
+    "created_at": "2026-09-22T13:57:44.188Z",
+    "updated_at": "2026-09-22T13:57:44.188Z"
+  },
+  "identity": {
+    "id": "214b0280-06d0-470d-95eb-cc7117f8e787",
+    "name": "内部试用线索A",
+    "phone": "139****5463",
+    "email": "tr***@example.com",
+    "merge_key": "phone:139****5463"
+  },
+  "source": {
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "type": "manual_import",
+    "campaign": "ticket-grab",
+    "landing_url": null,
+    "form_id": "landing:ticket-grab",
+    "utm_source": "internal_trial",
+    "utm_medium": "manual_dup",
+    "utm_campaign": null,
+    "utm_content": null,
+    "utm_term": null,
+    "invite_code": null,
+    "product_code": "ticket-grab",
+    "raw_payload": {
+      "product_code": "ticket-grab",
+      "utm": {
+        "source": "internal_trial",
+        "medium": "manual_dup"
+      }
+    },
+    "adset": null,
+    "creative": null,
+    "import_batch_id": null,
+    "id": "b52908f3-3b91-4264-8bd1-bcbb1530ab2e",
+    "created_at": "2026-09-22T13:57:44.180Z"
+  },
+  "merged": true,
+  "product": {
+    "code": "ticket-grab",
+    "name_zh": "抢票助手"
+  }
+}

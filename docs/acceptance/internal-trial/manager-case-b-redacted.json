@@ -1,0 +1,67 @@
+{
+  "case": {
+    "id": "5dee65ad-b32c-478c-a7dc-14af470903a3",
+    "stage": "NURTURE",
+    "product_code": "usgate",
+    "owner_agent_id": "a152762d-a1b4-4581-9a4a-8433bf61c24e",
+    "path": "STANDARD",
+    "flags": {
+      "result": "nurture",
+      "result_at": "2026-09-22T13:57:44.700Z",
+      "result_by": "06a56a0c-5bbd-4591-80d8-f9597f8b5a09"
+    }
+  },
+  "source": {
+    "type": "manual_import",
+    "utm_source": "internal_trial",
+    "utm_medium": "manual",
+    "utm_campaign": "internal_sales_loop",
+    "utm_content": "lead_b",
+    "invite_code": "TRIAL02",
+    "product_code": "usgate"
+  },
+  "ownership": {
+    "id": "9933a25d-045d-4c61-ab13-1442d7ccbe79",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "case_id": "5dee65ad-b32c-478c-a7dc-14af470903a3",
+    "agent_id": "a152762d-a1b4-4581-9a4a-8433bf61c24e",
+    "reason": "admin_assign",
+    "protect_until": "2026-09-24T13:57:44.374Z",
+    "status": "active",
+    "created_at": "2026-09-22T13:57:44.374Z"
+  },
+  "activities": [
+    {
+      "id": "8b50542a-16c0-47f8-840c-4ac23100cfc1",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "5dee65ad-b32c-478c-a7dc-14af470903a3",
+      "actor_user_id": "06a56a0c-5bbd-4591-80d8-f9597f8b5a09",
+      "kind": "note",
+      "body": "销售2跟进记录（合成）",
+      "meta": {
+        "next_follow_at": "2026-09-23T10:00:00+08:00"
+      },
+      "created_at": "2026-09-22T13:57:44.679Z"
+    },
+    {
+      "id": "6a4eca41-7e78-494d-b213-815becc63a09",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "5dee65ad-b32c-478c-a7dc-14af470903a3",
+      "actor_user_id": "06a56a0c-5bbd-4591-80d8-f9597f8b5a09",
+      "kind": "result",
+      "body": "继续培育",
+      "meta": {
+        "result": "nurture"
+      },
+      "created_at": "2026-09-22T13:57:44.704Z"
+    }
+  ],
+  "appointments": [],
+  "identity_masked": {
+    "name": "内部试用线索B",
+    "phone": "138****5470",
+    "email": "tr***@example.com",
+    "company_name": "合成客户B（通用销售流程）"
+  },
+  "note": "脱敏摘要；完整事件流未入库"
+}

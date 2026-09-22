@@ -1,0 +1,44 @@
+{
+  "suite": "internal-sales-loop",
+  "ran_at": "2026-09-22T13:57:45.052383Z",
+  "api": "http://127.0.0.1:3100",
+  "synthetic_only": true,
+  "acquisition_fields_explained": [
+    "source_type=manual_import（手工录入/导入）",
+    "utm_source/medium/campaign/content（投放/渠道归因）",
+    "invite_code（邀请码）",
+    "source_channel（渠道字段）",
+    "公开落地页 /public/leads/intake 亦支持同类字段（本轮用认证手工录入）"
+  ],
+  "cases": {
+    "A": {
+      "id": "0cddfe2c-58f8-4bbc-b323-ad1c44c2370b",
+      "stage": "WON",
+      "assigned_to": "agent@demo.local",
+      "phone_masked": "139****5463"
+    },
+    "B": {
+      "id": "5dee65ad-b32c-478c-a7dc-14af470903a3",
+      "stage": "NURTURE",
+      "assigned_to": "agent2@demo.local",
+      "phone_masked": "138****5470"
+    }
+  },
+  "steps": {
+    "create_leads": "PASS",
+    "dedup": "PASS",
+    "manager_assign": "PASS",
+    "follow_up_and_reminder": "PASS",
+    "mark_result": "PASS",
+    "manager_view": "PASS",
+    "negative_rbac": "PASS",
+    "persist_restart": "SKIPPED_time_tight"
+  },
+  "roles_used": {
+    "管理员": "admin@demo.local",
+    "经理": "manager@demo.local (role=supervisor；不可用时回退 admin)",
+    "销售1": "agent@demo.local",
+    "销售2": "agent2@demo.local"
+  },
+  "redaction": "no phones/JWT/passwords in this file"
+}

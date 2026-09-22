@@ -1,0 +1,8 @@
+{
+  "step": "sales1_access_sales2_lead",
+  "http_status": 403,
+  "expected": "403 Forbidden（无权访问其他销售的客户）",
+  "pass": true,
+  "message_snippet": "{\"message\":\"无权访问其他销售的客户\",\"error\":\"Forbidden\",\"statusCode\":403}",
+  "note": "工作台列表亦应按归属过滤；本步验证按 ID 直读被拒"
+}

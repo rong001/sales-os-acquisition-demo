@@ -2,7 +2,7 @@
   "name": "sales-os-app",
   "private": true,
   "version": "0.1.0",
-  "description": "销售获客 OS 演示：抢票产品 + USGate 落地页进线 → 分配 → 跟进 → 预约 → 漏斗",
+  "description": "销售获客 OS：内部销售获客与跟进（导入→分配→跟进→结果）+ ToC 落地页演示渠道",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -15,6 +15,7 @@
     "seed": "npm run seed -w @sales-os/api",
     "smoke": "bash scripts/smoke-m1.sh",
     "start:dev": "npm run start:dev -w @sales-os/api",
-    "e2e": "bash scripts/e2e-acquisition.sh"
+    "e2e": "bash scripts/e2e-acquisition.sh",
+    "e2e:internal": "bash scripts/e2e-internal-sales.sh"
   }
 }

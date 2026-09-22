@@ -35,15 +35,20 @@ async function main() {
     }));
   }
 
-  const agentPass = process.env.DEMO_AGENT_PASSWORD && process.env.DEMO_AGENT_PASSWORD !== 'CHANGE_ME'
-    ? process.env.DEMO_AGENT_PASSWORD : (process.env.DEMO_DEFAULT_PASSWORD || 'demo1234');
-  const adminPass = process.env.DEMO_ADMIN_PASSWORD && process.env.DEMO_ADMIN_PASSWORD !== 'CHANGE_ME'
-    ? process.env.DEMO_ADMIN_PASSWORD : (process.env.DEMO_DEFAULT_PASSWORD || 'demo1234');
-  const viewerPass = process.env.DEMO_VIEWER_PASSWORD && process.env.DEMO_VIEWER_PASSWORD !== 'CHANGE_ME'
-    ? process.env.DEMO_VIEWER_PASSWORD : 'demo-viewer';
+    const pick = (k: string, fallback: string) => {
+    const v = process.env[k];
+    return v && v !== 'CHANGE_ME' ? v : fallback;
+  };
+  const agentPass = pick('DEMO_AGENT_PASSWORD', process.env.DEMO_DEFAULT_PASSWORD || 'demo1234');
+  const agent2Pass = pick('DEMO_AGENT2_PASSWORD', agentPass);
+  const adminPass = pick('DEMO_ADMIN_PASSWORD', process.env.DEMO_DEFAULT_PASSWORD || 'demo1234');
+  const managerPass = pick('DEMO_MANAGER_PASSWORD', adminPass);
+  const viewerPass = pick('DEMO_VIEWER_PASSWORD', 'demo-viewer');
 
   for (const [email, name, role, pass] of [
-    ['agent@demo.local', '演示坐席', 'agent', agentPass],
+    ['agent@demo.local', '演示销售1', 'agent', agentPass],
+    ['agent2@demo.local', '演示销售2', 'agent', agent2Pass],
+    ['manager@demo.local', '演示经理', 'supervisor', managerPass],
     ['admin@demo.local', '演示管理员', 'admin', adminPass],
     ['viewer@demo.local', '演示访客(只读)', 'viewer', viewerPass],
   ] as const) {
@@ -72,7 +77,7 @@ async function main() {
       }));
     }
   }
-  console.log('Seed OK. Logins: agent@demo.local / admin@demo.local / viewer@demo.local (passwords from .env)');
+  console.log('Seed OK. Logins: agent@ / agent2@ / manager@ / admin@ / viewer@demo.local (passwords from .env)');
   await ds.destroy();
 }
 
