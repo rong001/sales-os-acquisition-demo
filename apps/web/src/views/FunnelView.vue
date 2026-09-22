@@ -12,6 +12,8 @@
           <option value="ticket-grab">抢票助手</option>
           <option value="usgate">USGate</option>
         </select>
+        <button class="btn" @click="$router.push('/admin/conversion')">来源转化</button>
+        <button class="btn" @click="$router.push('/admin/growth')">获客配置</button>
         <button v-if="canExport" class="btn" @click="exportCsv">导出 CSV</button>
         <span v-else class="tag">只读（无导出）</span>
       </div>
@@ -58,6 +60,8 @@ const labels = {
   reached_intent: '触达/意向 reached',
   appointed: '已预约 appointed',
   ordered: '成单 ordered(stub)',
+  won: '赢单 won',
+  lost: '丢单/无效 lost',
 };
 
 async function load() {

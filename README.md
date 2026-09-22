@@ -6,9 +6,10 @@
 
 | 项目 | 仓库 | 线上演示 | 部署方式 | 当前能力 | 验收状态 | 阻塞 |
 |---|---|---|---|---|---|---|
-| 抢票 | [已交付](https://github.com/rong001/ticket-grab-cloud-demo)（`88f93f3`） | [已交付 HTTPS](https://159.75.71.192:18444/) · [/intake](https://159.75.71.192:18444/intake) | 腾讯云轻量 Compose + Caddy | 查票 live、盯票、intake 对话；诚实边界（非未授权代购）；真实成交/自动购票 stub | 未通过 ToC 自助闭环 | 真实购票闭环；合法边界 |
-| USGate | [demo](https://github.com/rong001/usgate-demo) · [client](https://github.com/rong001/usgate-client) | [已交付](https://117.55.227.224:8443/) | 见 docs/PROJECT_MATRIX.md |
-| 获客（本仓库） | [已交付](https://github.com/rong001/sales-os-acquisition-demo) | 公网 **临时** trycloudflare（见 `docs/acceptance/public-https/PUBLIC_URL.txt`） | 生产静态 dist + gateway :18180 + supervise；可选 cloudflared | 获客全切片；触达/成单 MOCK/stub；viewer 只读 | 本机+负面+公网(临时) E2E | 隧道临时；真实触达/成交 |
+| 抢票 | [已交付](https://github.com/rong001/ticket-grab-cloud-demo) tip `9ee80b0` | [HTTPS](https://159.75.71.192:18444/) · [/intake](https://159.75.71.192:18444/intake) | Compose+Caddy | 火车 live；机票库存/票价监控不可用；邮件未实达；成交 stub | 未通过完整 ToC | 机票 Key；SMTP；真实购票 |
+| USGate | demo@`809bf29` · client@`53a9afb` | [MOCK](https://117.55.227.224:8443/) | 见矩阵 | MOCK 门户；非真面板/真机 | 不可标可售 | 真面板/真机/CI |
+| 获客（本仓库） | [已交付](https://github.com/rong001/sales-os-acquisition-demo) | 公网 **临时** trycloudflare（见 PUBLIC_URL.txt）；固定域名待用户 DNS | dist+gateway:18180+supervise；Named Tunnel 占位已备 | 获客全切片+限流+内容页+渠道/转化；触达 MOCK；邮件未配置=未送达 | 能力已交付/固定域名待用户（勿标生产稳定已完成） | DNS/凭证；真实触达 |
+
 
 面向 **抢票产品（ticket-grab）** 与 **USGate** 的获客经营垂直切片：公开落地页留资 → 同意证据 → UTM/邀请码归因 → 去重建档 → 技能组负载分配 → 跟进时间线 → 预约披露确认 → 转化漏斗。
 
@@ -69,7 +70,7 @@ docker compose up --build
 
 当前核验 URL（**cloudflared 临时域名，进程重启会变**）：
 
-**https://cons-make-empire-treaty.trycloudflare.com**
+**见 `docs/acceptance/toc-prod/PUBLIC_URL.txt`（临时，会变）**
 
 | 入口 | URL |
 |---|---|
@@ -114,6 +115,11 @@ bash scripts/deploy-public-https.sh
 7. 漏斗统计：intake → qualified → assigned → reached/intent → appointed → ordered(stub)
 8. 角色门禁（agent / admin）；管理员可导出脱敏 CSV
 9. 外呼/短信演示一律标记 **MOCK**；真实供应商仅当 `REAL_SMS_ENABLED` / `REAL_CALL_ENABLED=true` 且配置密钥
+10. 邮件：`REAL_EMAIL_ENABLED` 默认 false；无 SMTP → **UNDELIVERED_NO_SMTP**（未送达，非成功 MOCK）
+11. 公开进线滥用限流（Redis 滑动窗口 IP+phone，超限 429）
+12. SEO 内容页 `/c/:slug`；渠道短链 `/r/:code`；邀请码/活动管理；来源转化看板
+13. 线索结果标记 won/lost/invalid；写操作进 audit_logs；viewer 可读脱敏审计
+14. 落地页明确「演示留资 ≠ 正式服务合同」+ 抢票/USGate 诚实能力边界
 
 ## 验收
 
@@ -134,6 +140,9 @@ API_BASE="$(cat docs/acceptance/public-https/PUBLIC_URL.txt)/api" \
 ## 相关文档
 
 - `docs/STABLE_DEPLOY.md` — 生产静态构建 + 受管进程
+- `docs/PROD_HTTPS.md` — 固定域名 Named Tunnel（占位）
+- `docs/ROLLBACK.md` — 回滚
+- `docs/acceptance/toc-prod/` — ToC 获客验收证据
 
 
 - `docs/UNFINISHED.md` — 未完成项
@@ -144,6 +153,6 @@ API_BASE="$(cat docs/acceptance/public-https/PUBLIC_URL.txt)/api" \
 ## 可访问地址
 
 - **GitHub（公开制品）**: https://github.com/rong001/sales-os-acquisition-demo
-- **公网 HTTPS（临时）**: https://cons-make-empire-treaty.trycloudflare.com
+- **公网 HTTPS（临时）**: 见 `docs/acceptance/toc-prod/PUBLIC_URL.txt` 或 `toc-stable/PUBLIC_URL.txt`
 - **本机落地页**: http://127.0.0.1:5173/p/ticket-grab 、 http://127.0.0.1:5173/p/usgate（占用时改 5174）
 - **本机 API**: http://127.0.0.1:3100/health

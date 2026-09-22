@@ -84,3 +84,52 @@ expect_status 200 "admin_export_ok" "$OUT_DIR/13-admin-export.csv" \
 pass "admin export ok"
 
 echo "E2E_NEGATIVE_OK" | tee "$OUT_DIR/PASS.txt" | tee -a "$OUT_DIR/run.log"
+
+# --- rate limit (IP+phone sliding window) ---
+RL_PHONE="138$(date +%s | tail -c 9)"
+RL_OK=0
+RL_429=0
+for i in $(seq 1 12); do
+  code=$(curl -s -o "$OUT_DIR/14-rate-$i.json" -w '%{http_code}' \
+    -X POST "$API/public/leads/intake" -H 'Content-Type: application/json' \
+    -d "{\"product_code\":\"ticket-grab\",\"name\":\"限流$i\",\"phone\":\"$RL_PHONE\",\"consent_accepted\":true,\"utm_source\":\"ratetest\"}" || true)
+  echo "rate_attempt_$i → HTTP $code" | tee -a "$OUT_DIR/run.log"
+  if [[ "$code" == "201" || "$code" == "200" ]]; then RL_OK=$((RL_OK+1)); fi
+  if [[ "$code" == "429" ]]; then RL_429=$((RL_429+1)); fi
+done
+[[ "$RL_429" -ge 1 ]] || fail "expected at least one 429 rate limit, got ok=$RL_OK r429=$RL_429"
+pass "rate limit triggered (ok=$RL_OK, 429=$RL_429)"
+cp "$OUT_DIR/14-rate-12.json" "$OUT_DIR/14-rate-limit-last.json"
+
+# --- audit list: admin full, viewer redacted ---
+curl -sf "$API/admin/audits?limit=20" -H "Authorization: Bearer $ADTOKEN" | tee "$OUT_DIR/15-admin-audits.json" >/dev/null
+curl -sf "$API/admin/audits?limit=20" -H "$VAUTH" | tee "$OUT_DIR/16-viewer-audits.json" >/dev/null
+python3 -c '
+import json, os, sys
+path = os.environ["OUT_DIR"] + "/16-viewer-audits.json"
+v = json.load(open(path))
+assert isinstance(v, list) and len(v) >= 1, "viewer audits empty"
+for a in v:
+    actor = a.get("actor_user_id")
+    if actor not in (None, "***"):
+        raise SystemExit("viewer actor not redacted: %r" % (actor,))
+print("viewer audits redaction ok count", len(v))
+' | tee -a "$OUT_DIR/run.log"
+pass "audit list admin+viewer"
+
+# --- mark result + conversion ---
+MR=$(curl -sf -X POST "$API/leads/$CASE_ID/mark-result" -H "Authorization: Bearer $ATOKEN" -H 'Content-Type: application/json' \
+  -d '{"result":"won","note":"合成赢单"}')
+echo "$MR" | tee "$OUT_DIR/17-mark-result.json" >/dev/null
+curl -sf "$API/admin/conversion" -H "Authorization: Bearer $ADTOKEN" | tee "$OUT_DIR/18-conversion.json" >/dev/null
+curl -sf "$API/public/pages/ticket-grab-overview" | tee "$OUT_DIR/19-content-page.json" >/dev/null
+curl -sf "$API/public/r/wx-ticket" | tee "$OUT_DIR/20-channel-redirect.json" >/dev/null
+pass "mark-result + conversion + content + redirect"
+
+# viewer cannot mark result
+expect_status 403 "viewer_mark_result_forbidden" "$OUT_DIR/21-viewer-mark.json" \
+  -X POST "$API/leads/$CASE_ID/mark-result" -H "$VAUTH" -H 'Content-Type: application/json' \
+  -d '{"result":"lost"}'
+pass "viewer mark-result forbidden"
+
+echo "E2E_NEGATIVE_EXTENDED_OK" | tee -a "$OUT_DIR/PASS.txt" | tee -a "$OUT_DIR/run.log"

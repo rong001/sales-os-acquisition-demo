@@ -73,6 +73,16 @@ export class LeadsController {
     return this.leads.confirmAppointment(user, id);
   }
 
+  @Post('leads/:caseId/mark-result')
+  @Roles('agent', 'admin', 'supervisor')
+  markResult(
+    @CurrentUser() user: AuthUser,
+    @Param('caseId') caseId: string,
+    @Body() body: { result: string; note?: string },
+  ) {
+    return this.leads.markResult(user, caseId, body?.result, body?.note);
+  }
+
   @Post('leads/:caseId/activities')
   @Roles('agent', 'admin', 'supervisor')
   addActivity(

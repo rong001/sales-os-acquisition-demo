@@ -5,12 +5,22 @@ import { AuthModule } from './auth/auth.module';
 import { LeadsModule } from './leads/leads.module';
 import { SeedModule } from './seed/seed.module';
 import { PublicModule } from './public/public.module';
+import { GrowthModule } from './growth/growth.module';
 
 @Controller()
 class HealthController {
   @Get('health')
   health() {
-    return { ok: true, service: 'sales-os-api', ts: new Date().toISOString() };
+    return {
+      ok: true,
+      service: 'sales-os-api',
+      ts: new Date().toISOString(),
+      reach: {
+        real_sms: process.env.REAL_SMS_ENABLED === 'true',
+        real_call: process.env.REAL_CALL_ENABLED === 'true',
+        real_email: process.env.REAL_EMAIL_ENABLED === 'true',
+      },
+    };
   }
 }
 
@@ -25,6 +35,7 @@ class HealthController {
     }),
     AuthModule,
     LeadsModule,
+    GrowthModule,
     PublicModule,
     SeedModule,
   ],

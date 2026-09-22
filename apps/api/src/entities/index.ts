@@ -114,7 +114,10 @@ export class ConsentGrant {
   @Column({ type: 'varchar', default: 'unknown' }) status!: string;
   @Column({ type: 'text', nullable: true }) evidence_ref!: string | null;
   @Column({ type: 'text', nullable: true }) consent_text!: string | null;
+  @Column({ type: 'varchar', nullable: true }) consent_text_hash!: string | null;
   @Column({ type: 'varchar', nullable: true }) consent_version!: string | null;
+  @Column({ type: 'varchar', nullable: true }) source_channel!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) consent_accepted_at!: Date | null;
   @Column({ type: 'varchar', nullable: true }) ip!: string | null;
   @Column({ type: 'text', nullable: true }) user_agent!: string | null;
   @Column({ type: 'timestamptz', nullable: true }) granted_at!: Date | null;
@@ -276,10 +279,79 @@ export class AuditLog {
   @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
 }
 
+
+@Entity('content_pages')
+@Index(['tenant_id', 'slug'], { unique: true })
+export class ContentPage {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar' }) slug!: string;
+  @Column({ type: 'varchar' }) title!: string;
+  @Column({ type: 'varchar', nullable: true }) description!: string | null;
+  @Column({ type: 'text' }) body!: string;
+  @Column({ type: 'varchar', nullable: true }) product_code!: string | null;
+  @Column({ default: true }) published!: boolean;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
+}
+
+@Entity('channel_links')
+@Index(['tenant_id', 'code'], { unique: true })
+export class ChannelLink {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar' }) code!: string;
+  @Column({ type: 'varchar' }) name!: string;
+  @Column({ type: 'varchar', default: 'ticket-grab' }) product_code!: string;
+  @Column({ type: 'varchar', nullable: true }) utm_source!: string | null;
+  @Column({ type: 'varchar', nullable: true }) utm_medium!: string | null;
+  @Column({ type: 'varchar', nullable: true }) utm_campaign!: string | null;
+  @Column({ type: 'varchar', nullable: true }) utm_content!: string | null;
+  @Column({ type: 'varchar', nullable: true }) invite_code!: string | null;
+  @Column({ type: 'varchar', nullable: true }) landing_path!: string | null;
+  @Column({ default: true }) enabled!: boolean;
+  @Column({ type: 'int', default: 0 }) hit_count!: number;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
+}
+
+@Entity('invite_codes')
+@Index(['tenant_id', 'code'], { unique: true })
+export class InviteCode {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar' }) code!: string;
+  @Column({ type: 'varchar', nullable: true }) label!: string | null;
+  @Column({ type: 'varchar', nullable: true }) channel_code!: string | null;
+  @Column({ type: 'varchar', nullable: true }) product_code!: string | null;
+  @Column({ type: 'int', nullable: true }) max_uses!: number | null;
+  @Column({ type: 'int', default: 0 }) use_count!: number;
+  @Column({ default: true }) enabled!: boolean;
+  @Column({ type: 'timestamptz', nullable: true }) expires_at!: Date | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('campaigns')
+export class Campaign {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar' }) name!: string;
+  @Column({ type: 'varchar', default: 'ticket-grab' }) landing_product!: string;
+  @Column({ type: 'text', nullable: true }) creative_copy!: string | null;
+  @Column({ type: 'varchar', nullable: true }) creative_url!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) starts_at!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) ends_at!: Date | null;
+  @Column({ default: true }) enabled!: boolean;
+  @Column({ type: 'varchar', nullable: true }) utm_campaign!: string | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
+}
+
 export const ALL_ENTITIES = [
   Tenant, User, SkillGroup, AgentSeat, LeadIdentity, LeadSource, LeadCase,
   ConsentGrant, Ownership, PoolItem, ReachPlan, ReachAttempt, ReachReceipt,
   Appointment, Order, CaseActivity, DomainEvent, Outbox, AuditLog,
+  ContentPage, ChannelLink, InviteCode, Campaign,
 ];
 
 export const CONSENT_TEXT_V1 =

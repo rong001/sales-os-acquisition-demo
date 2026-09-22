@@ -2,11 +2,20 @@
   <div class="landing">
     <div class="landing-inner">
       <header class="landing-hero">
-        <p class="muted" style="margin:0;letter-spacing:.04em;font-size:12px">自愿留资 · 明确同意</p>
+        <p class="muted" style="margin:0;letter-spacing:.04em;font-size:12px">自愿留资 · 明确同意 · 演示入口</p>
         <h1 style="margin:6px 0 4px">{{ product?.name_zh || '加载中…' }}</h1>
         <p class="muted" style="margin:0">{{ product?.tagline }}</p>
-        <p v-if="product?.name_en" class="muted" style="margin:4px 0 0;font-size:12px">{{ product.name_en }}</p>
+        <p v-if="product?.status_label" class="tag warn" style="margin-top:8px">{{ product.status_label }}</p>
       </header>
+
+      <aside v-if="product?.service_disclaimer" class="guide-card card stack" data-testid="demo-vs-formal">
+        <strong style="font-size:14px">演示留资 ≠ 正式服务合同</strong>
+        <p class="muted" style="margin:0;font-size:13px">{{ product.service_disclaimer }}</p>
+        <p class="muted" style="margin:0;font-size:12px">
+          CTA：下方提交仅进入<strong>演示线索库</strong>，由坐席跟进咨询意向；
+          <strong>不构成</strong>可售承诺、效果承诺或自动购票/真面板开通。
+        </p>
+      </aside>
 
       <aside v-if="product && (product.intake_url || product.repo_url)" class="guide-card card stack">
         <strong style="font-size:14px">现网演示与公开仓</strong>
@@ -17,7 +26,14 @@
             :href="product.intake_url"
             target="_blank"
             rel="noopener"
-          >打开现网{{ isTicket ? '抢票 intake' : '演示门户' }}</a>
+          >打开现网{{ isTicket ? '抢票 intake' : 'MOCK 门户' }}</a>
+          <a
+            v-if="product.capabilities_url"
+            class="btn guide-btn"
+            :href="product.capabilities_url"
+            target="_blank"
+            rel="noopener"
+          >capabilities</a>
           <a
             v-if="product.demo_live_url && product.demo_live_url !== product.intake_url"
             class="btn guide-btn"
@@ -31,13 +47,29 @@
             :href="product.repo_url"
             target="_blank"
             rel="noopener"
-          >能力说明 / 公开仓</a>
+          >公开仓{{ product.repo_tip ? ` @${product.repo_tip}` : '' }}</a>
+          <a
+            v-for="r in (product.secondary_repos || [])"
+            :key="r.url"
+            class="btn guide-btn"
+            :href="r.url"
+            target="_blank"
+            rel="noopener"
+          >{{ r.name }}{{ r.tip ? ` @${r.tip}` : '' }}</a>
+          <router-link
+            v-if="overviewSlug"
+            class="btn guide-btn"
+            :to="`/c/${overviewSlug}`"
+          >能力说明页</router-link>
         </div>
         <ul v-if="product.capabilities?.length" class="cap-list muted">
-          <li v-for="(c, i) in product.capabilities" :key="i">{{ c }}</li>
+          <li v-for="(c, i) in product.capabilities" :key="'c'+i">{{ c }}</li>
+        </ul>
+        <ul v-if="product.honesty?.length" class="cap-list honesty" data-testid="honesty">
+          <li v-for="(c, i) in product.honesty" :key="'h'+i">{{ c }}</li>
         </ul>
         <p class="muted" style="margin:0;font-size:11px">
-          外链为现网/开源制品；本页仅获客留资，不代替现网产品操作。
+          外链为现网/开源制品；本页仅获客留资。触达默认 MOCK；邮件未配置时为未送达（非成功 MOCK）。
         </p>
       </aside>
 
@@ -70,16 +102,16 @@
           </span>
         </label>
 
-        <p v-if="error" class="tag warn" style="margin:0">{{ error }}</p>
+        <p v-if="error" class="tag warn" style="margin:0" data-testid="error">{{ error }}</p>
         <button class="btn btn-primary" type="submit" :disabled="busy || !form.consent_accepted" data-testid="submit">
-          {{ busy ? '提交中…' : '提交意向' }}
+          {{ busy ? '提交中…' : '提交演示意向' }}
         </button>
-        <p class="muted" style="margin:0;font-size:12px">我们不会出售您的信息。提交即记录同意证据（文本版本、时间、IP/UA）。</p>
+        <p class="muted" style="margin:0;font-size:12px">提交即记录同意证据（文本版本/哈希、时间、IP/UA、渠道与 UTM）。无同意拒收。</p>
       </form>
 
       <div v-else class="card stack" data-testid="done">
-        <strong>已收到，感谢</strong>
-        <p class="muted" style="margin:0">专属顾问将在业务沟通范围内联系您。案件号 {{ caseId?.slice(0, 8) }}…</p>
+        <strong>已收到演示留资，感谢</strong>
+        <p class="muted" style="margin:0">这不等于正式合同。顾问将在业务沟通范围内联系您。案件号 {{ caseId?.slice(0, 8) }}…</p>
         <p v-if="merged" class="tag">已与既有身份合并（同手机/邮箱不重复建档）</p>
       </div>
     </div>
@@ -108,6 +140,10 @@ const form = reactive({
 });
 
 const isTicket = computed(() => route.params.product === 'ticket-grab');
+const overviewSlug = computed(() =>
+  route.params.product === 'ticket-grab' ? 'ticket-grab-overview'
+    : route.params.product === 'usgate' ? 'usgate-overview' : null,
+);
 
 const utmPreview = computed(() => {
   const q = route.query;
@@ -115,6 +151,7 @@ const utmPreview = computed(() => {
     q.utm_source && `source=${q.utm_source}`,
     q.utm_medium && `medium=${q.utm_medium}`,
     q.utm_campaign && `campaign=${q.utm_campaign}`,
+    q.channel && `channel=${q.channel}`,
     (q.invite || q.invite_code) && `invite=${q.invite || q.invite_code}`,
   ].filter(Boolean);
   return parts.length ? parts.join(' · ') : '';
@@ -129,6 +166,7 @@ function readUtm() {
     utm_content: q.utm_content || '',
     utm_term: q.utm_term || '',
     invite_code: q.invite || q.invite_code || form.invite_code || '',
+    source_channel: q.channel || q.utm_source || 'landing_form',
   };
 }
 
@@ -136,6 +174,14 @@ onMounted(async () => {
   const code = route.params.product;
   try {
     product.value = await PublicApi.product(code);
+    document.title = `${product.value.name_zh} · 演示留资`;
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'description');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', product.value.service_disclaimer || product.value.tagline || '');
     const q = route.query;
     if (q.invite || q.invite_code) form.invite_code = String(q.invite || q.invite_code);
   } catch (e) {
@@ -157,8 +203,9 @@ async function submit() {
       consent_accepted: form.consent_accepted,
       consent_text: product.value?.consent_text,
       consent_version: product.value?.consent_version,
-      consent_channels: ['call', 'sms'],
+      consent_channels: ['call', 'sms', 'email'],
       source_type: 'landing_form',
+      source_channel: utm.source_channel,
       landing_url: window.location.href,
       form_id: `landing:${route.params.product}`,
       ...utm,
@@ -180,7 +227,7 @@ async function submit() {
   background: linear-gradient(180deg, #eef2f6 0%, var(--bg) 40%);
   padding: 32px 16px 48px;
 }
-.landing-inner { max-width: 480px; margin: 0 auto; }
+.landing-inner { max-width: 520px; margin: 0 auto; }
 .landing-hero { margin-bottom: 14px; }
 .consent { gap: 10px; }
 .guide-card {
@@ -196,6 +243,7 @@ async function submit() {
   font-size: 12px;
 }
 .cap-list li { margin: 2px 0; }
+.honesty { color: #8a5a00; }
 .utm-preview {
   margin: 0;
   font-size: 12px;

@@ -29,7 +29,19 @@
           <button class="btn" :disabled="busy" @click="doQualify">核验合格</button>
           <button class="btn" :disabled="busy" @click="doAssign">分配给我</button>
           <button class="btn" :disabled="busy" @click="doAttempt">发起触达 <span class="tag mock">MOCK</span></button>
+          <button class="btn" :disabled="busy" @click="doEmailAttempt">邮件触达 <span class="tag warn">未配置=未送达</span></button>
           <button class="btn" :disabled="busy" @click="doReceipt">模拟接通意向 <span class="tag mock">MOCK</span></button>
+        </div>
+        <div v-if="canWrite" class="row" style="flex-wrap:wrap;margin-top:4px" data-testid="mark-result">
+          <select class="input" style="width:auto" v-model="resultMark">
+            <option value="">标记结果…</option>
+            <option value="won">won 赢单</option>
+            <option value="lost">lost 丢单</option>
+            <option value="invalid">invalid 无效</option>
+            <option value="nurture">nurture 培育</option>
+            <option value="blocked">blocked 冻结</option>
+          </select>
+          <button class="btn" :disabled="busy || !resultMark" @click="doMarkResult">保存结果</button>
         </div>
         <p v-else class="muted" style="margin:0">只读访客：不可分配/触达/改写</p>
         <div v-if="isAdmin" class="row" style="flex-wrap:wrap;margin-top:4px">
@@ -123,6 +135,7 @@ const showHistory = ref(false);
 const note = ref('');
 const agents = ref([]);
 const assignSeat = ref('');
+const resultMark = ref('');
 const user = ref(null);
 try { user.value = JSON.parse(localStorage.getItem('salesos_user') || 'null'); } catch { /* */ }
 const isAdmin = computed(() => ['admin', 'supervisor'].includes(user.value?.role));
@@ -181,6 +194,19 @@ function doAdminAssign() {
   return wrap(() => LeadApi.assign(route.params.id, assignSeat.value));
 }
 function doAttempt() { return wrap(() => LeadApi.createAttempt(route.params.id, 'mock_call')); }
+function doEmailAttempt() {
+  return wrap(async () => {
+    const res = await LeadApi.createAttempt(route.params.id, 'email');
+    toast(res.label === 'UNDELIVERED_NO_SMTP' ? '邮件未送达（无 SMTP）' : (res.label || '邮件尝试已记录'));
+  });
+}
+function doMarkResult() {
+  return wrap(async () => {
+    await LeadApi.markResult(route.params.id, resultMark.value);
+    toast('已标记结果: ' + resultMark.value);
+    resultMark.value = '';
+  });
+}
 function doReceipt() {
   return wrap(async () => {
     const attempts = detail.value?.attempts || [];

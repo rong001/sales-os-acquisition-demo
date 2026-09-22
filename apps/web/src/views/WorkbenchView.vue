@@ -9,6 +9,8 @@
         <a class="btn" href="/p/ticket-grab" target="_blank">落地页·抢票</a>
         <a class="btn" href="/p/usgate" target="_blank">落地页·USGate</a>
         <button v-if="canFunnel" class="btn" @click="$router.push('/admin/funnel')">漏斗</button>
+        <button v-if="canFunnel" class="btn" @click="$router.push('/admin/conversion')">来源转化</button>
+        <button v-if="canFunnel" class="btn" @click="$router.push('/admin/growth')">获客配置</button>
         <button class="btn" @click="logout">退出</button>
       </div>
     </div>

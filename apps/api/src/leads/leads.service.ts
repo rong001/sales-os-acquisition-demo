@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import {
   BadRequestException, ForbiddenException, Injectable, NotFoundException,
 } from '@nestjs/common';
@@ -14,7 +15,7 @@ import { getProduct } from '../common/products';
 
 export type IntakeBody = {
   phone?: string; name?: string; email?: string; company_name?: string;
-  source_type?: string; campaign?: string; path?: string;
+  source_type?: string; source_channel?: string; campaign?: string; path?: string;
   consent_channels?: string[]; raw?: Record<string, unknown>;
   product_code?: string;
   utm_source?: string; utm_medium?: string; utm_campaign?: string;
@@ -152,8 +153,10 @@ export class LeadsService {
 
     const consentText = body.consent_text || CONSENT_TEXT_V1;
     const consentVersion = body.consent_version || CONSENT_VERSION;
-    const channels = body.consent_channels?.length ? body.consent_channels : ['call', 'sms'];
+    const consentHash = crypto.createHash('sha256').update(consentText).digest('hex');
+    const channels = body.consent_channels?.length ? body.consent_channels : ['call', 'sms', 'email'];
     const grantedAt = new Date();
+    const sourceChannel = body.source_channel || body.utm_source || body.source_type || 'landing_form';
     for (const ch of channels) {
       await this.consents.save(this.consents.create({
         tenant_id: user.tenant_id,
@@ -161,9 +164,12 @@ export class LeadsService {
         case_id: leadCase.id,
         channel: ch,
         status: 'granted',
-        evidence_ref: `consent:${consentVersion}`,
+        evidence_ref: `consent:${consentVersion}:${consentHash.slice(0, 12)}`,
         consent_text: consentText,
+        consent_text_hash: consentHash,
         consent_version: consentVersion,
+        source_channel: sourceChannel,
+        consent_accepted_at: grantedAt,
         ip: meta?.ip || null,
         user_agent: meta?.user_agent || null,
         granted_at: grantedAt,
@@ -188,6 +194,11 @@ export class LeadsService {
         product_code: product.code,
         merged,
         consent_version: consentVersion,
+        consent_text_hash: consentHash,
+        source_channel: sourceChannel,
+        utm_source: body.utm_source || null,
+        invite_code: body.invite_code || null,
+        ip: meta?.ip || null,
       },
     });
 
@@ -250,6 +261,10 @@ export class LeadsService {
       tenant_id: user.tenant_id, case_id: c.id, type: 'reach.plan_created',
       actor: 'system', payload: { plan_id: plan.id },
       aggregate_type: 'ReachPlan', aggregate_id: plan.id,
+    });
+    await this.events.audit({
+      tenant_id: user.tenant_id, actor_user_id: user.sub, action: 'lead.qualify',
+      resource_type: 'LeadCase', resource_id: c.id, detail: { stage: c.stage },
     });
 
     return { case: c, plan };
@@ -324,6 +339,10 @@ export class LeadsService {
       actor: user.sub,
       payload: { ownership_id: ownership.id, protect_until: protectUntil.toISOString() },
     });
+    await this.events.audit({
+      tenant_id: user.tenant_id, actor_user_id: user.sub, action: 'case.assign',
+      resource_type: 'LeadCase', resource_id: c.id, detail: { agent_id: seat.id },
+    });
 
     return { case: c, ownership, agent: seat };
   }
@@ -352,9 +371,13 @@ export class LeadsService {
     if (!c) throw new NotFoundException('案件不存在');
     this.assertTenant(c.tenant_id, user);
 
+    const emailChannel = channel === 'email' || channel === 'mock_email';
     const realEnabled =
-      (channel === 'sms' && process.env.REAL_SMS_ENABLED === 'true') ||
-      (['human_call', 'robot_call'].includes(channel) && process.env.REAL_CALL_ENABLED === 'true');
+      (channel === 'sms' && process.env.REAL_SMS_ENABLED === 'true' && !!process.env.SMS_PROVIDER_API_KEY) ||
+      (['human_call', 'robot_call'].includes(channel) && process.env.REAL_CALL_ENABLED === 'true' && !!process.env.CALL_PROVIDER_API_KEY) ||
+      (emailChannel && process.env.REAL_EMAIL_ENABLED === 'true' && !!process.env.SMTP_HOST);
+    // Email without SMTP: explicitly undelivered (not a successful MOCK)
+    const emailUndelivered = emailChannel && !realEnabled;
     const isMock = !realEnabled;
     const effectiveChannel = isMock
       ? (channel.startsWith('mock_') ? channel : `mock_${channel}`)
@@ -386,12 +409,20 @@ export class LeadsService {
       case_id: c.id,
       channel: effectiveChannel,
       executor_ref: user.agent_seat_id || user.sub,
-      template_ref: 'demo-script',
-      status: 'running',
-      provider_msg_id: isMock ? `MOCK-${Date.now()}` : `provider-${Date.now()}`,
+      template_ref: emailUndelivered ? 'email-undelivered-no-smtp' : 'demo-script',
+      status: emailUndelivered ? 'undelivered' : 'running',
+      provider_msg_id: emailUndelivered
+        ? `UNDELIVERED-NO-SMTP-${Date.now()}`
+        : (isMock ? `MOCK-${Date.now()}` : `provider-${Date.now()}`),
       is_mock: isMock,
       started_at: new Date(),
+      ended_at: emailUndelivered ? new Date() : null,
     }));
+    await this.events.audit({
+      tenant_id: user.tenant_id, actor_user_id: user.sub, action: 'reach.attempt_create',
+      resource_type: 'ReachAttempt', resource_id: attempt.id,
+      detail: { channel: effectiveChannel, mock: isMock, email_undelivered: emailUndelivered },
+    });
 
     if (['QUALIFIED', 'ASSIGNED', 'REACHING'].includes(c.stage)) {
       c.stage = 'REACHING';
@@ -405,7 +436,8 @@ export class LeadsService {
       aggregate_type: 'ReachAttempt', aggregate_id: attempt.id,
     });
 
-    return { ...attempt, mock: isMock, label: isMock ? 'MOCK' : 'LIVE' };
+    const label = emailUndelivered ? 'UNDELIVERED_NO_SMTP' : (isMock ? 'MOCK' : 'LIVE');
+    return { ...attempt, mock: isMock, email_undelivered: emailUndelivered, label };
   }
 
   async mockReceipt(user: AuthUser, attemptId: string, resultCode = 'connected_intent') {
@@ -602,6 +634,10 @@ export class LeadsService {
       tenant_id: user.tenant_id, case_id: caseId, type: 'case.followup_added',
       actor: user.sub, payload: { activity_id: activity.id, kind: activity.kind },
     });
+    await this.events.audit({
+      tenant_id: user.tenant_id, actor_user_id: user.sub, action: 'case.activity_add',
+      resource_type: 'CaseActivity', resource_id: activity.id, detail: { case_id: caseId, kind: activity.kind },
+    });
 
     return activity;
   }
@@ -710,7 +746,7 @@ export class LeadsService {
       ['ASSIGNED', 'REACHING', 'IN_DIALOG', 'APPOINTMENT_PENDING', 'APPOINTED', 'ORDERED'].includes(c.stage)).length;
     const reachedIntent = cases.filter((c) =>
       c.intent_qualified || ['IN_DIALOG', 'APPOINTMENT_PENDING', 'APPOINTED', 'ORDERED'].includes(c.stage)).length;
-    const appointed = cases.filter((c) => ['APPOINTED', 'ORDERED'].includes(c.stage)).length;
+    const appointed = cases.filter((c) => ['APPOINTED', 'ORDERED', 'WON'].includes(c.stage)).length;
 
     const orderQb = this.orders.createQueryBuilder('o')
       .where('o.tenant_id = :tid', { tid: user.tenant_id });
@@ -718,6 +754,8 @@ export class LeadsService {
       orderQb.innerJoin(LeadCase, 'lc', 'lc.id = o.case_id').andWhere('lc.product_code = :pc', { pc: productCode });
     }
     const ordered = await orderQb.getCount();
+    const won = cases.filter((c) => c.stage === 'WON').length;
+    const lost = cases.filter((c) => ['LOST', 'INVALID'].includes(c.stage)).length;
 
     const byProduct: Record<string, number> = {};
     for (const c of cases) {
@@ -733,6 +771,8 @@ export class LeadsService {
         reached_intent: reachedIntent,
         appointed,
         ordered,
+        won,
+        lost,
       },
       by_product: byProduct,
       stages: cases.reduce((acc, c) => {
@@ -742,7 +782,51 @@ export class LeadsService {
     };
   }
 
-  async exportLeadsCsv(user: AuthUser): Promise<string> {
+  /**
+   * Mark case outcome: won | lost | invalid | nurture | blocked
+   */
+  async markResult(user: AuthUser, caseId: string, result: string, note?: string) {
+    const allowed = ['won', 'lost', 'invalid', 'nurture', 'blocked'];
+    const r = (result || '').toLowerCase();
+    if (!allowed.includes(r)) throw new BadRequestException(`结果须为 ${allowed.join('/')}`);
+    const c = await this.cases.findOne({ where: { id: caseId } });
+    if (!c) throw new NotFoundException('案件不存在');
+    this.assertTenant(c.tenant_id, user);
+
+    const stageMap: Record<string, string> = {
+      won: 'WON',
+      lost: 'LOST',
+      invalid: 'INVALID',
+      nurture: 'NURTURE',
+      blocked: 'BLOCKED',
+    };
+    c.stage = stageMap[r];
+    c.flags = { ...c.flags, result: r, result_at: new Date().toISOString(), result_by: user.sub };
+    await this.cases.save(c);
+
+    if (note?.trim()) {
+      await this.activities.save(this.activities.create({
+        tenant_id: user.tenant_id,
+        case_id: caseId,
+        actor_user_id: user.sub,
+        kind: 'result',
+        body: note.trim(),
+        meta: { result: r },
+      }));
+    }
+
+    await this.events.emit({
+      tenant_id: user.tenant_id, case_id: c.id, type: 'case.result_marked',
+      actor: user.sub, payload: { result: r },
+    });
+    await this.events.audit({
+      tenant_id: user.tenant_id, actor_user_id: user.sub, action: 'case.mark_result',
+      resource_type: 'LeadCase', resource_id: c.id, detail: { result: r },
+    });
+    return { case: c };
+  }
+
+    async exportLeadsCsv(user: AuthUser): Promise<string> {
     if (!this.isAdmin(user)) throw new ForbiddenException('需要管理员权限');
     const cases = await this.cases.find({
       where: { tenant_id: user.tenant_id },

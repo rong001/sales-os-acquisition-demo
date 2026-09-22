@@ -1,0 +1,15 @@
+# Example Named Tunnel config for sales-os acquisition demo.
+# Copy to a private path (e.g. /etc/cloudflared/sales-os.yml) — DO NOT commit real credentials.
+#
+# Placeholders:
+#   TUNNEL_ID   — Cloudflare Tunnel UUID
+#   DOMAIN      — your hostname, e.g. sales-demo.example.com
+#   CRED_PATH   — absolute path to <TUNNEL_ID>.json credentials
+
+tunnel: TUNNEL_ID
+credentials-file: CRED_PATH
+
+ingress:
+  - hostname: DOMAIN
+    service: http://127.0.0.1:18180
+  - service: http_status:404
