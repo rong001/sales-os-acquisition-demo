@@ -1,0 +1,12 @@
+# 未完成 / 有意延后
+
+| 项 | 说明 |
+|---|---|
+| 真实短信/外呼供应商 | 仅脚手架：`REAL_SMS_ENABLED` / `REAL_CALL_ENABLED` + 密钥环境变量；默认 MOCK |
+| 成单 Order 全链路 | `ordered` 漏斗位为 stub（表已有，无支付/证据闭环） |
+| 多租户自助开通 | 演示固定 `slug=demo` 租户 |
+| 公网 HTTPS / 自定义域名 | 需人工 DNS 与证书 |
+| GitHub Pages 静态落地页 | 可选；当前以 Vite SPA 本地/自托管为主 |
+| Worker 全量回放与死信 | outbox + Redis Streams 基础已有，运维面板未做 |
+| 细粒度 RBAC | 现仅 agent / admin（supervisor 映射 admin） |
+| i18n 完整英文 | 落地页含少量英文产品名，UI 以中文为主 |

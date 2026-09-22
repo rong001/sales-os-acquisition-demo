@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sales}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sales}
+      POSTGRES_DB: ${POSTGRES_DB:-sales_os}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/sql/001_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sales}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-sales}:${POSTGRES_PASSWORD:-sales}@postgres:5432/${POSTGRES_DB:-sales_os}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-CHANGE_ME}
+      API_PORT: 3000
+      SEED_ON_BOOT: "true"
+      DEMO_AGENT_PASSWORD: ${DEMO_AGENT_PASSWORD:-CHANGE_ME}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-CHANGE_ME}
+      REAL_SMS_ENABLED: ${REAL_SMS_ENABLED:-false}
+      REAL_CALL_ENABLED: ${REAL_CALL_ENABLED:-false}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-sales}:${POSTGRES_PASSWORD:-sales}@postgres:5432/${POSTGRES_DB:-sales_os}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      VITE_API_BASE: /api
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  redisdata:

@@ -1,0 +1,287 @@
+import {
+  Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index,
+} from 'typeorm';
+
+@Entity('tenants')
+export class Tenant {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column({ type: 'varchar' }) name!: string;
+  @Column({ type: 'varchar', nullable: true, unique: true }) slug!: string | null;
+  @Column('text', { array: true, default: '{}' }) mode_flags!: string[];
+  @Column({ type: 'varchar', default: 'Asia/Shanghai' }) timezone!: string;
+  @Column({ type: 'varchar', default: 'zh-CN' }) locale!: string;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('users')
+@Index(['tenant_id', 'email'], { unique: true })
+export class User {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar' }) email!: string;
+  @Column({ type: 'varchar' }) password_hash!: string;
+  @Column({ type: 'varchar' }) display_name!: string;
+  @Column({ type: 'varchar', default: 'agent' }) role!: string;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('skill_groups')
+export class SkillGroup {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar' }) name!: string;
+  @Column('text', { array: true, default: '{}' }) skills!: string[];
+  @Column({ type: 'int', default: 50 }) max_in_progress!: number;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('agent_seats')
+@Index(['tenant_id', 'user_id'], { unique: true })
+export class AgentSeat {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') user_id!: string;
+  @Column('uuid', { nullable: true }) skill_group_id!: string | null;
+  @Column({ default: true }) online!: boolean;
+  @Column({ type: 'int', default: 0 }) current_load!: number;
+  @Column({ nullable: true, default: 'day' }) shift!: string;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('lead_identities')
+@Index(['tenant_id', 'merge_key'], { unique: true })
+export class LeadIdentity {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar', nullable: true }) phone!: string | null;
+  @Column({ type: 'varchar', nullable: true }) wechat_id!: string | null;
+  @Column({ type: 'varchar', nullable: true }) email!: string | null;
+  @Column({ type: 'varchar', nullable: true }) name!: string | null;
+  @Column({ type: 'varchar', nullable: true }) company_name!: string | null;
+  @Column({ type: 'varchar' }) merge_key!: string;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('lead_sources')
+export class LeadSource {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar' }) type!: string;
+  @Column({ type: 'varchar', nullable: true }) campaign!: string | null;
+  @Column({ type: 'varchar', nullable: true }) adset!: string | null;
+  @Column({ type: 'varchar', nullable: true }) creative!: string | null;
+  @Column({ type: 'text', nullable: true }) landing_url!: string | null;
+  @Column({ type: 'varchar', nullable: true }) form_id!: string | null;
+  @Column({ type: 'varchar', nullable: true }) import_batch_id!: string | null;
+  @Column({ type: 'varchar', nullable: true }) utm_source!: string | null;
+  @Column({ type: 'varchar', nullable: true }) utm_medium!: string | null;
+  @Column({ type: 'varchar', nullable: true }) utm_campaign!: string | null;
+  @Column({ type: 'varchar', nullable: true }) utm_content!: string | null;
+  @Column({ type: 'varchar', nullable: true }) utm_term!: string | null;
+  @Column({ type: 'varchar', nullable: true }) invite_code!: string | null;
+  @Column({ type: 'varchar', nullable: true }) product_code!: string | null;
+  @Column({ type: 'jsonb', nullable: true }) raw_payload!: Record<string, unknown> | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('lead_cases')
+@Index(['tenant_id', 'stage'])
+export class LeadCase {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') identity_id!: string;
+  @Column('uuid', { nullable: true }) source_id!: string | null;
+  @Column({ type: 'varchar', nullable: true }) scene_id!: string | null;
+  @Column({ type: 'varchar', nullable: true }) product_code!: string | null;
+  @Column({ type: 'varchar', default: 'STANDARD' }) path!: string;
+  @Column({ type: 'varchar', default: 'NEW' }) stage!: string;
+  @Column('uuid', { nullable: true }) owner_agent_id!: string | null;
+  @Column('uuid', { nullable: true }) skill_group_id!: string | null;
+  @Column({ type: 'jsonb', default: {} }) flags!: Record<string, unknown>;
+  @Column({ type: 'varchar', default: 'unknown' }) intent_level!: string;
+  @Column({ default: false }) intent_qualified!: boolean;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
+}
+
+@Entity('consent_grants')
+export class ConsentGrant {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') identity_id!: string;
+  @Column('uuid', { nullable: true }) case_id!: string | null;
+  @Column({ type: 'varchar' }) channel!: string;
+  @Column({ type: 'varchar', default: 'unknown' }) status!: string;
+  @Column({ type: 'text', nullable: true }) evidence_ref!: string | null;
+  @Column({ type: 'text', nullable: true }) consent_text!: string | null;
+  @Column({ type: 'varchar', nullable: true }) consent_version!: string | null;
+  @Column({ type: 'varchar', nullable: true }) ip!: string | null;
+  @Column({ type: 'text', nullable: true }) user_agent!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) granted_at!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) expires_at!: Date | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('ownerships')
+export class Ownership {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') case_id!: string;
+  @Column('uuid') agent_id!: string;
+  @Column({ type: 'varchar' }) reason!: string;
+  @Column({ type: 'timestamptz', nullable: true }) protect_until!: Date | null;
+  @Column({ type: 'varchar', default: 'active' }) status!: string;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('pool_items')
+export class PoolItem {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') case_id!: string;
+  @Column({ type: 'varchar' }) reason!: string;
+  @Column({ type: 'timestamptz', default: () => 'now()' }) claimable_from!: Date;
+  @Column('uuid', { nullable: true }) last_owner_id!: string | null;
+  @Column({ type: 'varchar', default: 'open' }) status!: string;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('reach_plans')
+export class ReachPlan {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') case_id!: string;
+  @Column({ type: 'jsonb', default: [] }) sequence!: unknown[];
+  @Column({ type: 'jsonb', nullable: true }) parallel_group!: unknown | null;
+  @Column({ type: 'varchar', default: 'active' }) status!: string;
+  @Column({ type: 'int', default: 1 }) version!: number;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('reach_attempts')
+export class ReachAttempt {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid', { nullable: true }) plan_id!: string | null;
+  @Column('uuid') case_id!: string;
+  @Column({ type: 'varchar' }) channel!: string;
+  @Column({ type: 'varchar', nullable: true }) executor_ref!: string | null;
+  @Column({ type: 'varchar', nullable: true }) template_ref!: string | null;
+  @Column({ type: 'varchar', default: 'queued' }) status!: string;
+  @Column({ type: 'varchar', nullable: true }) provider_msg_id!: string | null;
+  /** Always true unless REAL_SMS_ENABLED / REAL_CALL_ENABLED + credentials */
+  @Column({ default: true }) is_mock!: boolean;
+  @Column({ type: 'timestamptz', nullable: true }) started_at!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) ended_at!: Date | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('reach_receipts')
+export class ReachReceipt {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') attempt_id!: string;
+  @Column({ type: 'varchar', nullable: true }) raw_status!: string | null;
+  @Column({ type: 'varchar' }) result_code!: string;
+  @Column({ type: 'int', nullable: true }) talk_seconds!: number | null;
+  @Column({ type: 'text', nullable: true }) transcript_ref!: string | null;
+  @Column({ default: true }) is_mock!: boolean;
+  @Column({ type: 'timestamptz', default: () => 'now()' }) received_at!: Date;
+}
+
+@Entity('appointments')
+export class Appointment {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') case_id!: string;
+  @Column({ type: 'timestamptz', nullable: true }) slot_start!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) slot_end!: Date | null;
+  @Column({ type: 'text', nullable: true }) location_or_link!: string | null;
+  @Column({ type: 'varchar', nullable: true }) product_or_program!: string | null;
+  @Column('uuid', { nullable: true }) owner_agent_id!: string | null;
+  @Column({ type: 'varchar', default: 'draft' }) status!: string;
+  @Column({ default: false }) valid!: boolean;
+  @Column({ type: 'varchar', nullable: true }) amount_hint!: string | null;
+  @Column({ type: 'text', nullable: true }) cancel_policy!: string | null;
+  @Column({ type: 'text', nullable: true }) commitment_boundary!: string | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @Column({ type: 'timestamptz', nullable: true }) confirmed_at!: Date | null;
+}
+
+@Entity('orders')
+export class Order {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') case_id!: string;
+  @Column('uuid', { nullable: true }) appointment_id!: string | null;
+  @Column({ type: 'varchar', nullable: true }) offer_ref!: string | null;
+  @Column({ type: 'varchar', nullable: true }) amount!: string | null;
+  @Column({ type: 'varchar', default: 'CNY' }) currency!: string;
+  @Column({ type: 'varchar', default: 'draft' }) status!: string;
+  @Column({ default: false }) valid!: boolean;
+  @Column({ type: 'jsonb', default: [] }) evidence_refs!: unknown[];
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('case_activities')
+@Index(['tenant_id', 'case_id', 'created_at'])
+export class CaseActivity {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') case_id!: string;
+  @Column('uuid', { nullable: true }) actor_user_id!: string | null;
+  @Column({ type: 'varchar', default: 'note' }) kind!: string;
+  @Column({ type: 'text' }) body!: string;
+  @Column({ type: 'jsonb', default: {} }) meta!: Record<string, unknown>;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('domain_events')
+export class DomainEvent {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid', { nullable: true }) case_id!: string | null;
+  @Column({ type: 'varchar' }) type!: string;
+  @Column({ type: 'timestamptz', default: () => 'now()' }) occurred_at!: Date;
+  @Column({ type: 'timestamptz', default: () => 'now()' }) received_at!: Date;
+  @Column({ type: 'varchar', default: 'system' }) actor!: string;
+  @Column('uuid', { nullable: true }) correlation_id!: string | null;
+  @Column('uuid', { nullable: true }) causation_id!: string | null;
+  @Column({ type: 'jsonb', default: {} }) payload!: Record<string, unknown>;
+  @Column({ type: 'int', default: 1 }) version!: number;
+}
+
+@Entity('outbox')
+export class Outbox {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar' }) aggregate_type!: string;
+  @Column('uuid') aggregate_id!: string;
+  @Column({ type: 'varchar' }) event_type!: string;
+  @Column({ type: 'jsonb' }) payload!: Record<string, unknown>;
+  @Column({ type: 'varchar', default: 'pending' }) status!: string;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @Column({ type: 'timestamptz', nullable: true }) published_at!: Date | null;
+}
+
+@Entity('audit_logs')
+export class AuditLog {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid', { nullable: true }) actor_user_id!: string | null;
+  @Column({ type: 'varchar' }) action!: string;
+  @Column({ type: 'varchar', nullable: true }) resource_type!: string | null;
+  @Column('uuid', { nullable: true }) resource_id!: string | null;
+  @Column({ type: 'jsonb', default: {} }) detail!: Record<string, unknown>;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+export const ALL_ENTITIES = [
+  Tenant, User, SkillGroup, AgentSeat, LeadIdentity, LeadSource, LeadCase,
+  ConsentGrant, Ownership, PoolItem, ReachPlan, ReachAttempt, ReachReceipt,
+  Appointment, Order, CaseActivity, DomainEvent, Outbox, AuditLog,
+];
+
+export const CONSENT_TEXT_V1 =
+  '我已阅读并同意贵司在业务沟通范围内通过电话/短信联系我，了解所咨询产品的服务说明。同意可随时撤回。';
+export const CONSENT_VERSION = 'v1.0-2026';

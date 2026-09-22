@@ -1,0 +1,20 @@
+{
+  "name": "sales-os-app",
+  "private": true,
+  "version": "0.1.0",
+  "description": "销售获客 OS 演示：抢票产品 + USGate 落地页进线 → 分配 → 跟进 → 预约 → 漏斗",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev -w @sales-os/api",
+    "dev:worker": "npm run start:dev -w @sales-os/worker",
+    "dev:web": "npm run dev -w @sales-os/web",
+    "build": "npm run build -w @sales-os/api && npm run build -w @sales-os/worker && npm run build -w @sales-os/web",
+    "seed": "npm run seed -w @sales-os/api",
+    "smoke": "bash scripts/smoke-m1.sh",
+    "start:dev": "npm run start:dev -w @sales-os/api",
+    "e2e": "bash scripts/e2e-acquisition.sh"
+  }
+}
