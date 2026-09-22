@@ -26,3 +26,9 @@ docs/acceptance/internal-trial/confirm-appointment-rbac/.raw/
 
 # 到期跟进提醒 E2E 原始响应含 JWT
 docs/acceptance/internal-trial/followup-reminders/.raw/
+
+# 跨时点到期跟进 E2E 原始响应含 JWT
+docs/acceptance/internal-trial/followup-live-poll/.raw/
+
+# 本地启动包展开树（保留 START + tar.gz 入库）
+releases/sales-os-internal-trial-local/sales-os-app/

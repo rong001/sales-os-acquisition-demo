@@ -1,0 +1,18 @@
+{
+  "browser": "/usr/bin/google-chrome-stable",
+  "poll_ms": 5000,
+  "case_id": "a51d3aab-3554-4161-99e6-e4a092f0b96f",
+  "next_follow_at": "2026-09-22T14:52:29.240742Z",
+  "gateway": "http://127.0.0.1:18180",
+  "auth_mode": "localStorage_inject",
+  "sales1_landed_at": "2026-09-22T14:51:55.897Z",
+  "before_shot_at": "2026-09-22T14:51:55.897Z",
+  "before_item_visible": false,
+  "after_shot_at": "2026-09-22T14:52:35.889Z",
+  "after_item_visible": true,
+  "sales2_check_at": "2026-09-22T14:52:36.482Z",
+  "sales2_item_visible": false,
+  "handled_click_at": "2026-09-22T14:52:36.828Z",
+  "handled_verify_at": "2026-09-22T14:52:46.872Z",
+  "handled_gone": true
+}

@@ -15,6 +15,18 @@
       </div>
     </div>
 
+    <div class="row" style="margin-bottom:8px;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="muted" style="font-size:12px" data-testid="workbench-last-updated">
+        最近更新 {{ lastUpdatedLabel }}
+      </span>
+      <span
+        v-if="loadError"
+        class="tag warn"
+        style="font-size:12px"
+        data-testid="workbench-load-error"
+      >{{ loadError }}</span>
+    </div>
+
     <div class="grid-3" style="margin-bottom:12px">
       <div class="card"><div class="muted">我的在办</div><div style="font-size:28px">{{ data?.stats?.my_open ?? '—' }}</div></div>
       <div class="card"><div class="muted">待确认预约</div><div style="font-size:28px">{{ data?.stats?.pending_confirm ?? '—' }}</div></div>
@@ -87,9 +99,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, inject } from 'vue';
+import { ref, computed, onMounted, onUnmounted, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import { LeadApi } from '../api/client';
+
+const POLL_MS = 5000;
 
 const router = useRouter();
 const toast = inject('toast', () => {});
@@ -97,12 +111,21 @@ const data = ref(null);
 const busy = ref(false);
 const busyId = ref('');
 const user = ref(null);
+const loadError = ref('');
+const lastUpdatedAt = ref(null);
+const inFlight = ref(false);
+let pollTimer = null;
 
 try { user.value = JSON.parse(localStorage.getItem('salesos_user') || 'null'); } catch { /* ignore */ }
 const isAdmin = computed(() => ['admin', 'supervisor'].includes(user.value?.role));
 const isViewer = computed(() => user.value?.role === 'viewer');
 const canWrite = computed(() => !isViewer.value);
 const canFunnel = computed(() => isAdmin.value || isViewer.value);
+
+const lastUpdatedLabel = computed(() => {
+  if (!lastUpdatedAt.value) return '—';
+  try { return new Date(lastUpdatedAt.value).toLocaleString('zh-CN'); } catch { return String(lastUpdatedAt.value); }
+});
 
 function stageLabel(s) {
   const map = {
@@ -118,7 +141,17 @@ function formatTime(v) {
 }
 
 async function load() {
-  data.value = await LeadApi.today();
+  if (inFlight.value) return;
+  inFlight.value = true;
+  try {
+    data.value = await LeadApi.today();
+    lastUpdatedAt.value = new Date().toISOString();
+    loadError.value = '';
+  } catch (e) {
+    loadError.value = e?.message || '作战台刷新失败';
+  } finally {
+    inFlight.value = false;
+  }
 }
 
 async function doHandle(caseId) {
@@ -166,5 +199,15 @@ function logout() {
   router.push('/login');
 }
 
-onMounted(() => load().catch((e) => toast(e.message)));
+onMounted(() => {
+  load();
+  pollTimer = setInterval(() => { load(); }, POLL_MS);
+});
+
+onUnmounted(() => {
+  if (pollTimer != null) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+});
 </script>

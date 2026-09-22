@@ -1,0 +1,54 @@
+{
+  "suite": "followup-live-poll",
+  "ran_at": "2026-09-22T14:52:47.355512Z",
+  "poll_ms": 5000,
+  "delay_sec": 35,
+  "case_id": "a51d3aab-3554-4161-99e6-e4a092f0b96f",
+  "set_at": "2026-09-22T14:51:54.252607Z",
+  "next_follow_at": "2026-09-22T14:52:29.240742Z",
+  "stored_next_follow_at": "2026-09-22T14:52:29.240Z",
+  "before_shot_at": "2026-09-22T14:51:55.897Z",
+  "after_shot_at": "2026-09-22T14:52:35.889Z",
+  "handled_at": "2026-09-22T14:52:36.828Z",
+  "sales2_check_at": "2026-09-22T14:52:36.482Z",
+  "before_item_visible": false,
+  "after_item_visible": true,
+  "sales2_item_visible": false,
+  "handled_gone": true,
+  "browser_path": "/usr/bin/google-chrome-stable",
+  "gateway": "http://127.0.0.1:18180",
+  "note": "next_follow_at set once; wall clock crossed; no manual reload; no timestamp flip",
+  "steps": [
+    {
+      "id": "health",
+      "status": "PASS",
+      "note": "ok"
+    },
+    {
+      "id": "manager_login",
+      "status": "PASS",
+      "note": "role=supervisor"
+    },
+    {
+      "id": "assign",
+      "status": "PASS",
+      "note": "sales1"
+    },
+    {
+      "id": "set_once",
+      "status": "PASS",
+      "note": "2026-09-22T14:52:29.240742Z"
+    },
+    {
+      "id": "api_before",
+      "status": "PASS",
+      "note": "ok"
+    },
+    {
+      "id": "browser",
+      "status": "PASS",
+      "note": "before/after/handled"
+    }
+  ],
+  "overall": "PASS"
+}
