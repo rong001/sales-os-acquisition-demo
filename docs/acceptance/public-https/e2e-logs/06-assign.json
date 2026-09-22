@@ -1,0 +1,39 @@
+{
+  "case": {
+    "id": "311a08fc-4234-446b-bcf1-65014cf54810",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "identity_id": "b2626860-0cf8-455f-910c-5ea5f3b22e23",
+    "source_id": "98a90d36-9774-4ee3-97e5-8fec2baa9089",
+    "scene_id": "landing:ticket-grab",
+    "product_code": "ticket-grab",
+    "path": "STANDARD",
+    "stage": "ASSIGNED",
+    "owner_agent_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+    "skill_group_id": "9bbce901-5aa5-414d-8018-c1f61d30540c",
+    "flags": {},
+    "intent_level": "unknown",
+    "intent_qualified": false,
+    "created_at": "2026-09-22T03:08:40.450Z",
+    "updated_at": "2026-09-22T03:08:40.851Z"
+  },
+  "ownership": {
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+    "agent_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+    "reason": "manual_assign",
+    "protect_until": "2026-09-24T03:08:40.847Z",
+    "status": "active",
+    "id": "abedac3b-c6da-4d29-9be6-4dcd4faca4dd",
+    "created_at": "2026-09-22T03:08:40.847Z"
+  },
+  "agent": {
+    "id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "user_id": "f28f595b-b43c-4962-905a-7bd278568681",
+    "skill_group_id": "9bbce901-5aa5-414d-8018-c1f61d30540c",
+    "online": true,
+    "current_load": 3,
+    "shift": "day",
+    "created_at": "2026-09-22T02:11:06.263Z"
+  }
+}

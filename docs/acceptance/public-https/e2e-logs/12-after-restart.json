@@ -1,0 +1,442 @@
+{
+  "case": {
+    "id": "311a08fc-4234-446b-bcf1-65014cf54810",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "identity_id": "b2626860-0cf8-455f-910c-5ea5f3b22e23",
+    "source_id": "98a90d36-9774-4ee3-97e5-8fec2baa9089",
+    "scene_id": "landing:ticket-grab",
+    "product_code": "ticket-grab",
+    "path": "STANDARD",
+    "stage": "APPOINTED",
+    "owner_agent_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+    "skill_group_id": "9bbce901-5aa5-414d-8018-c1f61d30540c",
+    "flags": {},
+    "intent_level": "strong",
+    "intent_qualified": true,
+    "created_at": "2026-09-22T03:08:40.450Z",
+    "updated_at": "2026-09-22T03:08:41.095Z"
+  },
+  "identity": {
+    "id": "b2626860-0cf8-455f-910c-5ea5f3b22e23",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "phone": "138****6520",
+    "wechat_id": null,
+    "email": "e2e_13890046520@example.com",
+    "name": "E2E访客公网",
+    "company_name": null,
+    "merge_key": "phone:13890046520",
+    "created_at": "2026-09-22T03:08:40.443Z"
+  },
+  "source": {
+    "id": "98a90d36-9774-4ee3-97e5-8fec2baa9089",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "type": "landing_form",
+    "campaign": "acceptance",
+    "adset": null,
+    "creative": null,
+    "landing_url": "https://shoes-midnight-reload-noted.trycloudflare.com/p/ticket-grab?utm_source=e2e",
+    "form_id": "landing:ticket-grab",
+    "import_batch_id": null,
+    "utm_source": "e2e",
+    "utm_medium": "public_https",
+    "utm_campaign": "acceptance",
+    "utm_content": "btn1",
+    "utm_term": "grab",
+    "invite_code": "E2E110840",
+    "product_code": "ticket-grab",
+    "raw_payload": {
+      "utm": {
+        "term": "grab",
+        "medium": "public_https",
+        "source": "e2e",
+        "content": "btn1",
+        "campaign": "acceptance"
+      },
+      "invite_code": "E2E110840",
+      "product_code": "ticket-grab"
+    },
+    "created_at": "2026-09-22T03:08:40.448Z"
+  },
+  "ownership": {
+    "id": "abedac3b-c6da-4d29-9be6-4dcd4faca4dd",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+    "agent_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+    "reason": "manual_assign",
+    "protect_until": "2026-09-24T04:00:00.000Z",
+    "status": "active",
+    "created_at": "2026-09-22T03:08:40.847Z"
+  },
+  "plan": {
+    "id": "4af9680f-8579-4fc1-b2f9-606b6bbb6066",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+    "sequence": [
+      {
+        "channel": "mock_call",
+        "max_attempts": 1,
+        "template_ref": "demo-script-ticket-grab"
+      }
+    ],
+    "parallel_group": null,
+    "status": "active",
+    "version": 1,
+    "created_at": "2026-09-22T03:08:40.780Z"
+  },
+  "attempts": [
+    {
+      "id": "d698ecde-69c4-434f-82fb-f7af47b7d21e",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "plan_id": "4af9680f-8579-4fc1-b2f9-606b6bbb6066",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "channel": "mock_call",
+      "executor_ref": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+      "template_ref": "demo-script",
+      "status": "succeeded",
+      "provider_msg_id": "MOCK-1790046520958",
+      "is_mock": true,
+      "started_at": "2026-09-22T03:08:40.958Z",
+      "ended_at": "2026-09-22T03:08:41.012Z",
+      "created_at": "2026-09-22T03:08:40.958Z",
+      "mock": true,
+      "label": "MOCK"
+    }
+  ],
+  "receipts": [
+    {
+      "id": "91c227b6-35ee-4fdd-be12-bc2e8b9ef4c3",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "attempt_id": "d698ecde-69c4-434f-82fb-f7af47b7d21e",
+      "raw_status": "MOCK:connected_intent",
+      "result_code": "connected_intent",
+      "talk_seconds": 90,
+      "transcript_ref": null,
+      "is_mock": true,
+      "received_at": "2026-09-22T03:08:41.010Z",
+      "mock": true,
+      "label": "MOCK"
+    }
+  ],
+  "appointments": [
+    {
+      "id": "6d5edc8b-33f6-4bfb-bab6-a5179110b176",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "slot_start": "2026-09-23T03:00:00.000Z",
+      "slot_end": "2026-09-23T04:00:00.000Z",
+      "location_or_link": "线上会议 https://meet.demo.local/room",
+      "product_or_program": "抢票助手 咨询（60分钟）",
+      "owner_agent_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+      "status": "confirmed",
+      "valid": true,
+      "amount_hint": "咨询免费；正式服务费用以确认单为准，不含效果承诺",
+      "cancel_policy": "预约开始前 2 小时可取消；临近 2 小时取消记入爽约统计",
+      "commitment_boundary": "本预约不构成抢票成功率或价格承诺；成单需另行确认",
+      "created_at": "2026-09-22T03:08:41.038Z",
+      "confirmed_at": "2026-09-22T03:08:41.089Z"
+    }
+  ],
+  "consents": [
+    {
+      "id": "8a3616ac-6787-41dd-910e-93b1bd78c284",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "identity_id": "b2626860-0cf8-455f-910c-5ea5f3b22e23",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "channel": "call",
+      "status": "granted",
+      "evidence_ref": "consent:v1.0-2026",
+      "consent_text": "我已阅读并同意贵司在业务沟通范围内通过电话/短信联系我，了解所咨询产品的服务说明。同意可随时撤回。",
+      "consent_version": "v1.0-2026",
+      "ip": "104.30.180.110",
+      "user_agent": "SalesOS-Public-E2E/1.0",
+      "granted_at": "2026-09-22T03:08:40.452Z",
+      "expires_at": null,
+      "created_at": "2026-09-22T03:08:40.453Z"
+    },
+    {
+      "id": "eadbebdf-83f0-4643-a1d1-076fdd47f1bc",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "identity_id": "b2626860-0cf8-455f-910c-5ea5f3b22e23",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "channel": "sms",
+      "status": "granted",
+      "evidence_ref": "consent:v1.0-2026",
+      "consent_text": "我已阅读并同意贵司在业务沟通范围内通过电话/短信联系我，了解所咨询产品的服务说明。同意可随时撤回。",
+      "consent_version": "v1.0-2026",
+      "ip": "104.30.180.110",
+      "user_agent": "SalesOS-Public-E2E/1.0",
+      "granted_at": "2026-09-22T03:08:40.452Z",
+      "expires_at": null,
+      "created_at": "2026-09-22T03:08:40.456Z"
+    }
+  ],
+  "activities": [
+    {
+      "id": "194a2305-e1f4-46db-989e-61d02f6c3dd6",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "actor_user_id": "f28f595b-b43c-4962-905a-7bd278568681",
+      "kind": "note",
+      "body": "公网E2E跟进：已电话介绍产品边界",
+      "meta": {},
+      "created_at": "2026-09-22T03:08:40.909Z"
+    }
+  ],
+  "events": [
+    {
+      "id": "63509490-f1b3-47b2-8791-2431b65a1689",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "lead.captured",
+      "occurred_at": "2026-09-22T03:08:40.458Z",
+      "received_at": "2026-09-22T03:08:40.458Z",
+      "actor": "public-landing",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "merged": false,
+        "merge_key": "phone:13890046520",
+        "source_id": "98a90d36-9774-4ee3-97e5-8fec2baa9089",
+        "identity_id": "b2626860-0cf8-455f-910c-5ea5f3b22e23",
+        "invite_code": "E2E110840",
+        "product_code": "ticket-grab"
+      },
+      "version": 1
+    },
+    {
+      "id": "c42f0617-e2f4-47ee-b903-b56ea3b26f56",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "lead.qualified",
+      "occurred_at": "2026-09-22T03:08:40.783Z",
+      "received_at": "2026-09-22T03:08:40.783Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "path": "STANDARD"
+      },
+      "version": 1
+    },
+    {
+      "id": "ca8ccccf-cb6b-4b90-9c5d-431002af9d08",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "lead.path_assigned",
+      "occurred_at": "2026-09-22T03:08:40.788Z",
+      "received_at": "2026-09-22T03:08:40.788Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "path": "STANDARD"
+      },
+      "version": 1
+    },
+    {
+      "id": "9cf90e8e-92e0-4ca2-9003-dc7247ee5e7c",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "reach.plan_created",
+      "occurred_at": "2026-09-22T03:08:40.794Z",
+      "received_at": "2026-09-22T03:08:40.794Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "plan_id": "4af9680f-8579-4fc1-b2f9-606b6bbb6066"
+      },
+      "version": 1
+    },
+    {
+      "id": "08af5c83-e8d6-43d5-8930-95fc7ed70aed",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "case.assigned",
+      "occurred_at": "2026-09-22T03:08:40.857Z",
+      "received_at": "2026-09-22T03:08:40.857Z",
+      "actor": "f28f595b-b43c-4962-905a-7bd278568681",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "agent_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69"
+      },
+      "version": 1
+    },
+    {
+      "id": "0a0cdaae-d897-429d-8d0d-45c2481622f5",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "ownership.bound",
+      "occurred_at": "2026-09-22T03:08:40.862Z",
+      "received_at": "2026-09-22T03:08:40.862Z",
+      "actor": "f28f595b-b43c-4962-905a-7bd278568681",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "ownership_id": "abedac3b-c6da-4d29-9be6-4dcd4faca4dd",
+        "protect_until": "2026-09-24T03:08:40.847Z"
+      },
+      "version": 1
+    },
+    {
+      "id": "6ff5476c-1b00-4b13-b991-61be80db1f0f",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "case.followup_added",
+      "occurred_at": "2026-09-22T03:08:40.910Z",
+      "received_at": "2026-09-22T03:08:40.910Z",
+      "actor": "f28f595b-b43c-4962-905a-7bd278568681",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "kind": "note",
+        "activity_id": "194a2305-e1f4-46db-989e-61d02f6c3dd6"
+      },
+      "version": 1
+    },
+    {
+      "id": "861d3f72-5528-41e1-8821-77c5e731f25c",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "reach.attempt_started",
+      "occurred_at": "2026-09-22T03:08:40.963Z",
+      "received_at": "2026-09-22T03:08:40.963Z",
+      "actor": "f28f595b-b43c-4962-905a-7bd278568681",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "mock": true,
+        "channel": "mock_call",
+        "attempt_id": "d698ecde-69c4-434f-82fb-f7af47b7d21e"
+      },
+      "version": 1
+    },
+    {
+      "id": "bd314c0e-329e-495c-a326-ceb7b915b832",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "reach.receipt_mapped",
+      "occurred_at": "2026-09-22T03:08:41.016Z",
+      "received_at": "2026-09-22T03:08:41.016Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "mock": true,
+        "attempt_id": "d698ecde-69c4-434f-82fb-f7af47b7d21e",
+        "receipt_id": "91c227b6-35ee-4fdd-be12-bc2e8b9ef4c3",
+        "result_code": "connected_intent"
+      },
+      "version": 1
+    },
+    {
+      "id": "ca851e85-f99f-4279-a69a-513440e238d1",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "reach.attempt_finished",
+      "occurred_at": "2026-09-22T03:08:41.021Z",
+      "received_at": "2026-09-22T03:08:41.021Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "mock": true,
+        "status": "succeeded",
+        "attempt_id": "d698ecde-69c4-434f-82fb-f7af47b7d21e"
+      },
+      "version": 1
+    },
+    {
+      "id": "9903ed1d-5126-405f-ac70-ce8572b29a8f",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "touch.effective",
+      "occurred_at": "2026-09-22T03:08:41.029Z",
+      "received_at": "2026-09-22T03:08:41.029Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "mock": true,
+        "attempt_id": "d698ecde-69c4-434f-82fb-f7af47b7d21e",
+        "talk_seconds": 90
+      },
+      "version": 1
+    },
+    {
+      "id": "c8c980bb-c1e2-483a-873d-5da33edbf64b",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "intent.qualified",
+      "occurred_at": "2026-09-22T03:08:41.032Z",
+      "received_at": "2026-09-22T03:08:41.032Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "from": "connected_intent",
+        "level": "strong"
+      },
+      "version": 1
+    },
+    {
+      "id": "d4dfc2a6-1a5f-4f87-b523-8b7a4ed9d865",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "appointment.drafted",
+      "occurred_at": "2026-09-22T03:08:41.043Z",
+      "received_at": "2026-09-22T03:08:41.043Z",
+      "actor": "f28f595b-b43c-4962-905a-7bd278568681",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "appointment_id": "6d5edc8b-33f6-4bfb-bab6-a5179110b176"
+      },
+      "version": 1
+    },
+    {
+      "id": "dc08c4a3-dafb-44da-abb9-a5fa315d0719",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "appointment.confirmed",
+      "occurred_at": "2026-09-22T03:08:41.100Z",
+      "received_at": "2026-09-22T03:08:41.100Z",
+      "actor": "f28f595b-b43c-4962-905a-7bd278568681",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "appointment_id": "6d5edc8b-33f6-4bfb-bab6-a5179110b176"
+      },
+      "version": 1
+    },
+    {
+      "id": "34fa3054-865f-4a6d-bc84-d73bbdb62c44",
+      "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+      "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+      "type": "conversion.appointment_valid",
+      "occurred_at": "2026-09-22T03:08:41.105Z",
+      "received_at": "2026-09-22T03:08:41.105Z",
+      "actor": "f28f595b-b43c-4962-905a-7bd278568681",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "valid": true,
+        "slot_start": "2026-09-23T03:00:00.000Z",
+        "appointment_id": "6d5edc8b-33f6-4bfb-bab6-a5179110b176",
+        "product_or_program": "抢票助手 咨询（60分钟）"
+      },
+      "version": 1
+    }
+  ],
+  "product": {
+    "code": "ticket-grab",
+    "name_zh": "抢票助手",
+    "name_en": "Ticket Grab",
+    "tagline": "高峰出行预约咨询 · 自愿留资",
+    "amount_hint": "咨询免费；正式服务费用以确认单为准，不含效果承诺",
+    "cancel_policy": "预约开始前 2 小时可取消；临近 2 小时取消记入爽约统计",
+    "commitment_boundary": "本预约不构成抢票成功率或价格承诺；成单需另行确认",
+    "skill": "ticket-grab"
+  }
+}

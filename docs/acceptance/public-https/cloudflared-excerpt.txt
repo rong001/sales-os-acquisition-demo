@@ -1,0 +1,6 @@
+2026-09-22T03:07:54Z INF Requesting new quick Tunnel on trycloudflare.com...
+2026-09-22T03:07:58Z INF |  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |
+2026-09-22T03:07:58Z INF |  https://shoes-midnight-reload-noted.trycloudflare.com                                     |
+2026-09-22T03:07:58Z INF Version 2026.9.1 (Checksum 03f1f25d1cc93b9ad6c60569d44060bc4f17ed97075760ed8cfca4b12dcd68cc)
+2026-09-22T03:07:58Z INF Settings: map[ha-connections:1 no-autoupdate:true protocol:quic url:http://127.0.0.1:18180]
+2026-09-22T03:07:58Z INF Registered tunnel connection connIndex=0 connection=056f1a42-e54b-4114-8167-67a26e27c823 event=0 ip=198.41.192.37 location=iad03 protocol=quic

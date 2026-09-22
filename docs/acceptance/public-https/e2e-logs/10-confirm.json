@@ -1,0 +1,20 @@
+{
+  "appointment": {
+    "id": "6d5edc8b-33f6-4bfb-bab6-a5179110b176",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+    "slot_start": "2026-09-23T03:00:00.000Z",
+    "slot_end": "2026-09-23T04:00:00.000Z",
+    "location_or_link": "线上会议 https://meet.demo.local/room",
+    "product_or_program": "抢票助手 咨询（60分钟）",
+    "owner_agent_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+    "status": "confirmed",
+    "valid": true,
+    "amount_hint": "咨询免费；正式服务费用以确认单为准，不含效果承诺",
+    "cancel_policy": "预约开始前 2 小时可取消；临近 2 小时取消记入爽约统计",
+    "commitment_boundary": "本预约不构成抢票成功率或价格承诺；成单需另行确认",
+    "created_at": "2026-09-22T03:08:41.038Z",
+    "confirmed_at": "2026-09-22T03:08:41.089Z"
+  },
+  "event": "conversion.appointment_valid"
+}

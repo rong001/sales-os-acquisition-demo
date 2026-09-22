@@ -1,0 +1,12 @@
+{
+  "access_token": "[REDACTED]",
+  "user": {
+    "id": "f28f595b-b43c-4962-905a-7bd278568681",
+    "email": "agent@demo.local",
+    "display_name": "演示坐席",
+    "role": "agent",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "tenant_name": "演示销售公司",
+    "agent_seat_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69"
+  }
+}

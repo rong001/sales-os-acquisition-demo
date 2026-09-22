@@ -1,0 +1,17 @@
+{
+  "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+  "plan_id": "4af9680f-8579-4fc1-b2f9-606b6bbb6066",
+  "case_id": "311a08fc-4234-446b-bcf1-65014cf54810",
+  "channel": "mock_call",
+  "executor_ref": "97c4e600-ff5d-460b-95a8-c82a3a07dc69",
+  "template_ref": "demo-script",
+  "status": "running",
+  "provider_msg_id": "MOCK-1790046520958",
+  "is_mock": true,
+  "started_at": "2026-09-22T03:08:40.958Z",
+  "ended_at": null,
+  "id": "d698ecde-69c4-434f-82fb-f7af47b7d21e",
+  "created_at": "2026-09-22T03:08:40.958Z",
+  "mock": true,
+  "label": "MOCK"
+}

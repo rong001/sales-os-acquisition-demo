@@ -1,0 +1,12 @@
+PASS: health {'ok': True, 'service': 'sales-os-api', 'ts': '2026-09-22T03:08:40.370Z'}
+PASS: landing intake case=311a08fc-4234-446b-bcf1-65014cf54810
+PASS: lead visible with UTM/invite
+PASS: qualified
+PASS: assigned
+PASS: follow-up added
+PASS: appointment confirmed
+PASS: funnel appointed=3
+PHASE1_OK case=311a08fc-4234-446b-bcf1-65014cf54810
+PASS: persistence OK stage=APPOINTED
+PASS: dedup merged identity
+E2E_PUBLIC_HTTPS_OK case=311a08fc-4234-446b-bcf1-65014cf54810

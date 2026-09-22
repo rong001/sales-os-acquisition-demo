@@ -1,0 +1,54 @@
+{
+  "case": {
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "identity_id": "b2626860-0cf8-455f-910c-5ea5f3b22e23",
+    "source_id": "ecd042dc-6e1d-4c56-a6a2-27008cebed79",
+    "scene_id": "landing:usgate",
+    "product_code": "usgate",
+    "path": "STANDARD",
+    "stage": "NEW",
+    "owner_agent_id": null,
+    "skill_group_id": null,
+    "id": "1878fa2b-afee-4677-9c87-8ddfff2ca9fa",
+    "flags": {},
+    "intent_level": "unknown",
+    "intent_qualified": false,
+    "created_at": "2026-09-22T03:09:40.138Z",
+    "updated_at": "2026-09-22T03:09:40.138Z"
+  },
+  "identity": {
+    "id": "b2626860-0cf8-455f-910c-5ea5f3b22e23",
+    "name": "E2E访客公网",
+    "phone": "138****6520",
+    "email": "e2e_13890046520@example.com",
+    "merge_key": "phone:13890046520"
+  },
+  "source": {
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "type": "landing_form",
+    "campaign": "usgate",
+    "landing_url": null,
+    "form_id": "landing:usgate",
+    "utm_source": null,
+    "utm_medium": null,
+    "utm_campaign": null,
+    "utm_content": null,
+    "utm_term": null,
+    "invite_code": null,
+    "product_code": "usgate",
+    "raw_payload": {
+      "product_code": "usgate",
+      "utm": {}
+    },
+    "adset": null,
+    "creative": null,
+    "import_batch_id": null,
+    "id": "ecd042dc-6e1d-4c56-a6a2-27008cebed79",
+    "created_at": "2026-09-22T03:09:40.132Z"
+  },
+  "merged": true,
+  "product": {
+    "code": "usgate",
+    "name_zh": "USGate"
+  }
+}
