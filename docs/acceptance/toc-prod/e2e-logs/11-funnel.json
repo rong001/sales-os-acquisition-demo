@@ -1,1 +1,1 @@
-{"funnel":{"intake":18,"qualified":6,"assigned":6,"reached_intent":6,"appointed":6,"ordered":0,"won":0,"lost":0},"by_product":{"unknown":1,"ticket-grab":9,"usgate":8},"stages":{"APPOINTED":6,"NEW":12}}
+{"funnel":{"intake":51,"qualified":9,"assigned":8,"reached_intent":7,"appointed":8,"ordered":0,"won":1,"lost":0},"by_product":{"unknown":1,"ticket-grab":38,"usgate":12},"stages":{"APPOINTED":7,"NEW":42,"WON":1,"REACHING":1}}

@@ -1,0 +1,12 @@
+{
+  "case_id": "e0778b8e-a57c-4b5d-b208-00b56bfee600",
+  "stage": "NEW",
+  "phone_redacted": "138****9901",
+  "utm": {
+    "utm_source": "selftest",
+    "utm_medium": "manual",
+    "utm_campaign": "retest",
+    "invite_code": "SELFTEST1"
+  },
+  "merged": false
+}

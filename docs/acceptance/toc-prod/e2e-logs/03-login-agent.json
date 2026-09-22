@@ -1,1 +1,12 @@
-{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmMjhmNTk1Yi1iNDNjLTQ5NjItOTA1YS03YmQyNzg1Njg2ODEiLCJ0ZW5hbnRfaWQiOiJkODcyYTk3Ny1jOTYzLTRiMGEtODk4Mi1jNjU3ZmRlYmY5ZTQiLCJlbWFpbCI6ImFnZW50QGRlbW8ubG9jYWwiLCJyb2xlIjoiYWdlbnQiLCJhZ2VudF9zZWF0X2lkIjoiOTdjNGU2MDAtZmY1ZC00NjBiLTk1YTgtYzgyYTNhMDdkYzY5IiwiZGlzcGxheV9uYW1lIjoi5ryU56S65Z2Q5bitIiwiaWF0IjoxNzkwMDYwNDc3LCJleHAiOjE3OTAxMDM2Nzd9.VrnCqTT609ZdlC9uILfg-6n9jpkDT6hUsMmdXPoTCbE","user":{"id":"f28f595b-b43c-4962-905a-7bd278568681","email":"agent@demo.local","display_name":"演示坐席","role":"agent","tenant_id":"d872a977-c963-4b0a-8982-c657fdebf9e4","tenant_name":"演示销售公司","agent_seat_id":"97c4e600-ff5d-460b-95a8-c82a3a07dc69"}}
+{
+  "access_token": "[redacted]",
+  "user": {
+    "id": "f28f595b-b43c-4962-905a-7bd278568681",
+    "email": "agent@demo.local",
+    "display_name": "演示坐席",
+    "role": "agent",
+    "tenant_id": "d872a977-c963-4b0a-8982-c657fdebf9e4",
+    "tenant_name": "演示销售公司",
+    "agent_seat_id": "97c4e600-ff5d-460b-95a8-c82a3a07dc69"
+  }
+}

@@ -1,0 +1,25 @@
+;
+; Archive created at 2026-09-22 15:09:59 CST
+;     dbname: sales_os
+;     TOC Entries: 84
+;     Compression: gzip
+;     Dump Version: 1.16-0
+;     Format: CUSTOM
+;     Integer: 4 bytes
+;     Offset: 8 bytes
+;     Dumped from database version: 17.11 (Debian 17.11-0+deb13u1)
+;     Dumped by pg_dump version: 17.11 (Debian 17.11-0+deb13u1)
+;
+;
+; Selected TOC Entries:
+;
+2; 3079 16992 EXTENSION - uuid-ossp 
+3696; 0 0 COMMENT - EXTENSION "uuid-ossp" 
+221; 1259 17037 TABLE public agent_seats sales
+231; 1259 17147 TABLE public appointments sales
+235; 1259 17194 TABLE public audit_logs sales
+240; 1259 17785 TABLE public campaigns sales
+236; 1259 17213 TABLE public case_activities sales
+238; 1259 17759 TABLE public channel_links sales
+225; 1259 17085 TABLE public consent_grants sales
+237; 1259 17747 TABLE public content_pages sales

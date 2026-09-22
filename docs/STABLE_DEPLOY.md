@@ -48,7 +48,7 @@ bash scripts/deploy-public-https.sh
 # 标注：trycloudflare = 临时，进程退出或重跑会换域名
 ```
 
-稳定域名需用户侧 Named Tunnel / DNS，见 `docs/USER_ACTIONS.md`。
+固定域名未启用（条件待用户确认）。Named Tunnel 占位已备，启用前须用户确认域名与 DNS/Cloudflare，见 `docs/USER_ACTIONS.md` / `docs/PROD_HTTPS.md`。
 
 ## 数据库备份 / 恢复（仅 sales_os）
 
