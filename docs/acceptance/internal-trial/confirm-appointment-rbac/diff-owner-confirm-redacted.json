@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "field": "http_2xx",
+      "ok": true,
+      "detail": "201"
+    },
+    {
+      "field": "status_confirmed",
+      "ok": true,
+      "detail": "confirmed"
+    },
+    {
+      "field": "valid_true",
+      "ok": true,
+      "detail": "True"
+    },
+    {
+      "field": "confirmed_at_set",
+      "ok": true,
+      "detail": "2026-09-22T14:16:08.771Z"
+    },
+    {
+      "field": "stage_APPOINTED",
+      "ok": true,
+      "detail": "APPOINTED"
+    },
+    {
+      "field": "protect_until_note",
+      "ok": true,
+      "detail": "before=2026-09-24T14:16:08.328Z after=2026-09-24T15:00:00.000Z"
+    },
+    {
+      "field": "evt_appointment.confirmed++",
+      "ok": true,
+      "detail": "0→1"
+    },
+    {
+      "field": "evt_conversion.appointment_valid++",
+      "ok": true,
+      "detail": "0→1"
+    }
+  ]
+}

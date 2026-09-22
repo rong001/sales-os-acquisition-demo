@@ -1,0 +1,14 @@
+{
+  "appointment": {
+    "id": "f732b177-3ddc-405b-8417-fd4861b2810a",
+    "status": "draft",
+    "valid": false,
+    "confirmed_at": null
+  },
+  "case_stage": "APPOINTMENT_PENDING",
+  "protect_until": "2026-09-24T14:16:08.328Z",
+  "event_counts": {
+    "appointment.confirmed": 0,
+    "conversion.appointment_valid": 0
+  }
+}

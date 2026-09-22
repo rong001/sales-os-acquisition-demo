@@ -20,3 +20,6 @@ docs/acceptance/**/*.log
 
 # 内部试用原始响应含 JWT，不入库
 docs/acceptance/internal-trial/.raw-run/
+
+# 预约确认 RBAC E2E 原始响应含 JWT
+docs/acceptance/internal-trial/confirm-appointment-rbac/.raw/

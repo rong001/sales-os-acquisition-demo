@@ -32,13 +32,24 @@
     "mark_result": "PASS",
     "manager_view": "PASS",
     "negative_rbac": "PASS",
-    "persist_restart": "SKIPPED_time_tight"
+    "persist_restart": "PENDING_VERIFY_SKIPPED",
+    "confirm_appointment_rbac": "PASS",
+    "due_reminder_fired": "PENDING_VERIFY"
   },
   "roles_used": {
     "管理员": "admin@demo.local",
-    "经理": "manager@demo.local (role=supervisor；不可用时回退 admin)",
+    "经理": "manager@demo.local (role=supervisor；e2e:internal 不再静默回退；失败则 PENDING_VERIFY)",
     "销售1": "agent@demo.local",
     "销售2": "agent2@demo.local"
   },
-  "redaction": "no phones/JWT/passwords in this file"
+  "redaction": "no phones/JWT/passwords in this file",
+  "updated_at": "2026-09-22T14:16:44.649311Z",
+  "manager_role": "OK_via_confirm_appt_suite",
+  "primary_blockers": [
+    "预约确认鉴权前置 — 本轮已修复并用 e2e:confirm-appt 字段级验证 PASS",
+    "待验证：经理角色独立性（旧脚本曾 admin 回退）、重启持久化、到期提醒实触发",
+    "固定域名 — 待用户确认（非第一功能阻塞）"
+  ],
+  "caveats_ref": "CAVEATS.md",
+  "confirm_appointment_rbac_ref": "confirm-appointment-rbac/results.json"
 }

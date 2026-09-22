@@ -583,6 +583,12 @@ export class LeadsService {
     if (!appt) throw new NotFoundException('预约不存在');
     this.assertTenant(appt.tenant_id, user);
 
+    // 案件存在性、租户、归属/写权限必须在任何幂等返回、状态修改、持久化与事件之前完成
+    const c = await this.cases.findOne({ where: { id: appt.case_id } });
+    if (!c) throw new NotFoundException('预约关联案件不存在');
+    this.assertTenant(c.tenant_id, user);
+    this.assertCaseAccess(user, c, 'write');
+
     if (appt.status === 'confirmed' && appt.valid) {
       return { appointment: appt, idempotent: true, event: 'conversion.appointment_valid' };
     }
@@ -590,22 +596,26 @@ export class LeadsService {
       throw new BadRequestException(`当前状态不可确认: ${appt.status}`);
     }
 
-    appt.status = 'confirmed';
-    appt.valid = true;
-    appt.confirmed_at = new Date();
-    await this.appointments.save(appt);
+    const confirmedAt = new Date();
+    const protectUntil = appt.slot_end
+      ? new Date(appt.slot_end.getTime() + 24 * 3600 * 1000)
+      : null;
 
-    const c = await this.cases.findOne({ where: { id: appt.case_id } });
-    if (c) {
-      this.assertCaseAccess(user, c, 'write');
+    await this.appointments.manager.transaction(async (em) => {
+      appt.status = 'confirmed';
+      appt.valid = true;
+      appt.confirmed_at = confirmedAt;
+      await em.save(Appointment, appt);
+
       c.stage = 'APPOINTED';
-      await this.cases.save(c);
-      const own = await this.ownerships.findOne({ where: { case_id: c.id, status: 'active' } });
-      if (own && appt.slot_end) {
-        own.protect_until = new Date(appt.slot_end.getTime() + 24 * 3600 * 1000);
-        await this.ownerships.save(own);
+      await em.save(LeadCase, c);
+
+      const own = await em.findOne(Ownership, { where: { case_id: c.id, status: 'active' } });
+      if (own && protectUntil) {
+        own.protect_until = protectUntil;
+        await em.save(Ownership, own);
       }
-    }
+    });
 
     await this.events.emit({
       tenant_id: user.tenant_id, case_id: appt.case_id, type: 'appointment.confirmed',

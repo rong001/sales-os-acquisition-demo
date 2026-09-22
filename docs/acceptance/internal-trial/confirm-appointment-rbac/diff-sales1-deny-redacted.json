@@ -1,0 +1,7 @@
+{
+  "label": "sales1_deny_draft",
+  "status": "PASS",
+  "expect_unchanged": true,
+  "same": true,
+  "diffs": []
+}

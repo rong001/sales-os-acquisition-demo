@@ -73,11 +73,28 @@ login() {
 }
 
 echo "== login manager / sales1 / sales2 ==" | tee -a "$OUT_DIR/run.log"
-MTOKEN=$(login "manager@demo.local" "$MANAGER_PASS" "$RAW/01-login-manager.json") || \
-  MTOKEN=$(login "admin@demo.local" "$ADMIN_PASS" "$RAW/01-login-manager-fallback.json")
+MANAGER_ROLE_STATUS="OK"
+MANAGER_USED="manager@demo.local"
+if MTOKEN=$(login "manager@demo.local" "$MANAGER_PASS" "$RAW/01-login-manager.json"); then
+  MROLE=$(python3 -c 'import json; print(json.load(open("'"$RAW"'/01-login-manager.json")).get("user",{}).get("role",""))')
+  if [[ "$MROLE" != "supervisor" && "$MROLE" != "manager" ]]; then
+    echo "WARN: manager login role=$MROLE (expected supervisor/manager) — manager_role=PENDING_VERIFY" | tee -a "$OUT_DIR/run.log"
+    MANAGER_ROLE_STATUS="PENDING_VERIFY"
+  fi
+else
+  echo "FAIL: manager@demo.local login failed — NOT falling back to admin; manager_role=PENDING_VERIFY" | tee -a "$OUT_DIR/run.log"
+  MANAGER_ROLE_STATUS="PENDING_VERIFY"
+  # 写标记后仍尝试用 admin 仅跑非经理鉴权闭环，但 results 必须标 PENDING
+  if MTOKEN=$(login "admin@demo.local" "$ADMIN_PASS" "$RAW/01-login-manager-fallback.json"); then
+    MANAGER_USED="admin@demo.local (FALLBACK — manager_role PENDING_VERIFY)"
+    echo "WARN: using admin fallback for operational continuity; cannot independently prove manager role" | tee -a "$OUT_DIR/run.log"
+  else
+    fail "neither manager nor admin login succeeded"
+  fi
+fi
 S1TOKEN=$(login "agent@demo.local" "$AGENT_PASS" "$RAW/02-login-sales1.json")
 S2TOKEN=$(login "agent2@demo.local" "$AGENT2_PASS" "$RAW/03-login-sales2.json")
-pass "logins ok (manager/admin + sales1 + sales2)"
+pass "logins ok ($MANAGER_USED + sales1 + sales2); manager_role=$MANAGER_ROLE_STATUS"
 
 MAUTH="Authorization: Bearer $MTOKEN"
 S1AUTH="Authorization: Bearer $S1TOKEN"
@@ -286,13 +303,19 @@ summary={
     "mark_result":"PASS",
     "manager_view":"PASS",
     "negative_rbac":"PASS",
-    "persist_restart":"SKIPPED_time_tight"
+    "persist_restart":"PENDING_VERIFY_SKIPPED"
   },
   "roles_used":{
     "管理员":"admin@demo.local",
-    "经理":"manager@demo.local (role=supervisor；不可用时回退 admin)",
+    "经理":"$MANAGER_USED",
     "销售1":"agent@demo.local",
     "销售2":"agent2@demo.local"
+  },
+  "manager_role":"$MANAGER_ROLE_STATUS",
+  "caveats":{
+    "manager_role_independent_proof":"$MANAGER_ROLE_STATUS",
+    "persist_restart":"PENDING_VERIFY_SKIPPED",
+    "next_follow_at_vs_due_reminder":"PENDING_VERIFY — meta.next_follow_at / 预约确认 ≠ 到期提醒已触发"
   },
   "redaction":"no phones/JWT/passwords in this file"
 }
