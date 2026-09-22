@@ -57,10 +57,10 @@ docker compose up --build
 
 | 入口 | URL |
 |---|---|
-| 抢票落地页 | http://127.0.0.1:5173/p/ticket-grab?utm_source=demo&utm_medium=readme&invite=INV01 |
-| USGate 落地页 | http://127.0.0.1:5173/p/usgate?utm_source=demo&utm_medium=readme&invite=INV02 |
-| 坐席作战台 | http://127.0.0.1:5173/ （登录后） |
-| 转化漏斗 | http://127.0.0.1:5173/admin/funnel （管理员） |
+| 抢票落地页 | http://127.0.0.1:5174/p/ticket-grab?utm_source=demo&utm_medium=readme&invite=INV01 |
+| USGate 落地页 | http://127.0.0.1:5174/p/usgate?utm_source=demo&utm_medium=readme&invite=INV02 |
+| 坐席作战台 | http://127.0.0.1:5174/ （登录后；默认 Vite 端口 5173，本机若占用可改） |
+| 转化漏斗 | http://127.0.0.1:5174/admin/funnel （管理员） |
 
 演示账号邮箱：`agent@demo.local` / `admin@demo.local`。  
 **密码仅来自本地 `.env` 的 `DEMO_*_PASSWORD`，勿写入公开 README。**
@@ -94,3 +94,11 @@ API_BASE=http://127.0.0.1:3100 bash scripts/e2e-acquisition.sh
 - `docs/UNFINISHED.md` — 未完成项
 - `docs/USER_ACTIONS.md` — 需人工完成的步骤
 - `docs/screenshots/` — 界面截图
+
+
+## 可访问地址
+
+- **GitHub（公开制品）**: https://github.com/rong001/sales-os-acquisition-demo
+- **本机落地页**（当前演示机）: http://127.0.0.1:5174/p/ticket-grab 、 http://127.0.0.1:5174/p/usgate
+- **本机 API**: http://127.0.0.1:3100/health
+- **公网隧道**: 无（demo 本地运行；GitHub 为公开制品）
