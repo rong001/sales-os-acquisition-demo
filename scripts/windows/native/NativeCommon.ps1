@@ -28,6 +28,8 @@ function Parse-DotEnv([string]$Path) {
   return $map
 }
 
+# Readiness body (followup1217): /health and /api/health return check=readiness.
+# Liveness is /health/live only — do not gate Start/Test on liveness alone.
 function Test-ApiHealthJson([string]$Body) {
   if ([string]::IsNullOrWhiteSpace($Body)) { return $false }
   $trim = $Body.TrimStart()

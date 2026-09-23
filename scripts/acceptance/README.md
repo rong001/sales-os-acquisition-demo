@@ -19,10 +19,34 @@ Credentials: **only** repo-root `.env.native`. Secrets never echoed. JWT stays i
 
 Default base URL: `http://127.0.0.1:${NATIVE_WEB_PORT}` (exercises `/api` proxy).
 
-## Real vs synthetic
+## Layers (followup1217)
 
-- **Real public-source**: `POST /api/leads/import/authorized-public-list` with samples from `public-company-samples.json`. Fields contact/demand/consent → `UNKNOWN` when unknown. Provenance: official URL, fetch time, public facts excerpt, ICP match reason.
-- **Synthetic fixtures**: `source_type=synthetic_fixture` only — used for assign / isolation / win-lose. Demo WON ≠ 客户成交.
+| Layer | Meaning |
+|---|---|
+| `api_subsuite` | Auth, pipeline, isolation, due wall-clock, health contract, SSRF reject, dedupe |
+| `real_source_gate` | Only `fetch_verified` counts; require ≥3 or FAIL / honest SKIP (`SKIP_FETCH`) |
+| `ui` | Typed browser UI — harness always SKIP; **cannot** make `product_green` |
+
+`OVERALL=PASS` (harness exit 0) ≠ `product_green`. UI SKIP ⇒ `product_green=NO`.
+
+## Real vs synthetic + verification statuses
+
+- **Statuses**: `source_provided` | `fetch_verified` | `fetch_failed` | `pending_verification`
+- Only **`fetch_verified`** sets `real_public_source=true` and counts toward the ≥3 gate
+- Failed fetch / 429 / empty facts → `fetch_failed`; facts stored as `UNKNOWN` (never error-page HTML)
+- `SALES_OS_ACCEPTANCE_SKIP_FETCH=1` → all `source_provided`; gate is honest SKIP (not all-real PASS)
+- **Synthetic fixtures**: `source_type=synthetic_fixture` only — assign / isolation / win-lose. Demo WON ≠ 客户成交
+- Re-import same normalized URL+product → **same LeadCase** (`case_merged`); source history appended
+
+## Health contract
+
+- `GET /health/live` — liveness (process up)
+- `GET /health` and `GET /health/ready` — **readiness** (503 when required PG/Redis down)
+- Web `/api/health` → readiness. Start/Test gates should treat non-ok as not ready.
+
+## Fault honesty
+
+Wrong-port TCP probe is **not** a dependency fault test. Controlled PG/Redis stop only with isolated project ports + `SALES_OS_ACCEPTANCE_ALLOW_DEP_STOP=1`; otherwise SKIP and cite user Windows PASS. **Never** touch Sub2API `15432/16379`.
 
 ## Env
 
@@ -30,12 +54,7 @@ Default base URL: `http://127.0.0.1:${NATIVE_WEB_PORT}` (exercises `/api` proxy)
 - `SALES_OS_ACCEPTANCE_RESTART_CMD` — if **unset**, `persist-restart-cmd` is **SKIP** (not PASS)
 - `SALES_OS_ACCEPTANCE_SKIP_FETCH=1`
 - `SALES_OS_ACCEPTANCE_DUE_WAIT_MS` — default `2500`; `0` → SKIP wall-clock due crossing
-
-## OVERALL rule
-
-`OVERALL=PASS` only if `fail_count=0` **and** no required-tier SKIP. Optional / `ui_pending` SKIP are listed clearly and do not alone fail the suite.
-
-Due reminder honesty: **list polling / workbench query only** — do not claim worker timed push.
+- `SALES_OS_ACCEPTANCE_ALLOW_DEP_STOP=1` — opt-in controlled dep stop (still refused on shared bot)
 
 ## UI
 

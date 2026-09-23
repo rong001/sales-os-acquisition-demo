@@ -4,10 +4,12 @@
  *
  * - Credentials ONLY from repo-root .env.native (never echoed).
  * - JWT / sensitive bodies kept in memory only; never written to disk; never printed.
- * - PASS / FAIL / SKIP layering — OVERALL=PASS only if fail_count=0 and required tiers passed.
- * - Real public-source imports (authorized API) hard-separated from synthetic_fixture sales fixtures.
+ * - Layered reporting: api_subsuite / real_source_gate / ui — UI SKIP cannot make product全绿.
+ * - Real public-source: only fetch_verified counts; require ≥3 or FAIL/honest SKIP (never fake all-real PASS).
+ * - Idempotent company dedupe + parallel re-import concurrency.
  * - Due reminders: honest future→past wall-clock crossing (or SKIP); list-polling only (not worker push).
- * - Fault recovery: wrong-port classification for THIS project's API (never Sub2API).
+ * - Health: /health = readiness (PG/Redis); /health/live = liveness. Wrong-port ≠ dependency fault test.
+ * - Fault recovery: controlled project-dep stop only when isolated+safe; else SKIP (never Sub2API).
  * - No outbound email/SMS/phone/DM/purchase.
  * - NOT a claim of typed browser UI PASS.
  *
@@ -33,9 +35,9 @@ const ROOT = path.resolve(__dirname, '../..');
 const ENV_FILE = path.join(ROOT, '.env.native');
 const SAMPLES_FILE = path.join(__dirname, 'public-company-samples.json');
 const OUT_DIR = process.env.SALES_OS_ACCEPTANCE_OUT
-  || path.join(ROOT, 'docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1152');
+  || path.join(ROOT, 'docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1217');
 
-const PACK = 'SALES-FOLLOWUP-20260923-1152';
+const PACK = 'SALES-FOLLOWUP-20260923-1217';
 
 function parseDotEnv(filePath) {
   const map = Object.create(null);
@@ -56,21 +58,23 @@ function parseDotEnv(filePath) {
   return map;
 }
 
-/** @type {{alias:string,status:string,tier:string,note:string}[]} */
+/** @type {{alias:string,status:string,tier:string,layer:string,note:string}[]} */
 const results = [];
 const REQUIRED_TIERS = new Set(['required']);
+/** Layers that must be green for product_green (UI never required here). */
+const PRODUCT_GREEN_LAYERS = new Set(['api_subsuite', 'real_source_gate']);
 
-function record(alias, ok, note = '', { soft = false, tier = 'required' } = {}) {
+function record(alias, ok, note = '', { soft = false, tier = 'required', layer = 'api_subsuite' } = {}) {
   let status;
   if (soft) status = 'SKIP';
   else status = ok ? 'PASS' : 'FAIL';
-  results.push({ alias, status, tier, note: String(note).slice(0, 280) });
-  console.log(`${status} ${alias}${note ? ` — ${note}` : ''}`);
+  results.push({ alias, status, tier, layer, note: String(note).slice(0, 320) });
+  console.log(`${status} [${layer}] ${alias}${note ? ` — ${note}` : ''}`);
   return status === 'PASS';
 }
 
-function skip(alias, note, tier = 'optional') {
-  return record(alias, false, note, { soft: true, tier });
+function skip(alias, note, tier = 'optional', layer = 'api_subsuite') {
+  return record(alias, false, note, { soft: true, tier, layer });
 }
 
 function failHard(msg) {
@@ -178,11 +182,33 @@ async function main() {
   console.log('(credentials from .env.native; secrets never printed; JWT memory-only)');
   console.log('UI_PENDING: typed browser login / list UI — NOT tested by this harness');
 
-  // --- tier: required health + auth ---
+  // --- tier: required health + auth (readiness vs liveness) ---
   const healthPath = useProxyPath ? '/api/health' : '/health';
+  const livePath = useProxyPath ? '/api/health/live' : '/health/live';
+  const readyPath = useProxyPath ? '/api/health/ready' : '/health/ready';
+  const live = await api(base, 'GET', livePath);
+  record(
+    'health-liveness',
+    live.status === 200 && live.json?.ok === true && live.json?.check === 'liveness' && live.json?.service === 'sales-os-api',
+    `HTTP ${live.status} check=${live.json?.check || 'n/a'}`,
+    { layer: 'api_subsuite' },
+  );
   const health = await api(base, 'GET', healthPath);
-  if (!record('health', health.status === 200 && health.json?.ok === true && health.json?.service === 'sales-os-api', `HTTP ${health.status}`)) {
-    failHard('stack not healthy');
+  const ready = await api(base, 'GET', readyPath);
+  const readinessOk =
+    health.status === 200
+    && health.json?.ok === true
+    && health.json?.service === 'sales-os-api'
+    && (health.json?.check === 'readiness' || health.json?.deps?.postgres?.ok === true);
+  if (!record(
+    'health-readiness',
+    readinessOk && ready.status === 200 && ready.json?.ok === true,
+    readinessOk
+      ? `HTTP ${health.status} pg=${health.json?.deps?.postgres?.ok} redis=${health.json?.deps?.redis?.ok} ( /health = readiness )`
+      : `HTTP ${health.status} body_check=${health.json?.check || 'n/a'}`,
+    { layer: 'api_subsuite' },
+  )) {
+    failHard('stack not ready (readiness)');
   }
 
   const mgr = await login(base, 'manager@demo.local', envMap.DEMO_MANAGER_PASSWORD);
@@ -237,12 +263,74 @@ async function main() {
   });
   const importedItems = Array.isArray(importRes.json?.items) ? importRes.json.items : [];
   const realImported = importedItems.filter((x) => x.source_type === 'authorized_public_list_import');
+  const verifiedImported = realImported.filter((x) => x.verification_status === 'fetch_verified');
+  const failedImported = realImported.filter((x) => x.verification_status === 'fetch_failed');
+  const providedImported = realImported.filter((x) => x.verification_status === 'source_provided');
+
+  // Status honesty: skip-fetch must be source_provided, never fetch_verified
+  if (skipFetch) {
+    record(
+      'import-skip-fetch-not-verified',
+      importRes.status < 300
+        && realImported.length >= 3
+        && providedImported.length === realImported.length
+        && verifiedImported.length === 0,
+      `source_provided=${providedImported.length} verified=0 (SKIP_FETCH honesty)`,
+      { layer: 'real_source_gate' },
+    );
+    skip(
+      'real-source-gate-ge3-verified',
+      `SKIP_FETCH=1 → cannot claim fetch_verified≥3 (provided=${providedImported.length}). Honest SKIP of real-source acceptance gate.`,
+      'optional',
+      'real_source_gate',
+    );
+  } else {
+    record(
+      'import-authorized-public-submitted',
+      importRes.status < 300 && realImported.length >= 3,
+      importRes.status < 300
+        ? `submitted=${realImported.length} verified=${verifiedImported.length} failed=${failedImported.length} batch=${importRes.json?.batch_id || '?'}`
+        : `HTTP ${importRes.status}`,
+      { layer: 'api_subsuite' },
+    );
+    // ONLY fetch_verified counts toward real-source acceptance
+    const gateOk = verifiedImported.length >= 3;
+    record(
+      'real-source-gate-ge3-verified',
+      gateOk,
+      gateOk
+        ? `fetch_verified=${verifiedImported.length} (≥3)`
+        : `FAIL/insufficient: fetch_verified=${verifiedImported.length} failed=${failedImported.length} provided=${providedImported.length} — must not PASS all-real`,
+      { tier: 'required', layer: 'real_source_gate' },
+    );
+  }
+
+  // Per-item status present
+  const statusOk = realImported.length > 0 && realImported.every(
+    (x) => ['source_provided', 'fetch_verified', 'fetch_failed', 'pending_verification'].includes(x.verification_status),
+  );
   record(
-    'import-authorized-public',
-    importRes.status < 300 && realImported.length >= 3,
-    importRes.status < 300
-      ? `count=${realImported.length} batch=${importRes.json?.batch_id || '?'}`
-      : `HTTP ${importRes.status}`,
+    'import-verification-status-split',
+    statusOk,
+    statusOk
+      ? `statuses=${realImported.map((x) => `${x.company_name}:${x.verification_status}`).join('|')}`
+      : 'missing verification_status',
+    { layer: 'real_source_gate' },
+  );
+
+  // Failed fetch must not store error-page HTML as facts
+  const factsHonest = failedImported.every(
+    (x) => !x.public_facts_excerpt
+      || x.public_facts_excerpt === 'UNKNOWN'
+      || !/<html|cloudflare|just a moment|too many requests/i.test(String(x.public_facts_excerpt)),
+  );
+  record(
+    'import-failed-fetch-no-error-html-facts',
+    failedImported.length === 0 || factsHonest,
+    failedImported.length
+      ? `failed=${failedImported.length} facts_clean=${factsHonest}`
+      : 'no fetch_failed in this run',
+    { layer: 'real_source_gate' },
   );
 
   // Provenance honesty: UNKNOWN fields, no invented consent
@@ -258,11 +346,12 @@ async function main() {
     'import-provenance-unknowns',
     provenanceOk,
     provenanceOk ? 'contact/demand/consent=UNKNOWN; URL+fetch_time+ICP present' : 'provenance gap',
+    { layer: 'api_subsuite' },
   );
 
   // Product codes aligned to enterprise AI lines
   const productOk = realImported.every((x) => ['ai-cs', 'kb-crm', 'sales-agent'].includes(x.product_code));
-  record('import-enterprise-products', productOk, productOk ? 'ai-cs|kb-crm|sales-agent' : 'legacy product codes present');
+  record('import-enterprise-products', productOk, productOk ? 'ai-cs|kb-crm|sales-agent' : 'legacy product codes present', { layer: 'api_subsuite' });
 
   // --- Synthetic fixtures (explicit) for pipeline / isolation / win-lose ---
   const ts = Date.now();
@@ -292,22 +381,27 @@ async function main() {
   record('synthetic-fixture-b', !!synB.caseId, synB.caseId ? `alias=${synB.caseId.slice(0, 8)}` : `HTTP ${synB.status}`);
   if (!synA.caseId || !synB.caseId) failHard('synthetic fixtures required for pipeline');
 
-  // Hard separation check: real imported cases must not be labeled synthetic
-  const realCaseId = realImported[0]?.case_id;
+  // Hard separation check: verified real ≠ synthetic; unverified must not claim real_public_source
+  const probeItem = verifiedImported[0] || realImported[0];
+  const realCaseId = probeItem?.case_id;
   if (realCaseId) {
     const realCase = await api(base, 'GET', `${pfx}/leads/${realCaseId}`, { token: mgr.token });
     const flags = realCase.json?.case?.flags || {};
     const srcType = flags.source_type || realCase.json?.source?.type;
+    const expectRealFlag = probeItem.verification_status === 'fetch_verified';
     record(
       'real-vs-synthetic-separation',
-      flags.real_public_source === true && srcType === 'authorized_public_list_import',
-      `real flags.source_type=${srcType || 'n/a'}`,
+      srcType === 'authorized_public_list_import'
+        && (expectRealFlag ? flags.real_public_source === true : true)
+        && (probeItem.verification_status !== 'fetch_failed' || flags.real_public_source !== true || flags.verification_status === 'fetch_verified'),
+      `source_type=${srcType || 'n/a'} real_public_source=${flags.real_public_source} verification=${flags.verification_status || probeItem.verification_status}`,
+      { layer: 'real_source_gate' },
     );
   } else {
-    skip('real-vs-synthetic-separation', 'no real import to compare', 'optional');
+    skip('real-vs-synthetic-separation', 'no real import to compare', 'optional', 'real_source_gate');
   }
 
-  // Dedupe on synthetic email re-intake
+  // Dedupe on synthetic email re-intake (identity merge)
   const dup = await api(base, 'POST', `${pfx}/leads/intake`, {
     token: mgr.token,
     body: {
@@ -323,7 +417,67 @@ async function main() {
       raw: { label: 'SYNTHETIC_FIXTURE', dedupe_probe: true },
     },
   });
-  record('normalize-dedupe', dup.status < 300 && !!dup.json?.merged, `merged=${!!dup.json?.merged} HTTP ${dup.status}`);
+  record('normalize-dedupe-synthetic-identity', dup.status < 300 && !!dup.json?.merged, `merged=${!!dup.json?.merged} HTTP ${dup.status}`, { layer: 'api_subsuite' });
+
+  // Idempotent company re-import: same Stripe URL must reuse LeadCase (case_merged), not create another
+  const stripeSample = samples.find((s) => /stripe\.com/i.test(s.official_site_url)) || samples[0];
+  const firstStripe = realImported.find((x) => x.company_name === stripeSample.company_name) || realImported[0];
+  const reimportBody = {
+    fetch_official: false, // avoid rate limits; exercise idempotent case reuse + source append
+    batch_label: `${PACK}-reimport`,
+    items: [{
+      company_name: stripeSample.company_name,
+      official_site_url: stripeSample.official_site_url,
+      product_code: stripeSample.product_code,
+      match_reason_vs_icp: stripeSample.match_reason_vs_icp,
+      contact_person: 'UNKNOWN',
+      demand: 'UNKNOWN',
+      consent_status: 'UNKNOWN',
+    }],
+  };
+  const re1 = await api(base, 'POST', `${pfx}/leads/import/authorized-public-list`, {
+    token: mgr.token, body: reimportBody,
+  });
+  const reItem = Array.isArray(re1.json?.items) ? re1.json.items[0] : null;
+  const sameCase = firstStripe && reItem && reItem.case_id === firstStripe.case_id;
+  record(
+    'company-dedupe-reimport-same-case',
+    re1.status < 300 && !!reItem?.case_merged && sameCase,
+    `case_merged=${!!reItem?.case_merged} same_case_id=${sameCase} HTTP ${re1.status}`,
+    { layer: 'api_subsuite' },
+  );
+
+  // Parallel re-imports → single case
+  const parallel = await Promise.all([
+    api(base, 'POST', `${pfx}/leads/import/authorized-public-list`, { token: mgr.token, body: { ...reimportBody, batch_label: `${PACK}-p1` } }),
+    api(base, 'POST', `${pfx}/leads/import/authorized-public-list`, { token: mgr.token, body: { ...reimportBody, batch_label: `${PACK}-p2` } }),
+    api(base, 'POST', `${pfx}/leads/import/authorized-public-list`, { token: mgr.token, body: { ...reimportBody, batch_label: `${PACK}-p3` } }),
+  ]);
+  const parallelIds = parallel
+    .flatMap((r) => (Array.isArray(r.json?.items) ? r.json.items : []))
+    .map((x) => x.case_id)
+    .filter(Boolean);
+  const uniqueParallel = new Set(parallelIds);
+  record(
+    'company-dedupe-parallel-single-case',
+    parallel.every((r) => r.status < 300) && uniqueParallel.size === 1 && parallelIds.length === 3,
+    `unique_cases=${uniqueParallel.size} responses=${parallelIds.length}`,
+    { layer: 'api_subsuite' },
+  );
+
+  // Provenance/source history appended on re-import
+  if (firstStripe?.case_id) {
+    const afterCase = await api(base, 'GET', `${pfx}/leads/${firstStripe.case_id}`, { token: mgr.token });
+    const hist = afterCase.json?.case?.flags?.source_history;
+    record(
+      'company-dedupe-source-history-append',
+      Array.isArray(hist) && hist.length >= 2,
+      `source_history_len=${Array.isArray(hist) ? hist.length : 0}`,
+      { layer: 'api_subsuite' },
+    );
+  } else {
+    skip('company-dedupe-source-history-append', 'no stripe/first case', 'optional', 'api_subsuite');
+  }
 
   // Qualify + assign synthetics (they have consent)
   await api(base, 'POST', `${pfx}/leads/${synA.caseId}/qualify`, { token: mgr.token, body: {} });
@@ -513,64 +667,116 @@ async function main() {
   // --- 5) Isolated fault + recovery (THIS project only; never Sub2API 15432/16379) ---
   const sub2apiPorts = [15432, 16379];
   const faultNotes = [];
-  // Wrong API port simulation
+  // Wrong API port simulation (connection_error classification only — NOT a dependency fault test)
   const wrongApi = apiPort + 7777;
   const wrongBase = `http://127.0.0.1:${wrongApi}`;
   const faultHit = await api(wrongBase, 'GET', '/health');
   const faultClassOk = faultHit.status === 0 && faultHit.classify === 'connection_error';
   record(
-    'fault-api-wrong-port',
+    'fault-api-wrong-port-classify',
     faultClassOk,
-    `classify=${faultHit.classify || faultHit.error || 'n/a'} port=${wrongApi}`,
-    { tier: 'optional' },
+    `classify=${faultHit.classify || faultHit.error || 'n/a'} port=${wrongApi} (NOT dependency-fault proof)`,
+    { tier: 'optional', layer: 'api_subsuite' },
   );
-  faultNotes.push(`API wrong-port ${wrongApi}: ${faultHit.classify || faultHit.error}`);
+  faultNotes.push(`API wrong-port ${wrongApi}: ${faultHit.classify || faultHit.error} — classification only`);
 
-  // Redis / PG TCP probe on configured native ports + a wrong port (no stop/start of shared services)
+  // Honest rule: wrong-port TCP probe is NOT enough to call "dependency fault test"
   const redisProbe = await tcpProbe('127.0.0.1', redisPort);
   const pgProbe = await tcpProbe('127.0.0.1', pgPort);
   const wrongRedisPort = redisPort + 1111;
   const wrongRedis = await tcpProbe('127.0.0.1', wrongRedisPort);
-  // On bot host native ports may be closed (Linux compose uses 5432/6379). Soft SKIP if closed.
-  if (!redisProbe.ok && !pgProbe.ok) {
+  const allowControlled = process.env.SALES_OS_ACCEPTANCE_ALLOW_DEP_STOP === '1';
+  // Controlled stop/restart only when explicitly enabled AND native project ports are the ones in use.
+  // Never touch Sub2API. On shared bot redis/pg (5432/6379) → SKIP.
+  if (!allowControlled || (!redisProbe.ok && !pgProbe.ok)) {
     skip(
-      'fault-native-redis-pg-ports',
-      `SKIP: native redis:${redisPort} classify=${redisProbe.classify}, pg:${pgPort} classify=${pgProbe.classify} (not listening on this host). Wrong-port redis ${wrongRedisPort}=${wrongRedis.classify}. Did NOT stop any service; Sub2API ${sub2apiPorts.join('/')} untouched.`,
+      'fault-dependency-controlled-stop',
+      `SKIP: controlled PG/Redis stop not run (allow=${allowControlled ? 1 : 0}; native redis:${redisPort}=${redisProbe.classify} pg:${pgPort}=${pgProbe.classify}). Wrong-port redis ${wrongRedisPort}=${wrongRedis.classify} is NOT a dependency fault test. User Windows Stop PG/Redis already PASS. Sub2API ${sub2apiPorts.join('/')} untouched.`,
       'optional',
+      'api_subsuite',
     );
-    faultNotes.push('native redis/pg ports not listening on this host — wrong-port simulation only');
+    faultNotes.push('dependency fault: SKIP on bot — need SALES_OS_ACCEPTANCE_ALLOW_DEP_STOP=1 + isolated project ports; cite user PASS for Windows PG/Redis stop');
   } else {
-    record(
-      'fault-native-redis-pg-ports',
-      redisProbe.ok || pgProbe.ok,
-      `redis:${redisPort}=${redisProbe.classify} pg:${pgPort}=${pgProbe.classify} wrongRedis:${wrongRedisPort}=${wrongRedis.classify}`,
-      { tier: 'optional' },
+    skip(
+      'fault-dependency-controlled-stop',
+      'SKIP: harness refuses auto stop/restart even when allow=1 on this bot build — use Windows native scripts for isolated dep fault; Sub2API untouched.',
+      'optional',
+      'api_subsuite',
     );
-    faultNotes.push(`redis ${redisPort}=${redisProbe.classify}; pg ${pgPort}=${pgProbe.classify}; wrongRedis=${wrongRedis.classify}`);
+    faultNotes.push('allow flag set but bot harness still skips auto stop for safety');
   }
 
-  // Recovery: healthy base still works after fault probes
+  // Readiness contract after probes: still ready
   const recovered = await api(base, 'GET', healthPath);
+  const recoveredLive = await api(base, 'GET', livePath);
   record(
-    'fault-recovery-health',
-    recovered.status === 200 && recovered.json?.ok === true,
-    `after wrong-port probes, health HTTP ${recovered.status}; Sub2API ports ${sub2apiPorts.join('/')} never operated`,
+    'fault-recovery-readiness',
+    recovered.status === 200 && recovered.json?.ok === true && recoveredLive.status === 200,
+    `readiness HTTP ${recovered.status} liveness HTTP ${recoveredLive.status}; Sub2API ${sub2apiPorts.join('/')} never operated`,
+    { layer: 'api_subsuite' },
   );
-  faultNotes.push('recovery: healthy /health re-checked; no Sub2API ops; no redis/pg stop on shared bot');
+  faultNotes.push('recovery: readiness+liveness re-checked; no Sub2API ops; no shared redis/pg stop on bot');
 
-  // UI pending — always SKIP tier, never PASS
+  // SSRF smoke via import of clearly private URL (manager auth ≠ intranet permission)
+  const ssrf = await api(base, 'POST', `${pfx}/leads/import/authorized-public-list`, {
+    token: mgr.token,
+    body: {
+      fetch_official: true,
+      batch_label: `${PACK}-ssrf`,
+      items: [{
+        company_name: 'SSRF Probe Localhost',
+        official_site_url: 'http://127.0.0.1:3100/health',
+        product_code: 'sales-agent',
+        match_reason_vs_icp: 'negative SSRF probe — must not fetch loopback',
+        contact_person: 'UNKNOWN',
+        demand: 'UNKNOWN',
+        consent_status: 'UNKNOWN',
+      }],
+    },
+  });
+  const ssrfItem = Array.isArray(ssrf.json?.items) ? ssrf.json.items[0] : null;
+  record(
+    'ssrf-reject-loopback',
+    ssrf.status < 300 && ssrfItem?.verification_status === 'fetch_failed',
+    `verification=${ssrfItem?.verification_status || 'n/a'} facts=${ssrfItem?.public_facts_excerpt || 'n/a'} HTTP ${ssrf.status}`,
+    { layer: 'api_subsuite' },
+  );
+
+  // UI pending — always SKIP tier ui_pending, never PASS; cannot make product全绿
   skip(
     'ui-typed-browser-login',
     '本侧 UI 未测: typed browser password login + list UI isolation. API login ≠ UI. Codex/user must verify on Windows.',
     'ui_pending',
+    'ui',
   );
 
-  // --- Summary / OVERALL ---
+  // --- Summary / layered OVERALL ---
   const failed = results.filter((r) => r.status === 'FAIL');
   const skipped = results.filter((r) => r.status === 'SKIP');
   const requiredFailed = results.filter((r) => r.status === 'FAIL' && REQUIRED_TIERS.has(r.tier));
   const requiredSkipped = results.filter((r) => r.status === 'SKIP' && REQUIRED_TIERS.has(r.tier));
-  // Required items must not be SKIP (soft only allowed on optional/ui_pending)
+  const layerStats = {};
+  for (const layer of ['api_subsuite', 'real_source_gate', 'ui']) {
+    const rows = results.filter((r) => r.layer === layer);
+    layerStats[layer] = {
+      pass: rows.filter((r) => r.status === 'PASS').length,
+      fail: rows.filter((r) => r.status === 'FAIL').length,
+      skip: rows.filter((r) => r.status === 'SKIP').length,
+      green: rows.every((r) => r.status !== 'FAIL')
+        && rows.filter((r) => r.status === 'SKIP' && REQUIRED_TIERS.has(r.tier)).length === 0,
+    };
+  }
+  const apiSubsuitePass = failed.filter((r) => r.layer === 'api_subsuite').length === 0
+    && results.filter((r) => r.layer === 'api_subsuite' && r.status === 'SKIP' && REQUIRED_TIERS.has(r.tier)).length === 0;
+  const realGatePass = layerStats.real_source_gate.green
+    && results.filter((r) => r.alias === 'real-source-gate-ge3-verified' && r.status === 'PASS').length === 1;
+  const realGateSkipHonest = results.some(
+    (r) => r.alias === 'real-source-gate-ge3-verified' && r.status === 'SKIP',
+  );
+  // Product green requires api + real_source_gate + UI PASS.
+  // UI SKIP must NOT claim product全绿 (API≠UI).
+  const uiPass = layerStats.ui.pass > 0 && layerStats.ui.fail === 0 && layerStats.ui.skip === 0;
+  const productGreen = apiSubsuitePass && realGatePass && uiPass;
   const overallPass = failed.length === 0 && requiredSkipped.length === 0;
   const overall = overallPass ? 'PASS' : 'FAIL';
 
@@ -579,25 +785,42 @@ async function main() {
     pack: PACK,
     ran_at: new Date().toISOString(),
     base,
-    host_note: 'bot-or-local; NOT a claim of Windows browser UI PASS',
+    host_note: 'bot-or-local; NOT a claim of Windows browser UI PASS; UI SKIP ≠ product全绿',
     overall,
-    overall_rule: 'PASS only if fail_count=0 AND no required-tier SKIP; optional/ui_pending SKIP allowed',
+    overall_rule: 'Harness OVERALL PASS if fail_count=0 AND no required-tier SKIP. product_green additionally requires real_source_gate fetch_verified≥3 PASS and must not treat ui SKIP as 全绿.',
+    layers: layerStats,
+    api_subsuite: apiSubsuitePass ? 'PASS' : 'FAIL',
+    real_source_gate: realGatePass ? 'PASS' : (realGateSkipHonest ? 'SKIP' : 'FAIL'),
+    ui: 'SKIP',
+    product_green: productGreen ? 'PASS' : 'NO',
     fail_count: failed.length,
     skip_count: skipped.length,
     pass_count: results.filter((r) => r.status === 'PASS').length,
     required_fail_count: requiredFailed.length,
     required_skip_count: requiredSkipped.length,
+    health_contract: {
+      liveness: 'GET /health/live',
+      readiness: 'GET /health and GET /health/ready (web /api/health → readiness)',
+    },
     real_public_imports: realImported.map((x) => ({
       alias: String(x.case_id).slice(0, 8),
       company: x.company_name,
       source_type: x.source_type,
       official_site_url: x.official_site_url,
       fetch_time: x.fetch_time,
+      verification_status: x.verification_status,
+      real_public_source: x.real_public_source,
       consent_status: x.consent_status,
       contact_person: x.contact_person,
       demand: x.demand,
       product_code: x.product_code,
+      public_facts_excerpt: String(x.public_facts_excerpt || '').slice(0, 80),
     })),
+    verification_summary: importRes.json?.verification_summary || {
+      fetch_verified: verifiedImported.length,
+      fetch_failed: failedImported.length,
+      source_provided: providedImported.length,
+    },
     synthetic_fixtures: [
       { alias: synA.caseId.slice(0, 8), source_type: 'synthetic_fixture', role: 'pipeline A' },
       { alias: synB.caseId.slice(0, 8), source_type: 'synthetic_fixture', role: 'pipeline B' },
@@ -605,6 +828,13 @@ async function main() {
     due_reminder_honesty:
       'Mechanism = workbench list polling / due-follow-ups query only. NOT worker timed push/delivery. Wall-clock future→past crossing when DUE_WAIT_MS>0.',
     fault_recovery_tested: faultNotes,
+    user_already_pass_cited: [
+      'Pack 4876745 / SHA256 41d6d3ae… verified; 9 diffs overlaid; API+Web build+start exit0',
+      'Runner future 2500ms wall-clock, completed no-dupe, dual-sales isolation, synthetic WON-LOST PASS',
+      'User Stop PG 55433 → pre-fix /api/health still 200 while workbench 500; restore → business 200',
+      'User Redis 56380 SHUTDOWN SAVE → health+workbench 200; restore → business 200',
+      'Sub2API 15432/16379 PIDs unchanged',
+    ],
     ui_pending: [
       'typed browser login (manager/agent/agent2) from .env.native — no token injection',
       'list UI isolation visible',
@@ -620,6 +850,7 @@ async function main() {
   fs.writeFileSync(outFile, JSON.stringify(summary, null, 2) + '\n');
   console.log(`wrote ${outFile}`);
   console.log(`OVERALL ${summary.overall} (fail=${failed.length} skip=${skipped.length} required_skip=${requiredSkipped.length})`);
+  console.log(`LAYERS api_subsuite=${summary.api_subsuite} real_source_gate=${summary.real_source_gate} ui=${summary.ui} product_green=${summary.product_green}`);
   if (skipped.length) {
     console.log('SKIP_LIST ' + skipped.map((s) => s.alias).join(','));
   }
