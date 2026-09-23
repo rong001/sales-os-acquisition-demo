@@ -3,7 +3,13 @@ import {
   BadRequestException, ForbiddenException, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
+import {
+  fetchPublicSource,
+  normalizeCompanyUrl,
+  publicCompanyMergeKey,
+  type PublicFetchStatus,
+} from '../common/public-fetch';
 import {
   LeadIdentity, LeadSource, LeadCase, ConsentGrant, Ownership, PoolItem,
   ReachPlan, ReachAttempt, ReachReceipt, Appointment, AgentSeat, SkillGroup,
@@ -45,6 +51,7 @@ export class LeadsService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Order) private readonly orders: Repository<Order>,
     private readonly events: EventsService,
+    private readonly dataSource: DataSource,
   ) {}
 
   private assertTenant(rowTenant: string, user: AuthUser) {
@@ -969,8 +976,14 @@ export class LeadsService {
   /**
    * Authorized public-list / public-web enterprise lead import.
    * Hard-separates provenance records from synthetic_fixture sales fixtures.
+   * Verification statuses:
+   *   source_provided | fetch_verified | fetch_failed | pending_verification
+   * Only fetch_verified sets real_public_source=true and counts toward acceptance gate.
+   * Failed fetch MUST NOT store error-page HTML as facts.
+   * Re-import is transactionally idempotent per normalized URL + product scope:
+   *   reuse LeadCase; append LeadSource history (no duplicate cases).
    * Unknown contact / demand / consent → store UNKNOWN; never invent person or consent=true.
-   * No outbound email/phone/DM/purchase.
+   * No outbound email/phone/DM/purchase. Public-only SSRF-safe fetch.
    */
   async importAuthorizedPublicList(
     user: AuthUser,
@@ -1024,171 +1037,250 @@ export class LeadsService {
       }
 
       const fetchTime = new Date().toISOString();
-      let excerpt = (rawItem.public_facts_excerpt || '').trim();
+      const providedExcerpt = (rawItem.public_facts_excerpt || '').trim();
+      let verificationStatus: PublicFetchStatus = fetchOfficial ? 'pending_verification' : 'source_provided';
+      let excerpt = 'UNKNOWN';
       let fetchMeta: Record<string, unknown> = {
         skipped_live_fetch: !fetchOfficial,
+        verification_status: verificationStatus,
         status: null,
         final_url: officialUrl,
         title: null,
+        error: null,
+        blocked_reason: null,
       };
 
       if (fetchOfficial) {
-        const ac = new AbortController();
-        const t = setTimeout(() => ac.abort(), 15000);
-        try {
-          const res = await fetch(officialUrl, {
-            method: 'GET',
-            redirect: 'follow',
-            signal: ac.signal,
-            headers: { 'user-agent': 'sales-os-authorized-import/1.0 (+read-only; company pages only)' },
-          });
-          const text = await res.text();
-          const title = (text.match(/<title[^>]*>([^<]*)<\/title>/i) || [, ''])[1].trim().slice(0, 160) || null;
-          const descMatch = text.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
-            || text.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
-          const desc = descMatch ? descMatch[1].trim().slice(0, 280) : '';
-          fetchMeta = {
-            skipped_live_fetch: false,
-            status: res.status,
-            final_url: res.url,
-            title,
-            bytes: text.length,
-          };
-          if (!excerpt) {
-            excerpt = [title, desc].filter(Boolean).join(' — ').slice(0, 400) || 'UNKNOWN';
-          }
-        } catch (e) {
-          fetchMeta = {
-            skipped_live_fetch: false,
-            status: 0,
-            error: String((e as Error)?.name || (e as Error)?.message || e).slice(0, 120),
-            final_url: officialUrl,
-            title: null,
-          };
-          if (!excerpt) excerpt = 'UNKNOWN';
-        } finally {
-          clearTimeout(t);
+        const fetched = await fetchPublicSource(officialUrl);
+        verificationStatus = fetched.verification_status;
+        fetchMeta = {
+          skipped_live_fetch: false,
+          verification_status: fetched.verification_status,
+          status: fetched.http_status,
+          final_url: fetched.final_url,
+          title: fetched.title,
+          description: fetched.description,
+          bytes: fetched.bytes,
+          error: fetched.error,
+          blocked_reason: fetched.blocked_reason,
+          redirect_hops: fetched.redirect_hops,
+        };
+        if (fetched.verification_status === 'fetch_verified' && fetched.facts_excerpt) {
+          excerpt = fetched.facts_excerpt;
+        } else {
+          // Failed / empty / error-page → NEVER store HTML as facts
+          excerpt = 'UNKNOWN';
         }
-      } else if (!excerpt) {
-        excerpt = 'UNKNOWN';
-      }
-
-      const normUrl = `${parsed.protocol}//${parsed.host}${parsed.pathname}`.replace(/\/$/, '').toLowerCase();
-      const mergeKey = `public_url:${normUrl}`;
-
-      let identity = await this.identities.findOne({ where: { tenant_id: user.tenant_id, merge_key: mergeKey } });
-      let merged = false;
-      if (!identity) {
-        identity = await this.identities.save(this.identities.create({
-          tenant_id: user.tenant_id,
-          phone: null,
-          email: null,
-          name: contactPerson === 'UNKNOWN' ? null : contactPerson,
-          company_name: company,
-          merge_key: mergeKey,
-        }));
       } else {
-        merged = true;
-        if (!identity.company_name) identity.company_name = company;
-        await this.identities.save(identity);
+        // Skip-fetch: URL submitted only — not fetch_verified (honest pending/source_provided)
+        verificationStatus = 'source_provided';
+        excerpt = 'UNKNOWN';
+        fetchMeta.verification_status = verificationStatus;
+        if (providedExcerpt && providedExcerpt !== 'UNKNOWN') {
+          // Caller-supplied excerpt without live fetch stays source_provided, not verified
+          excerpt = providedExcerpt.slice(0, 400);
+        }
       }
 
-      const provenance = {
-        source_type: 'authorized_public_list_import',
-        official_site_url: officialUrl,
-        fetch_time: fetchTime,
-        fetch_meta: fetchMeta,
-        public_facts_excerpt: excerpt,
-        match_reason_vs_icp: matchReason,
-        contact_person: contactPerson,
-        demand,
-        consent_status: consentStatus,
-        label: 'REAL_PUBLIC_SOURCE_NOT_SYNTHETIC',
-        batch_label: body.batch_label || null,
-      };
+      const normUrl = normalizeCompanyUrl(officialUrl);
+      const mergeKey = publicCompanyMergeKey(officialUrl, product.code);
+      const realVerified = verificationStatus === 'fetch_verified';
 
-      const source = await this.sources.save(this.sources.create({
-        tenant_id: user.tenant_id,
-        type: 'authorized_public_list_import',
-        campaign: body.batch_label || 'authorized_public_list',
-        landing_url: officialUrl,
-        form_id: `authorized_public:${product.code}`,
-        import_batch_id: batchId,
-        utm_source: 'authorized_public_list',
-        utm_medium: 'import_api',
-        utm_campaign: body.batch_label || 'enterprise_lead_import',
-        product_code: product.code,
-        raw_payload: provenance,
-      }));
+      const itemResult = await this.dataSource.transaction(async (manager) => {
+        const idRepo = manager.getRepository(LeadIdentity);
+        const srcRepo = manager.getRepository(LeadSource);
+        const caseRepo = manager.getRepository(LeadCase);
+        const consentRepo = manager.getRepository(ConsentGrant);
 
-      const leadCase = await this.cases.save(this.cases.create({
-        tenant_id: user.tenant_id,
-        identity_id: identity.id,
-        source_id: source.id,
-        path: 'ENTERPRISE_PUBLIC',
-        stage: 'NEW',
-        scene_id: `authorized_public:${product.code}`,
-        product_code: product.code,
-        flags: {
+        // Lock identity row for this normalized public company+product scope
+        let identity = await idRepo
+          .createQueryBuilder('i')
+          .setLock('pessimistic_write')
+          .where('i.tenant_id = :tid AND i.merge_key = :mk', { tid: user.tenant_id, mk: mergeKey })
+          .getOne();
+
+        let identityMerged = false;
+        if (!identity) {
+          identity = await idRepo.save(idRepo.create({
+            tenant_id: user.tenant_id,
+            phone: null,
+            email: null,
+            name: contactPerson === 'UNKNOWN' ? null : contactPerson,
+            company_name: company,
+            merge_key: mergeKey,
+          }));
+        } else {
+          identityMerged = true;
+          if (!identity.company_name) identity.company_name = company;
+          await idRepo.save(identity);
+        }
+
+        // Idempotent LeadCase: same tenant+identity+product+ENTERPRISE_PUBLIC → reuse
+        let leadCase = await caseRepo
+          .createQueryBuilder('c')
+          .setLock('pessimistic_write')
+          .where('c.tenant_id = :tid', { tid: user.tenant_id })
+          .andWhere('c.identity_id = :iid', { iid: identity.id })
+          .andWhere('c.product_code = :pc', { pc: product.code })
+          .andWhere('c.path = :path', { path: 'ENTERPRISE_PUBLIC' })
+          .orderBy('c.created_at', 'ASC')
+          .getOne();
+
+        let caseMerged = false;
+        const provenance = {
           source_type: 'authorized_public_list_import',
+          official_site_url: officialUrl,
+          normalized_url: normUrl,
+          fetch_time: fetchTime,
+          fetch_meta: fetchMeta,
+          verification_status: verificationStatus,
+          public_facts_excerpt: excerpt,
+          match_reason_vs_icp: matchReason,
           contact_person: contactPerson,
           demand,
           consent_status: consentStatus,
-          demo_not_customer_deal: true,
-          real_public_source: true,
-        },
-      }));
+          label: realVerified ? 'REAL_PUBLIC_SOURCE_FETCH_VERIFIED' : 'PUBLIC_SOURCE_NOT_YET_VERIFIED',
+          batch_label: body.batch_label || null,
+        };
 
-      // Consent UNKNOWN → store explicit unknown rows; never invent granted
-      if (consentStatus === 'UNKNOWN') {
-        for (const ch of ['call', 'sms', 'email']) {
-          await this.consents.save(this.consents.create({
+        const source = await srcRepo.save(srcRepo.create({
+          tenant_id: user.tenant_id,
+          type: 'authorized_public_list_import',
+          campaign: body.batch_label || 'authorized_public_list',
+          landing_url: officialUrl,
+          form_id: `authorized_public:${product.code}`,
+          import_batch_id: batchId,
+          utm_source: 'authorized_public_list',
+          utm_medium: 'import_api',
+          utm_campaign: body.batch_label || 'enterprise_lead_import',
+          product_code: product.code,
+          raw_payload: provenance,
+        }));
+
+        if (!leadCase) {
+          leadCase = await caseRepo.save(caseRepo.create({
             tenant_id: user.tenant_id,
             identity_id: identity.id,
-            case_id: leadCase.id,
-            channel: ch,
-            status: 'unknown',
-            evidence_ref: 'consent:UNKNOWN:public_source',
-            consent_text: null,
-            consent_text_hash: null,
-            consent_version: null,
-            source_channel: 'authorized_public_list_import',
-            consent_accepted_at: null,
-            granted_at: null,
+            source_id: source.id,
+            path: 'ENTERPRISE_PUBLIC',
+            stage: 'NEW',
+            scene_id: `authorized_public:${product.code}`,
+            product_code: product.code,
+            flags: {
+              source_type: 'authorized_public_list_import',
+              contact_person: contactPerson,
+              demand,
+              consent_status: consentStatus,
+              demo_not_customer_deal: true,
+              real_public_source: realVerified,
+              verification_status: verificationStatus,
+              normalized_url: normUrl,
+              source_history: [{ source_id: source.id, batch_id: batchId, fetch_time: fetchTime, verification_status: verificationStatus }],
+            },
           }));
+        } else {
+          caseMerged = true;
+          const prevFlags = (leadCase.flags || {}) as Record<string, unknown>;
+          const history = Array.isArray(prevFlags.source_history)
+            ? [...(prevFlags.source_history as unknown[])]
+            : [];
+          history.push({
+            source_id: source.id,
+            batch_id: batchId,
+            fetch_time: fetchTime,
+            verification_status: verificationStatus,
+          });
+          leadCase.source_id = source.id; // latest provenance pointer; history retained
+          leadCase.flags = {
+            ...prevFlags,
+            source_type: 'authorized_public_list_import',
+            contact_person: contactPerson,
+            demand,
+            consent_status: consentStatus,
+            demo_not_customer_deal: true,
+            // sticky verified: once verified, stay true; else current status
+            real_public_source: realVerified || prevFlags.real_public_source === true,
+            verification_status: realVerified
+              ? 'fetch_verified'
+              : (prevFlags.verification_status === 'fetch_verified' ? 'fetch_verified' : verificationStatus),
+            normalized_url: normUrl,
+            source_history: history.slice(-20),
+          };
+          await caseRepo.save(leadCase);
         }
-      }
+
+        // Consent UNKNOWN → store explicit unknown rows only on first create
+        if (!caseMerged && consentStatus === 'UNKNOWN') {
+          for (const ch of ['call', 'sms', 'email']) {
+            await consentRepo.save(consentRepo.create({
+              tenant_id: user.tenant_id,
+              identity_id: identity.id,
+              case_id: leadCase.id,
+              channel: ch,
+              status: 'unknown',
+              evidence_ref: 'consent:UNKNOWN:public_source',
+              consent_text: null,
+              consent_text_hash: null,
+              consent_version: null,
+              source_channel: 'authorized_public_list_import',
+              consent_accepted_at: null,
+              granted_at: null,
+            }));
+          }
+        }
+
+        return {
+          leadCase,
+          identity,
+          source,
+          mergeKey,
+          identityMerged,
+          caseMerged,
+          merged: caseMerged || identityMerged,
+        };
+      });
 
       await this.events.emit({
-        tenant_id: user.tenant_id, case_id: leadCase.id, type: 'lead.captured',
+        tenant_id: user.tenant_id, case_id: itemResult.leadCase.id, type: 'lead.captured',
         actor: user.sub,
         payload: {
-          identity_id: identity.id, source_id: source.id, merge_key: mergeKey,
-          merged, product_code: product.code, source_type: 'authorized_public_list_import',
+          identity_id: itemResult.identity.id,
+          source_id: itemResult.source.id,
+          merge_key: itemResult.mergeKey,
+          merged: itemResult.merged,
+          case_merged: itemResult.caseMerged,
+          product_code: product.code,
+          source_type: 'authorized_public_list_import',
+          verification_status: verificationStatus,
         },
-        aggregate_id: leadCase.id,
+        aggregate_id: itemResult.leadCase.id,
       });
       await this.events.audit({
         tenant_id: user.tenant_id, actor_user_id: user.sub,
         action: 'lead.import_authorized_public',
-        resource_type: 'LeadCase', resource_id: leadCase.id,
+        resource_type: 'LeadCase', resource_id: itemResult.leadCase.id,
         detail: {
           company_name: company,
           official_site_url: officialUrl,
+          normalized_url: normUrl,
           product_code: product.code,
           consent_status: consentStatus,
           contact_person: contactPerson,
           demand,
-          merged,
+          merged: itemResult.merged,
+          case_merged: itemResult.caseMerged,
+          verification_status: verificationStatus,
           batch_id: batchId,
         },
       });
 
       results.push({
-        case_id: leadCase.id,
-        merged,
+        case_id: itemResult.leadCase.id,
+        merged: itemResult.merged,
+        case_merged: itemResult.caseMerged,
         company_name: company,
         official_site_url: officialUrl,
+        normalized_url: normUrl,
         product_code: product.code,
         source_type: 'authorized_public_list_import',
         contact_person: contactPerson,
@@ -1197,17 +1289,34 @@ export class LeadsService {
         fetch_time: fetchTime,
         public_facts_excerpt: excerpt.slice(0, 200),
         match_reason_vs_icp: matchReason,
+        verification_status: verificationStatus,
+        real_public_source: realVerified || !!(itemResult.leadCase.flags as Record<string, unknown>)?.real_public_source,
+        source_id: itemResult.source.id,
       });
     }
+
+    const verifiedCount = results.filter((r) => r.verification_status === 'fetch_verified').length;
+    const failedCount = results.filter((r) => r.verification_status === 'fetch_failed').length;
+    const providedCount = results.filter((r) => r.verification_status === 'source_provided').length;
 
     return {
       batch_id: batchId,
       imported: results.length,
       items: results,
+      verification_summary: {
+        fetch_verified: verifiedCount,
+        fetch_failed: failedCount,
+        source_provided: providedCount,
+        pending_verification: results.filter((r) => r.verification_status === 'pending_verification').length,
+        acceptance_gate: 'Only fetch_verified counts toward real-source acceptance; require >=3',
+      },
       honesty: {
-        real_vs_synthetic: 'These records are authorized_public_list_import (real public-source provenance). Synthetic fixtures use source_type=synthetic_fixture separately.',
+        real_vs_synthetic: 'These records are authorized_public_list_import. Synthetic fixtures use source_type=synthetic_fixture separately.',
         unknowns: 'contact_person / demand / consent default UNKNOWN when not known; never invented.',
         no_outbound: true,
+        fetch_verification: 'fetch_verified requires public fetch with extractable facts; error pages/429/empty → fetch_failed and facts=UNKNOWN',
+        idempotent_dedupe: 'Same normalized URL + product reuses one LeadCase; source history appended',
+        ssrf: 'Public-only fetch; private/loopback/metadata/DNS/redirect targets rejected',
       },
     };
   }

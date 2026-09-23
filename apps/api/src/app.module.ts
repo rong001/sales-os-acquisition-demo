@@ -1,26 +1,48 @@
-import { Module, Controller, Get } from '@nestjs/common';
+import { Module, Controller, Get, Res, HttpStatus, UseFilters } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Response } from 'express';
 import { ALL_ENTITIES } from './entities';
 import { AuthModule } from './auth/auth.module';
 import { LeadsModule } from './leads/leads.module';
 import { SeedModule } from './seed/seed.module';
 import { PublicModule } from './public/public.module';
 import { GrowthModule } from './growth/growth.module';
+import { HealthService } from './common/health.service';
+import { DependencyExceptionFilter } from './common/dependency.filter';
 
+/**
+ * Health contract (followup1217):
+ * - GET /health/live  → liveness (process up only; does NOT prove PG/Redis)
+ * - GET /health       → readiness (fails 503 when required postgres/redis down)
+ * - GET /health/ready → readiness (alias)
+ * Web proxy /api/health → /health (readiness). Start/Test gates must use readiness.
+ */
 @Controller()
+@UseFilters(DependencyExceptionFilter)
 class HealthController {
+  constructor(private readonly healthSvc: HealthService) {}
+
+  @Get('health/live')
+  live() {
+    return this.healthSvc.liveness();
+  }
+
+  @Get('health/ready')
+  async ready(@Res({ passthrough: true }) res: Response) {
+    const body = await this.healthSvc.readiness();
+    if (!body.ok) {
+      res.status(HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    return body;
+  }
+
   @Get('health')
-  health() {
-    return {
-      ok: true,
-      service: 'sales-os-api',
-      ts: new Date().toISOString(),
-      reach: {
-        real_sms: process.env.REAL_SMS_ENABLED === 'true',
-        real_call: process.env.REAL_CALL_ENABLED === 'true',
-        real_email: process.env.REAL_EMAIL_ENABLED === 'true',
-      },
-    };
+  async health(@Res({ passthrough: true }) res: Response) {
+    const body = await this.healthSvc.readiness();
+    if (!body.ok) {
+      res.status(HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    return body;
   }
 }
 
@@ -40,5 +62,6 @@ class HealthController {
     SeedModule,
   ],
   controllers: [HealthController],
+  providers: [HealthService, DependencyExceptionFilter],
 })
 export class AppModule {}
