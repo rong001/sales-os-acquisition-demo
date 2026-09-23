@@ -9,8 +9,11 @@
       <div class="row">
         <select class="input" style="width:auto" v-model="product" @change="load">
           <option value="">全部产品线</option>
-          <option value="ticket-grab">知识库·CRM 流程（演示渠道）</option>
-          <option value="usgate">销售智能体实施（演示渠道）</option>
+          <option value="ai-cs">AI客服</option>
+          <option value="kb-crm">知识库/CRM流程自动化</option>
+          <option value="sales-agent">销售智能体</option>
+          <option value="ticket-grab">抢票助手（历史演示渠道）</option>
+          <option value="usgate">USGate（历史演示渠道）</option>
         </select>
         <button class="btn" @click="$router.push('/admin/conversion')">来源转化</button>
         <button class="btn" @click="$router.push('/admin/growth')">获客配置</button>

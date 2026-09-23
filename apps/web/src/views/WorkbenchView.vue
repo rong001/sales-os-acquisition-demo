@@ -34,7 +34,7 @@
     <div class="card stack" style="margin-bottom:12px" data-testid="due-follow-ups">
       <div class="row" style="justify-content:space-between">
         <strong>到期跟进</strong>
-        <span class="tag warn">站内提醒 · 外部消息待接入</span>
+        <span class="tag warn">站内列表轮询 · 非 worker 推送 · 外部消息待接入</span>
       </div>
       <div v-if="!(data?.due_follow_ups || []).length" class="muted">暂无到期待办</div>
       <div
@@ -59,11 +59,37 @@
       </div>
     </div>
 
+    <div v-if="isAdmin" class="card stack" style="margin-bottom:12px" data-testid="authorized-public-import">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <strong>企业线索导入（公开来源 / 授权名单）</strong>
+        <span class="tag">真实公开来源 · 未知字段存 UNKNOWN · 非合成夹具</span>
+      </div>
+      <p class="muted" style="margin:0;font-size:12px">
+        只读抓取官网摘要作 provenance；不发明联系人/同意/需求；不外发邮件/电话/私信。合成演示请用下方「新建演示线索」。
+      </p>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <input class="input" style="flex:1;min-width:140px" v-model="importForm.company_name" placeholder="公司名" />
+        <input class="input" style="flex:2;min-width:200px" v-model="importForm.official_site_url" placeholder="官网 URL https://…" />
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <select class="input" style="width:auto" v-model="importForm.product_code">
+          <option value="ai-cs">AI客服</option>
+          <option value="kb-crm">知识库/CRM流程自动化</option>
+          <option value="sales-agent">销售智能体</option>
+        </select>
+        <input class="input" style="flex:1;min-width:200px" v-model="importForm.match_reason_vs_icp" placeholder="ICP 匹配理由" />
+        <button class="btn btn-primary" :disabled="importBusy || !canWrite" data-testid="authorized-public-import-submit" @click="runAuthorizedImport">
+          {{ importBusy ? '导入中…' : '导入公开来源' }}
+        </button>
+      </div>
+      <p v-if="importMsg" class="muted" style="margin:0;font-size:12px" data-testid="authorized-public-import-msg">{{ importMsg }}</p>
+    </div>
+
     <div class="grid-3">
       <div class="card stack" style="grid-column: span 2">
         <div class="row" style="justify-content:space-between">
           <strong>案件列表</strong>
-          <button v-if="canWrite" class="btn btn-primary" :disabled="busy" @click="runHappyPath">{{ busy ? '处理中…' : '新建演示线索并跑通' }}</button>
+          <button v-if="canWrite" class="btn btn-primary" :disabled="busy" @click="runHappyPath">{{ busy ? '处理中…' : '新建合成演示线索并跑通' }}</button>
           <span v-else class="tag">只读演示</span>
         </div>
         <div v-if="!data?.cases?.length" class="muted">暂无案件。可从落地页留资，或点击上方按钮跑通演示路径。</div>
@@ -112,6 +138,14 @@ const user = ref(null);
 const loadError = ref('');
 const lastUpdatedAt = ref(null);
 const inFlight = ref(false);
+const importBusy = ref(false);
+const importMsg = ref('');
+const importForm = ref({
+  company_name: '',
+  official_site_url: '',
+  product_code: 'sales-agent',
+  match_reason_vs_icp: '',
+});
 let pollTimer = null;
 
 try { user.value = JSON.parse(localStorage.getItem('salesos_user') || 'null'); } catch { /* ignore */ }
@@ -129,7 +163,7 @@ function stageLabel(s) {
   const map = {
     NEW: '新建', QUALIFIED: '已合格', ASSIGNED: '已分配', REACHING: '触达中', IN_DIALOG: '会话中',
     APPOINTMENT_PENDING: '待确认预约', APPOINTED: '已预约', NURTURE: '培育', BLOCKED: '冻结',
-    WON: '赢单', LOST: '丢单',
+    WON: '演示赢单（非客户成交）', LOST: '丢单',
   };
   return map[s] || s;
 }
@@ -165,15 +199,58 @@ async function doHandle(caseId) {
   }
 }
 
+async function runAuthorizedImport() {
+  importBusy.value = true;
+  importMsg.value = '';
+  try {
+    const res = await LeadApi.importAuthorizedPublicList({
+      fetch_official: true,
+      batch_label: 'workbench-ui',
+      items: [{
+        company_name: importForm.value.company_name,
+        official_site_url: importForm.value.official_site_url,
+        product_code: importForm.value.product_code,
+        match_reason_vs_icp: importForm.value.match_reason_vs_icp,
+        contact_person: 'UNKNOWN',
+        demand: 'UNKNOWN',
+        consent_status: 'UNKNOWN',
+      }],
+    });
+    const first = res?.items?.[0];
+    importMsg.value = first
+      ? `已导入 ${first.company_name} · source=authorized_public_list_import · consent=${first.consent_status} · case=${String(first.case_id).slice(0, 8)}`
+      : `已导入 ${res?.imported || 0} 条`;
+    toast('公开来源导入成功（UNKNOWN 字段未发明）');
+    importForm.value.company_name = '';
+    importForm.value.official_site_url = '';
+    importForm.value.match_reason_vs_icp = '';
+    await load();
+  } catch (e) {
+    importMsg.value = e.message || '导入失败';
+    toast(importMsg.value);
+  } finally {
+    importBusy.value = false;
+  }
+}
+
 async function runHappyPath() {
   busy.value = true;
   try {
     const phone = `138${String(Date.now()).slice(-8)}`;
     const intake = await LeadApi.intake({
-      phone, name: '试用客户（合成）', source_type: 'ad_form', campaign: 'enterprise-ai-sales',
-      path: 'STANDARD', product_code: 'usgate',
+      phone,
+      name: 'SYNTHETIC_FIXTURE 试用客户',
+      company_name: 'SYNTHETIC fixture co (NOT public acquisition)',
+      source_type: 'synthetic_fixture',
+      source_channel: 'synthetic_fixture',
+      campaign: 'enterprise-ai-sales',
+      path: 'STANDARD',
+      product_code: 'sales-agent',
       consent_accepted: true,
-      utm_source: 'demo', utm_medium: 'workbench', invite_code: 'DEMO01',
+      utm_source: 'synthetic_fixture',
+      utm_medium: 'workbench',
+      invite_code: 'DEMO01',
+      raw: { label: 'SYNTHETIC_FIXTURE', demo_not_customer_deal: true },
     });
     const caseId = intake.case.id;
     await LeadApi.qualify(caseId);

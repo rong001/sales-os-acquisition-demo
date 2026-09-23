@@ -42,6 +42,8 @@ export const PublicApi = {
 
 export const LeadApi = {
   intake: (body) => api('/leads/intake', { method: 'POST', body: JSON.stringify(body) }),
+  importAuthorizedPublicList: (body) =>
+    api('/leads/import/authorized-public-list', { method: 'POST', body: JSON.stringify(body) }),
   qualify: (id) => api(`/leads/${id}/qualify`, { method: 'POST', body: '{}' }),
   assign: (id, agent_seat_id) =>
     api(`/leads/${id}/assign`, { method: 'POST', body: JSON.stringify({ agent_seat_id }) }),
