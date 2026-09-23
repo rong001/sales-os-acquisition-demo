@@ -1,0 +1,36 @@
+{
+  "description": "Revisit-able public company samples for authorized enterprise lead import. Not synthetic fixtures. Contact/demand/consent unknown → UNKNOWN.",
+  "icp": "B2B software / cloud / productivity companies that may need AI客服 · 知识库/CRM流程自动化 · 销售智能体",
+  "samples": [
+    {
+      "company_name": "Stripe, Inc.",
+      "official_site_url": "https://stripe.com/",
+      "match_reason_vs_icp": "Global B2B payments platform; public company site; cloud/SaaS buyer ICP for enterprise AI sales tooling.",
+      "product_code": "sales-agent"
+    },
+    {
+      "company_name": "HashiCorp",
+      "official_site_url": "https://www.hashicorp.com/",
+      "match_reason_vs_icp": "Infrastructure automation vendor (public site); B2B developer-tooling ICP adjacency for KB/CRM automation.",
+      "product_code": "kb-crm"
+    },
+    {
+      "company_name": "GitLab Inc.",
+      "official_site_url": "https://about.gitlab.com/",
+      "match_reason_vs_icp": "DevSecOps platform company; public about site; B2B software ICP for AI customer service + sales agents.",
+      "product_code": "ai-cs"
+    },
+    {
+      "company_name": "Cloudflare, Inc.",
+      "official_site_url": "https://www.cloudflare.com/",
+      "match_reason_vs_icp": "Edge/security network vendor; public corporate site; B2B infrastructure ICP.",
+      "product_code": "kb-crm"
+    },
+    {
+      "company_name": "Notion Labs, Inc.",
+      "official_site_url": "https://www.notion.com/",
+      "match_reason_vs_icp": "B2B productivity SaaS; public marketing site; collaboration-software ICP for knowledge-base automation.",
+      "product_code": "sales-agent"
+    }
+  ]
+}
