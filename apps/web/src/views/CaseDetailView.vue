@@ -79,6 +79,34 @@
       </div>
     </div>
 
+    <div
+      v-if="sourceProvenance"
+      class="card stack"
+      style="margin-top:12px"
+      data-testid="source-verification-provenance"
+    >
+      <strong>公开来源核验</strong>
+      <dl class="kv">
+        <dt>当前状态</dt>
+        <dd data-testid="verification-status-current">{{ sourceProvenance.verification_status || '—' }}</dd>
+        <dt>当前可信</dt>
+        <dd>{{ sourceProvenance.current_facts_trustworthy ? '是（最新抓取已核验）' : '否' }}</dd>
+        <dt>历史曾核验</dt>
+        <dd>{{ sourceProvenance.historically_verified ? '是' : '否' }}</dd>
+        <dt>说明</dt>
+        <dd data-testid="verification-explanation">{{ sourceProvenance.verification_explanation || '—' }}</dd>
+        <dt>当前摘要</dt>
+        <dd class="muted" style="font-size:12px">{{ sourceProvenance.public_facts_excerpt || 'UNKNOWN' }}</dd>
+        <dt>上次核验摘要</dt>
+        <dd class="muted" style="font-size:12px">{{ sourceProvenance.last_verified_facts_excerpt || '—' }}</dd>
+      </dl>
+      <p
+        v-if="sourceProvenance.historically_verified && sourceProvenance.verification_status === 'fetch_failed'"
+        class="tag warn"
+        data-testid="verification-stale-warning"
+      >previously verified, latest fetch failed — do not treat failed page as current facts</p>
+    </div>
+
     <div class="card stack" style="margin-top:12px">
       <strong>跟进时间线</strong>
       <div v-if="detail.case.next_follow_at" class="list-item" style="cursor:default" data-testid="case-next-follow">
@@ -183,6 +211,19 @@ const riskText = computed(() => {
   const f = detail.value?.case?.flags || {};
   if (f.refused || f.blocked) return '风险：禁呼/拒绝，禁止营销触达';
   return '';
+});
+
+const sourceProvenance = computed(() => {
+  const f = detail.value?.case?.flags || {};
+  if (f.source_type !== 'authorized_public_list_import') return null;
+  return {
+    verification_status: f.verification_status,
+    historically_verified: !!f.historically_verified || !!f.ever_fetch_verified,
+    current_facts_trustworthy: !!f.current_facts_trustworthy,
+    verification_explanation: f.verification_explanation,
+    public_facts_excerpt: f.public_facts_excerpt,
+    last_verified_facts_excerpt: f.last_verified_facts_excerpt,
+  };
 });
 
 function formatTime(v) {

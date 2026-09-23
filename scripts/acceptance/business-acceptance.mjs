@@ -35,9 +35,9 @@ const ROOT = path.resolve(__dirname, '../..');
 const ENV_FILE = path.join(ROOT, '.env.native');
 const SAMPLES_FILE = path.join(__dirname, 'public-company-samples.json');
 const OUT_DIR = process.env.SALES_OS_ACCEPTANCE_OUT
-  || path.join(ROOT, 'docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1217');
+  || path.join(ROOT, 'docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1331');
 
-const PACK = 'SALES-FOLLOWUP-20260923-1217';
+const PACK = 'SALES-FOLLOWUP-20260923-1331';
 
 function parseDotEnv(filePath) {
   const map = Object.create(null);
@@ -392,9 +392,9 @@ async function main() {
     record(
       'real-vs-synthetic-separation',
       srcType === 'authorized_public_list_import'
-        && (expectRealFlag ? flags.real_public_source === true : true)
-        && (probeItem.verification_status !== 'fetch_failed' || flags.real_public_source !== true || flags.verification_status === 'fetch_verified'),
-      `source_type=${srcType || 'n/a'} real_public_source=${flags.real_public_source} verification=${flags.verification_status || probeItem.verification_status}`,
+        && (expectRealFlag ? flags.real_public_source === true : flags.real_public_source !== true)
+        && (probeItem.verification_status !== 'fetch_failed' || flags.real_public_source !== true),
+      `source_type=${srcType || 'n/a'} real_public_source=${flags.real_public_source} verification=${flags.verification_status || probeItem.verification_status} hist=${flags.historically_verified}`,
       { layer: 'real_source_gate' },
     );
   } else {
@@ -477,6 +477,73 @@ async function main() {
     );
   } else {
     skip('company-dedupe-source-history-append', 'no stripe/first case', 'optional', 'api_subsuite');
+  }
+
+  // Historical vs current verification: reimport with fetch_official=false must NOT sticky-claim fetch_verified as current
+  if (firstStripe?.case_id) {
+    const afterCase = await api(base, 'GET', `${pfx}/leads/${firstStripe.case_id}`, { token: mgr.token });
+    const flags = afterCase.json?.case?.flags || {};
+    const currentIsProvided = flags.verification_status === 'source_provided';
+    const histOk = flags.historically_verified === true || flags.ever_fetch_verified === true || firstStripe.verification_status === 'fetch_verified';
+    // After skip-fetch reimports above, current should be source_provided; if first was verified, historically_verified sticky
+    const expl = String(flags.verification_explanation || '');
+    record(
+      'verification-current-vs-historical',
+      currentIsProvided
+        && flags.real_public_source !== true
+        && (firstStripe.verification_status !== 'fetch_verified' || histOk)
+        && (firstStripe.verification_status !== 'fetch_verified' || /previously verified|source URL provided|current status/i.test(expl) || histOk),
+      `current=${flags.verification_status} real=${flags.real_public_source} hist=${flags.historically_verified} expl=${expl.slice(0, 80)}`,
+      { layer: 'api_subsuite' },
+    );
+  } else {
+    skip('verification-current-vs-historical', 'no case', 'optional', 'api_subsuite');
+  }
+
+  // Title honesty: Cloudflare corporate sample must not be rejected solely for title containing "Cloudflare"
+  const cfItem = realImported.find((x) => /cloudflare/i.test(x.company_name || '') || /cloudflare\.com/i.test(x.official_site_url || ''));
+  if (cfItem && !skipFetch) {
+    const titleHonest = cfItem.verification_status === 'fetch_verified'
+      || (cfItem.verification_status === 'fetch_failed' && !/http_200_or_error_page/.test(String(cfItem.error || '')));
+    // If failed, failure must not be bare title false-positive — check case fetch_meta when available
+    let metaOk = true;
+    if (cfItem.case_id) {
+      const cfCase = await api(base, 'GET', `${pfx}/leads/${cfItem.case_id}`, { token: mgr.token });
+      const raw = cfCase.json?.source?.raw_payload?.fetch_meta || {};
+      const err = String(raw.error || '');
+      if (cfItem.verification_status === 'fetch_failed' && err === 'http_200_or_error_page') {
+        // Still might be real challenge page — only soft-fail note; prefer verified
+        metaOk = false;
+      }
+      if (cfItem.verification_status === 'fetch_verified') metaOk = true;
+    }
+    record(
+      'import-title-honesty-cloudflare',
+      cfItem.verification_status === 'fetch_verified' || (cfItem.verification_status === 'fetch_failed' && metaOk),
+      `company=${cfItem.company_name} status=${cfItem.verification_status} (bare cloudflare title must not force error_page)`,
+      { layer: 'api_subsuite' },
+    );
+  } else if (skipFetch) {
+    skip('import-title-honesty-cloudflare', 'SKIP_FETCH', 'optional', 'api_subsuite');
+  } else {
+    skip('import-title-honesty-cloudflare', 'no Cloudflare sample in import set', 'optional', 'api_subsuite');
+  }
+
+  // Redis enqueue failure/recovery — offline synthetic (not workbench 200)
+  {
+    const { spawnSync } = await import('node:child_process');
+    const unit = spawnSync(process.execPath, ['--test', 'scripts/acceptance/unit/outbox-enqueue-recovery.test.mjs'], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      env: process.env,
+    });
+    const ok = unit.status === 0;
+    record(
+      'redis-enqueue-recovery-synthetic',
+      ok,
+      ok ? 'enqueue fail→recover→idempotent PASS (in-memory)' : `FAIL exit=${unit.status} ${String(unit.stderr || unit.stdout).slice(0, 240)}`,
+      { layer: 'api_subsuite' },
+    );
   }
 
   // Qualify + assign synthetics (they have consent)
@@ -741,6 +808,23 @@ async function main() {
     `verification=${ssrfItem?.verification_status || 'n/a'} facts=${ssrfItem?.public_facts_excerpt || 'n/a'} HTTP ${ssrf.status}`,
     { layer: 'api_subsuite' },
   );
+
+  {
+    const { spawnSync } = await import('node:child_process');
+    const unit = spawnSync(process.execPath, ['--test', 'scripts/acceptance/unit/public-fetch-ssrf.test.mjs'], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      env: process.env,
+    });
+    record(
+      'ssrf-unit-title-ip-dns-pin',
+      unit.status === 0,
+      unit.status === 0
+        ? 'offline title honesty + IPv4-mapped hex + fe80/10 + DNS rebind mock PASS'
+        : `FAIL exit=${unit.status} ${String(unit.stderr || unit.stdout).slice(0, 240)}`,
+      { layer: 'api_subsuite' },
+    );
+  }
 
   // UI pending — always SKIP tier ui_pending, never PASS; cannot make product全绿
   skip(

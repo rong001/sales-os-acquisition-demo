@@ -218,7 +218,7 @@ async function runAuthorizedImport() {
     });
     const first = res?.items?.[0];
     importMsg.value = first
-      ? `已导入 ${first.company_name} · source=authorized_public_list_import · consent=${first.consent_status} · case=${String(first.case_id).slice(0, 8)}`
+      ? `已导入 ${first.company_name} · verification=${first.verification_status || '?'} · real=${first.real_public_source ? 'yes' : 'no'} · hist=${first.historically_verified ? 'yes' : 'no'} · ${first.verification_explanation || ''} · consent=${first.consent_status} · case=${String(first.case_id).slice(0, 8)}`
       : `已导入 ${res?.imported || 0} 条`;
     toast('公开来源导入成功（UNKNOWN 字段未发明）');
     importForm.value.company_name = '';

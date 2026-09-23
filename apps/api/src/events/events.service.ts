@@ -1,11 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { DomainEvent, Outbox, AuditLog } from '../entities';
 import Redis from 'ioredis';
+import {
+  enqueueOutboxRow,
+  recoverPendingOutbox,
+  OUTBOX_STREAM,
+  type RedisEnqueueClient,
+  type OutboxStatusStore,
+} from '../common/outbox-enqueue';
 
 @Injectable()
 export class EventsService {
+  private readonly log = new Logger(EventsService.name);
   private redis: Redis | null = null;
 
   constructor(
@@ -60,24 +68,66 @@ export class EventsService {
       const savedOb = await manager.save(ob);
 
       if (this.redis) {
-        try {
-          await this.redis.xadd(
-            'salesos:events',
-            '*',
-            'outbox_id', savedOb.id,
-            'event_type', params.type,
-            'tenant_id', params.tenant_id,
-            'payload', JSON.stringify(savedOb.payload),
-          );
-          savedOb.status = 'published';
-          savedOb.published_at = new Date();
-          await manager.save(savedOb);
-        } catch {
-          // leave pending for worker
+        const result = await enqueueOutboxRow(this.redis as unknown as RedisEnqueueClient, {
+          id: savedOb.id,
+          tenant_id: params.tenant_id,
+          event_type: params.type,
+          payload: savedOb.payload,
+        }, { stream: OUTBOX_STREAM });
+
+        if (result.outcome === 'published' || result.outcome === 'idempotent_skip_inflight') {
+          if (result.outcome === 'published') {
+            savedOb.status = 'published';
+            savedOb.published_at = new Date();
+            await manager.save(savedOb);
+          }
+        } else {
+          // enqueue_failed_pending — leave pending for worker recovery
+          this.log.warn(`outbox enqueue failed, left pending: ${savedOb.id} ${result.error || ''}`);
         }
       }
       return saved;
     });
+  }
+
+  /**
+   * Recover pending outbox rows (Redis was down / xadd failed while readiness may still flap).
+   * Idempotent: duplicate recovery does not double-mark or require duplicate side effects.
+   */
+  async recoverPendingOutbox(limit = 20) {
+    if (!this.redis) {
+      return { attempted: 0, published: 0, failed: 0, idempotent: 0, outcomes: [], redis: false };
+    }
+    const store: OutboxStatusStore = {
+      listPending: async (lim) => {
+        const rows = await this.outbox.find({
+          where: { status: 'pending' },
+          order: { created_at: 'ASC' },
+          take: lim,
+        });
+        return rows.map((r) => ({
+          id: r.id,
+          tenant_id: r.tenant_id,
+          event_type: r.event_type,
+          payload: r.payload,
+        }));
+      },
+      markPublished: async (id) => {
+        const res = await this.outbox
+          .createQueryBuilder()
+          .update(Outbox)
+          .set({ status: 'published', published_at: () => 'NOW()' })
+          .where('id = :id AND status = :st', { id, st: 'pending' })
+          .execute();
+        return (res.affected ?? 0) > 0 ? 'updated' : 'already';
+      },
+    };
+    const summary = await recoverPendingOutbox(
+      this.redis as unknown as RedisEnqueueClient,
+      store,
+      { limit, stream: OUTBOX_STREAM },
+    );
+    return { ...summary, redis: true };
   }
 
   async audit(params: {

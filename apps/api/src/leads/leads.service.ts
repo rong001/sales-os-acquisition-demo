@@ -8,7 +8,10 @@ import {
   fetchPublicSource,
   normalizeCompanyUrl,
   publicCompanyMergeKey,
+  retainSourceHistory,
+  buildVerificationExplanation,
   type PublicFetchStatus,
+  type SourceHistoryEntry,
 } from '../common/public-fetch';
 import {
   LeadIdentity, LeadSource, LeadCase, ConsentGrant, Ownership, PoolItem,
@@ -1172,9 +1175,20 @@ export class LeadsService {
               demand,
               consent_status: consentStatus,
               demo_not_customer_deal: true,
+              // Current vs historical: real_public_source follows LATEST fetch only
               real_public_source: realVerified,
               verification_status: verificationStatus,
+              historically_verified: realVerified,
+              ever_fetch_verified: realVerified,
+              current_facts_trustworthy: realVerified,
+              verification_explanation: buildVerificationExplanation({
+                current: verificationStatus,
+                historicallyVerified: realVerified,
+              }),
               normalized_url: normUrl,
+              public_facts_excerpt: excerpt,
+              last_verified_facts_excerpt: realVerified ? excerpt : null,
+              last_verified_at: realVerified ? fetchTime : null,
               source_history: [{ source_id: source.id, batch_id: batchId, fetch_time: fetchTime, verification_status: verificationStatus }],
             },
           }));
@@ -1182,7 +1196,7 @@ export class LeadsService {
           caseMerged = true;
           const prevFlags = (leadCase.flags || {}) as Record<string, unknown>;
           const history = Array.isArray(prevFlags.source_history)
-            ? [...(prevFlags.source_history as unknown[])]
+            ? [...(prevFlags.source_history as SourceHistoryEntry[])]
             : [];
           history.push({
             source_id: source.id,
@@ -1190,6 +1204,19 @@ export class LeadsService {
             fetch_time: fetchTime,
             verification_status: verificationStatus,
           });
+          const historicallyVerified = realVerified
+            || prevFlags.historically_verified === true
+            || prevFlags.ever_fetch_verified === true
+            || prevFlags.verification_status === 'fetch_verified'
+            || history.some((h) => h.verification_status === 'fetch_verified');
+          const lastVerifiedFacts = realVerified
+            ? excerpt
+            : (typeof prevFlags.last_verified_facts_excerpt === 'string'
+              ? prevFlags.last_verified_facts_excerpt
+              : null);
+          const lastVerifiedAt = realVerified
+            ? fetchTime
+            : (typeof prevFlags.last_verified_at === 'string' ? prevFlags.last_verified_at : null);
           leadCase.source_id = source.id; // latest provenance pointer; history retained
           leadCase.flags = {
             ...prevFlags,
@@ -1198,13 +1225,23 @@ export class LeadsService {
             demand,
             consent_status: consentStatus,
             demo_not_customer_deal: true,
-            // sticky verified: once verified, stay true; else current status
-            real_public_source: realVerified || prevFlags.real_public_source === true,
-            verification_status: realVerified
-              ? 'fetch_verified'
-              : (prevFlags.verification_status === 'fetch_verified' ? 'fetch_verified' : verificationStatus),
+            // CURRENT status (not sticky). Historical kept separately for audit/UI.
+            real_public_source: realVerified,
+            verification_status: verificationStatus,
+            historically_verified: historicallyVerified,
+            ever_fetch_verified: historicallyVerified,
+            current_facts_trustworthy: realVerified,
+            verification_explanation: buildVerificationExplanation({
+              current: verificationStatus,
+              historicallyVerified,
+            }),
             normalized_url: normUrl,
-            source_history: history.slice(-20),
+            // Failed latest fetch → do not treat page body as current facts
+            public_facts_excerpt: realVerified ? excerpt : 'UNKNOWN',
+            last_verified_facts_excerpt: lastVerifiedFacts,
+            last_verified_at: lastVerifiedAt,
+            source_history_retention: 'cap20_keeps_latest_lastVerified_transitions',
+            source_history: retainSourceHistory(history, 20),
           };
           await caseRepo.save(leadCase);
         }
@@ -1290,7 +1327,9 @@ export class LeadsService {
         public_facts_excerpt: excerpt.slice(0, 200),
         match_reason_vs_icp: matchReason,
         verification_status: verificationStatus,
-        real_public_source: realVerified || !!(itemResult.leadCase.flags as Record<string, unknown>)?.real_public_source,
+        real_public_source: realVerified,
+        historically_verified: !!(itemResult.leadCase.flags as Record<string, unknown>)?.historically_verified,
+        verification_explanation: (itemResult.leadCase.flags as Record<string, unknown>)?.verification_explanation || null,
         source_id: itemResult.source.id,
       });
     }
@@ -1316,7 +1355,8 @@ export class LeadsService {
         no_outbound: true,
         fetch_verification: 'fetch_verified requires public fetch with extractable facts; error pages/429/empty → fetch_failed and facts=UNKNOWN',
         idempotent_dedupe: 'Same normalized URL + product reuses one LeadCase; source history appended',
-        ssrf: 'Public-only fetch; private/loopback/metadata/DNS/redirect targets rejected',
+        ssrf: 'Public-only fetch; private/loopback/metadata/DNS/redirect targets rejected; dial IP pinned after validate',
+        verification_current_vs_historical: 'verification_status/real_public_source = latest fetch; historically_verified = ever verified; failed latest ⇒ facts UNKNOWN',
       },
     };
   }
