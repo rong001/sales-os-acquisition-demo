@@ -1,0 +1,24 @@
+{
+  "case": "SALES-FOLLOWUP-20260923-1016",
+  "ran_at": "2026-09-23T02:22:04.277509Z",
+  "fix_commit": "189657ef73a4db81146217fa32a3b620c612c57e",
+  "pack": "sales-os-internal-trial-local-20260923-followup1016.tar.gz",
+  "pack_bytes": 4822875,
+  "pack_sha256": "868ab1f2b1782f0459291cf8b0afa2b0cf07e4e4dfa54fc115c0b137b692b97b",
+  "parser_parsefile": "PASS TOTAL_PARSE_ERRORS=0 (9 ps1 files)",
+  "harness": "PASS (bot Linux pwsh 7.4.6 \u2014 not Windows PASS)",
+  "windows_e2e_pass_claimed": false,
+  "ps1_fixed": [
+    "scripts/windows/native/NativeCommon.ps1",
+    "scripts/windows/native/Start-InternalTrial-Native.ps1",
+    "scripts/windows/native/Test-InternalTrial-Native.ps1",
+    "scripts/windows/native/README.md",
+    "scripts/windows/native/tests/Test-NativeCommon-Harness.ps1"
+  ],
+  "defaults_ports": [
+    15432,
+    16379,
+    39300,
+    19280
+  ]
+}
