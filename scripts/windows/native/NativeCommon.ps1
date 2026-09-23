@@ -130,11 +130,38 @@ function Stop-OwnedPidFile {
   Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue
 }
 
+function Format-ProcessArgumentListString {
+  <#
+    Build a single ArgumentList string for Start-Process (Windows PowerShell 5.1 safe).
+    Passing a string[] to Start-Process -ArgumentList joins with spaces WITHOUT quoting,
+    so paths with spaces split. Pass ONE string with Windows argv quoting instead:
+    wrap args that contain whitespace or " in double quotes; embed " as "".
+  #>
+  param(
+    [Parameter(Mandatory = $true)][AllowEmptyCollection()][object[]]$Arguments
+  )
+  $parts = New-Object System.Collections.Generic.List[string]
+  foreach ($a in $Arguments) {
+    if ($null -eq $a) { continue }
+    $s = [string]$a
+    if ($s -match '[ 	"]') {
+      $escaped = $s -replace '"', '""'
+      [void]$parts.Add('"' + $escaped + '"')
+    } else {
+      [void]$parts.Add($s)
+    }
+  }
+  return ($parts -join ' ')
+}
+
 function Start-LoggedProcess {
   <#
     Start a process with stdout/stderr redirected to independent log files.
     Does NOT use Start-Job + Process object marshalling (unreliable across jobs).
     WindowStyle Hidden / no console popup. Temporarily sets process-level env.
+
+    ArgumentList: prefer string[] of raw args; we convert to a SINGLE quoted string
+    for Start-Process (PS 5.1). Do not pass an unquoted array to Start-Process.
   #>
   param(
     [Parameter(Mandatory = $true)][string]$FilePath,
@@ -160,11 +187,23 @@ function Start-LoggedProcess {
   }
   try {
     $argArr = @()
-    if ($ArgumentList -is [System.Array]) { $argArr = $ArgumentList } else { $argArr = @($ArgumentList) }
-    $p = Start-Process -FilePath $FilePath -ArgumentList $argArr `
-      -WorkingDirectory $WorkingDirectory `
-      -RedirectStandardOutput $OutLog -RedirectStandardError $ErrLog `
-      -WindowStyle Hidden -PassThru
+    if ($ArgumentList -is [System.Array]) { $argArr = @($ArgumentList) } else { $argArr = @([string]$ArgumentList) }
+    # PS 5.1: single string with proper quoting — array form re-splits on spaces
+    $argString = Format-ProcessArgumentListString -Arguments $argArr
+    $spParams = @{
+      FilePath = $FilePath
+      ArgumentList = $argString
+      WorkingDirectory = $WorkingDirectory
+      RedirectStandardOutput = $OutLog
+      RedirectStandardError = $ErrLog
+      PassThru = $true
+    }
+    # -WindowStyle works on Windows only. Parameter metadata exists on Linux pwsh but runtime rejects it.
+    # Windows PowerShell 5.1 has no $IsWindows (always Windows); PS 6+ exposes $IsWindows.
+    $onWindows = $true
+    if ($PSVersionTable.PSVersion.Major -ge 6) { $onWindows = [bool]$IsWindows }
+    if ($onWindows) { $spParams["WindowStyle"] = "Hidden" }
+    $p = Start-Process @spParams
     if (-not $p) { throw "Start-Process returned null for $FilePath" }
     "$($p.Id)" | Set-Content -LiteralPath $PidFile -Encoding ASCII
     return $p
@@ -189,15 +228,18 @@ function Find-RedisCliNear([string]$RedisServerPath) {
 }
 
 function Get-RedisVersionString {
+  # NOTE: do NOT name a parameter $Host — $Host is a read-only automatic variable in PowerShell.
   param(
     [string]$RedisCli,
-    [string]$Host = "127.0.0.1",
+    [string]$HostName = "127.0.0.1",
     [int]$Port = 6379,
     [string]$RedisServerPath = $null
   )
   if ($RedisCli) {
     try {
-      $info = & $RedisCli -h $Host -p $Port INFO server 2>$null
+      $infoRaw = & $RedisCli -h $HostName -p $Port INFO server 2>$null
+      # redis-cli INFO returns a multi-line string[]; -match on arrays does not set $Matches
+      $info = if ($null -eq $infoRaw) { "" } elseif ($infoRaw -is [System.Array]) { ($infoRaw -join "`n") } else { [string]$infoRaw }
       if ($info -match 'redis_version:([0-9]+\.[0-9]+\.[0-9]+)') {
         return $Matches[1]
       }

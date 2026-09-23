@@ -1,0 +1,81 @@
+Reserved/automatic variable parameter audit — SALES-FOLLOWUP-20260923-1016
+Scope: all ParameterAst names under scripts/windows/**/*.ps1
+
+FIX this followup:
+  NativeCommon.ps1 Get-RedisVersionString: $Host -> $HostName (and body uses $HostName)
+  Call sites updated: Start-InternalTrial-Native.ps1, Test-InternalTrial-Native.ps1
+  $PidFile is distinct from automatic $PID — kept.
+
+RESULT: zero reserved/automatic parameter names remaining.
+
+All ParameterAst names:
+scripts/windows/native/Fetch-NativeDeps.ps1  $Path
+scripts/windows/native/NativeCommon.ps1  $Msg
+scripts/windows/native/NativeCommon.ps1  $Path
+scripts/windows/native/NativeCommon.ps1  $Body
+scripts/windows/native/NativeCommon.ps1  $P
+scripts/windows/native/NativeCommon.ps1  $Candidate
+scripts/windows/native/NativeCommon.ps1  $Root
+scripts/windows/native/NativeCommon.ps1  $ProcId
+scripts/windows/native/NativeCommon.ps1  $ProcId
+scripts/windows/native/NativeCommon.ps1  $Root
+scripts/windows/native/NativeCommon.ps1  $RunDir
+scripts/windows/native/NativeCommon.ps1  $Name
+scripts/windows/native/NativeCommon.ps1  $Root
+scripts/windows/native/NativeCommon.ps1  $ForceRemovePidFile
+scripts/windows/native/NativeCommon.ps1  $Arguments
+scripts/windows/native/NativeCommon.ps1  $FilePath
+scripts/windows/native/NativeCommon.ps1  $ArgumentList
+scripts/windows/native/NativeCommon.ps1  $WorkingDirectory
+scripts/windows/native/NativeCommon.ps1  $EnvMap
+scripts/windows/native/NativeCommon.ps1  $OutLog
+scripts/windows/native/NativeCommon.ps1  $ErrLog
+scripts/windows/native/NativeCommon.ps1  $PidFile
+scripts/windows/native/NativeCommon.ps1  $RedisServerPath
+scripts/windows/native/NativeCommon.ps1  $RedisCli
+scripts/windows/native/NativeCommon.ps1  $HostName
+scripts/windows/native/NativeCommon.ps1  $Port
+scripts/windows/native/NativeCommon.ps1  $RedisServerPath
+scripts/windows/native/NativeCommon.ps1  $Version
+scripts/windows/native/NativeCommon.ps1  $MinMajor
+scripts/windows/native/NativeCommon.ps1  $Version
+scripts/windows/native/NativeCommon.ps1  $MinMajor
+scripts/windows/native/NativeCommon.ps1  $HostName
+scripts/windows/native/NativeCommon.ps1  $Port
+scripts/windows/native/NativeCommon.ps1  $TimeoutSec
+scripts/windows/native/NativeCommon.ps1  $Label
+scripts/windows/native/NativeCommon.ps1  $RedisCli
+scripts/windows/native/NativeCommon.ps1  $HostName
+scripts/windows/native/NativeCommon.ps1  $Port
+scripts/windows/native/NativeCommon.ps1  $LogPath
+scripts/windows/native/NativeCommon.ps1  $OutLog
+scripts/windows/native/Start-InternalTrial-Native.ps1  $Msg
+scripts/windows/native/Start-InternalTrial-Native.ps1  $Bytes
+scripts/windows/native/Start-InternalTrial-Native.ps1  $Port
+scripts/windows/native/Start-InternalTrial-Native.ps1  $Port
+scripts/windows/native/Start-InternalTrial-Native.ps1  $Label
+scripts/windows/native/Start-InternalTrial-Native.ps1  $Name
+scripts/windows/native/Start-InternalTrial-Native.ps1  $Path
+scripts/windows/native/Start-InternalTrial-Native.ps1  $Key
+scripts/windows/native/Start-InternalTrial-Native.ps1  $Default
+scripts/windows/native/Stop-InternalTrial-Native.ps1  $WipeData
+scripts/windows/native/Test-InternalTrial-Native.ps1  $Key
+scripts/windows/native/Test-InternalTrial-Native.ps1  $Default
+scripts/windows/native/tests/Test-NativeCommon-Harness.ps1  $Cond
+scripts/windows/native/tests/Test-NativeCommon-Harness.ps1  $Msg
+scripts/windows/native/tests/Test-NativeCommon-Harness.ps1  $n
+scripts/windows/native/tests/Test-NativeCommon-Harness.ps1  $n
+scripts/windows/Start-InternalTrial.ps1  $Msg
+scripts/windows/Start-InternalTrial.ps1  $Path
+scripts/windows/Start-InternalTrial.ps1  $Body
+scripts/windows/Start-InternalTrial.ps1  $Text
+scripts/windows/Start-InternalTrial.ps1  $Max
+scripts/windows/Start-InternalTrial.ps1  $ComposeFile
+scripts/windows/Start-InternalTrial.ps1  $EnvFile
+scripts/windows/Stop-InternalTrial.ps1  $WipeVolumes
+scripts/windows/Stop-InternalTrial.ps1  $Msg
+scripts/windows/Test-InternalTrial.ps1  $Msg
+scripts/windows/Test-InternalTrial.ps1  $Path
+scripts/windows/Test-InternalTrial.ps1  $Body
+scripts/windows/Test-InternalTrial.ps1  $Text
+scripts/windows/Test-InternalTrial.ps1  $Max

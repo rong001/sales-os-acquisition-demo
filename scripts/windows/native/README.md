@@ -56,3 +56,24 @@ cd sales-os-app
 
 若已安装并可运行 Docker Desktop，优先用
 `..\Start-InternalTrial.ps1` + `docker-compose.internal-trial.yml`。
+
+## Parser / quality gate (maintainer)
+
+Before shipping native script changes, parse **every** `.ps1` under `scripts/windows/`:
+
+```powershell
+Get-ChildItem .\scripts\windows -Recurse -Filter *.ps1 | ForEach-Object {
+  $t=$null; $e=$null
+  [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$t, [ref]$e)
+  if ($e.Count) { "FAIL $($_.FullName)"; $e | ForEach-Object { $_.Message } } else { "PASS $($_.Name)" }
+}
+```
+
+Optional harness (PS 5.1 / pwsh 7):
+
+```powershell
+.\scripts\windows\native\tests\Test-NativeCommon-Harness.ps1
+```
+
+Covers: no bare `Test-Path A -or Test-Path B`, no `$Host`/`$PID` params, Redis INFO
+multi-line join before `-match`, `Start-Process` ArgumentList quoting for paths with spaces.

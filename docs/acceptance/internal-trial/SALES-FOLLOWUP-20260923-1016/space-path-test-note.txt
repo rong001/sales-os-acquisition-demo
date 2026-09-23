@@ -1,0 +1,24 @@
+Space-path Start-Process / ArgumentList test — SALES-FOLLOWUP-20260923-1016
+==============================================================================
+
+Problem (real Windows):
+  Start-LoggedProcess previously passed a string[] to Start-Process -ArgumentList.
+  On Windows PowerShell 5.1, Start-Process joins array elements with spaces WITHOUT
+  adding quotes, so a path like C:\path with space\main.js is re-split into multiple
+  argv tokens.
+
+Fix:
+  Format-ProcessArgumentListString builds ONE ArgumentList string with Windows
+  CreateProcess quoting: wrap args containing whitespace or " in double quotes;
+  embed " as "". Start-LoggedProcess always passes that single string.
+
+Harness (bot-side, pwsh 7.4.6 on Linux — NOT a Windows PASS claim):
+  scripts/windows/native/tests/Test-NativeCommon-Harness.ps1
+  - Unit asserts for quoting of spaced paths and embedded quotes
+  - Integration: created temp dir "sales os space <guid>", wrote echo-args.ps1
+    inside it, Start-LoggedProcess pwsh -File <space path> -Marker SPACE_PATH_OK
+  - Child wrote out.txt with SPACE_PATH_OK → PASS
+  - -WindowStyle Hidden gated to Windows OS only (Linux pwsh rejects it at runtime
+    even though parameter metadata lists it)
+
+See harness-output.txt for full PASS log.

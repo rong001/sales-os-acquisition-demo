@@ -1,0 +1,17 @@
+Parser.ParseFile gate — SALES-FOLLOWUP-20260923-1016
+pwsh: 7.4.6
+date: 2026-09-23T10:19:30.3889536+08:00
+files: 9
+
+PASS  scripts/windows/native/Fetch-NativeDeps.ps1  errors=0
+PASS  scripts/windows/native/NativeCommon.ps1  errors=0
+PASS  scripts/windows/native/Start-InternalTrial-Native.ps1  errors=0
+PASS  scripts/windows/native/Stop-InternalTrial-Native.ps1  errors=0
+PASS  scripts/windows/native/Test-InternalTrial-Native.ps1  errors=0
+PASS  scripts/windows/native/tests/Test-NativeCommon-Harness.ps1  errors=0
+PASS  scripts/windows/Start-InternalTrial.ps1  errors=0
+PASS  scripts/windows/Stop-InternalTrial.ps1  errors=0
+PASS  scripts/windows/Test-InternalTrial.ps1  errors=0
+
+TOTAL_PARSE_ERRORS=0
+RESULT=PASS

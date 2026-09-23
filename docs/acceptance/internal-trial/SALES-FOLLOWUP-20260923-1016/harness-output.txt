@@ -1,0 +1,12 @@
+PASS: Get-RedisVersionString has -HostName
+PASS: Get-RedisVersionString does NOT have -Host (automatic/read-only)
+PASS: Calling Get-RedisVersionString -HostName does not hit Host overwrite error
+PASS: Multi-line INFO joined string yields redis_version 5.0.14 via $Matches
+PASS: Quote two spaced paths
+PASS: Escape embedded double quotes as doubled quotes
+PASS: Unspaced arg stays bare
+PASS: Start-LoggedProcess with space-containing -File path ran child and wrote marker
+PASS: No unparenthesized Test-Path -or/-and command elements (count=0)
+PASS: No reserved/automatic parameter names (hits=0)
+
+HARNESS RESULT=PASS

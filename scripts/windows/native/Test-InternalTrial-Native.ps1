@@ -45,7 +45,7 @@ if (-not $redisCli) {
 if (-not (Invoke-RedisPing -RedisCli $redisCli -HostName "127.0.0.1" -Port $RedisPort)) {
   Fail "redis-ping-failed: 127.0.0.1:$RedisPort — is native stack started?"
 }
-$redisVer = Get-RedisVersionString -RedisCli $redisCli -Host "127.0.0.1" -Port $RedisPort -RedisServerPath $redisServer
+$redisVer = Get-RedisVersionString -RedisCli $redisCli -HostName "127.0.0.1" -Port $RedisPort -RedisServerPath $redisServer
 Assert-RedisVersionOk -Version $redisVer -MinMajor 5
 Write-Host "Redis $redisVer (>=5) PING OK on 127.0.0.1:$RedisPort"
 

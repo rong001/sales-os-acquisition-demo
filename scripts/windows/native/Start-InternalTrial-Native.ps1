@@ -191,10 +191,11 @@ if (-not (Test-Path -LiteralPath $MarkerFile)) {
 }
 
 # Idempotent Start: stop prior owned run first (safe Stop verifies ownership)
-if (Test-Path -LiteralPath (Join-Path $RunDir "api.pid") -or
-    Test-Path -LiteralPath (Join-Path $RunDir "gateway.pid") -or
-    Test-Path -LiteralPath (Join-Path $RunDir "worker.pid") -or
-    Test-Path -LiteralPath (Join-Path $RunDir "redis.pid")) {
+# Each Test-Path must be parenthesized — bare "Test-Path A -or Test-Path B" is a ParserError
+if ((Test-Path -LiteralPath (Join-Path $RunDir "api.pid")) -or
+    (Test-Path -LiteralPath (Join-Path $RunDir "gateway.pid")) -or
+    (Test-Path -LiteralPath (Join-Path $RunDir "worker.pid")) -or
+    (Test-Path -LiteralPath (Join-Path $RunDir "redis.pid"))) {
   Write-Host "Prior native PID files found — stopping owned processes before re-start..."
   & (Join-Path $NativeDir "Stop-InternalTrial-Native.ps1")
   Start-Sleep -Seconds 2
@@ -315,7 +316,7 @@ if (-not $redisReady) {
   Fail "redis-not-ready: PING/TCP failed on 127.0.0.1:$RedisPort (see .data/native/logs/redis.*.log)"
 }
 
-$redisVer = Get-RedisVersionString -RedisCli $redisCli -Host "127.0.0.1" -Port $RedisPort -RedisServerPath $redisServer
+$redisVer = Get-RedisVersionString -RedisCli $redisCli -HostName "127.0.0.1" -Port $RedisPort -RedisServerPath $redisServer
 Write-Host "Redis version: $redisVer"
 Assert-RedisVersionOk -Version $redisVer -MinMajor 5
 
