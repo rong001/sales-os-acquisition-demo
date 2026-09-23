@@ -78,7 +78,8 @@ Tar over source; **keep** existing `.env.native` and `.data/`.
 - `0c4fca1` — feat: add business acceptance harness (Node + Windows wrapper)
 - `ea58603` — fix: enterprise AI sales copy on login/workbench/funnel
 - `fb49d9d` — docs: SALES-FOLLOWUP-20260923-1112 bot harness evidence + UI待测
-- `0523da9b94d8b40fdfa1c7dca6989a124aa02254` — chore: ship followup1112 pack + SHA256
+- `0523da9` — chore: ship followup1112 pack + SHA256
+- `d0e5eae` — docs: pin SUMMARY to pack tip SHA
 
 ## Pack
 
@@ -88,5 +89,5 @@ Tar over source; **keep** existing `.env.native` and `.data/`.
 - Also at `/workspace/` and `releases/`; symlink `sales-os-internal-trial-local.tar.gz` → followup1112
 
 ## Tip
-`0523da9b94d8b40fdfa1c7dca6989a124aa02254`
+`d0e5eae`
 
