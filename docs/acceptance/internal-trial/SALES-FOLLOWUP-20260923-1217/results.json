@@ -17,5 +17,8 @@
   "health_contract": {
     "liveness": "GET /health/live",
     "readiness": "GET /health and GET /health/ready (web /api/health \u2192 readiness)"
-  }
+  },
+  "pack_name": "sales-os-internal-trial-local-20260923-followup1217.tar.gz",
+  "pack_bytes": 4896460,
+  "pack_sha256": "8bd71d117505f617883ea7d68cbb450b34f1b0f81b8a6175275e4ac2cc2f65a6"
 }
