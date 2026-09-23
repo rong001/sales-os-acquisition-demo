@@ -80,6 +80,7 @@ Tar over source; **keep** existing `.env.native` and `.data/`.
 - `fb49d9d` — docs: SALES-FOLLOWUP-20260923-1112 bot harness evidence + UI待测
 - `0523da9` — chore: ship followup1112 pack + SHA256
 - `d0e5eae` — docs: pin SUMMARY to pack tip SHA
+- `495eca7` — docs: list pin commit in SUMMARY
 
 ## Pack
 
@@ -89,5 +90,5 @@ Tar over source; **keep** existing `.env.native` and `.data/`.
 - Also at `/workspace/` and `releases/`; symlink `sales-os-internal-trial-local.tar.gz` → followup1112
 
 ## Tip
-`d0e5eae`
+`495eca7`
 
