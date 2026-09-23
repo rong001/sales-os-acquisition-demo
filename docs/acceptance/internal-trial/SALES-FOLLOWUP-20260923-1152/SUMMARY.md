@@ -92,6 +92,7 @@ See `UI-PENDING.md`. API login ≠ typed browser UI.
 - `eaf5194` — chore: ship followup1152 pack + SHA256
 - `5ff2ea2` — docs: pin SUMMARY to pack tip SHA
 - `28cbea8` — docs: tip SHA SALES-FOLLOWUP-20260923-1152 → 5ff2ea2
+- `7218a7d` — docs: list pin commit in SUMMARY
 
 
 ## Pack
@@ -103,4 +104,4 @@ See `UI-PENDING.md`. API login ≠ typed browser UI.
 
 
 ## Tip
-`28cbea8`
+`7218a7d`
