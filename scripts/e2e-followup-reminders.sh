@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
+# DEPRECATED for trial packs — use scripts/acceptance/business-acceptance.mjs
+# Raw JWT dumps OFF by default; SALES_OS_E2E_UNSAFE_RAW=1 to opt in.
 # 站内到期跟进提醒 E2E：可查询待办 + 作战台可见 + 已处理不再重复 + 重启持久化。
 # 强制 manager@demo.local（禁止 admin 回退）。不打印密码/JWT/手机明文。
 # 明确范围：站内提醒；外部消息送达仍待接入。
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/lib/e2e-raw-gate.sh"
 if [[ -f .env ]]; then set -a; # shellcheck disable=SC1091
   source .env; set +a; fi
 
 API="${API_BASE:-http://127.0.0.1:3100}"
 GW="${GATEWAY_BASE:-http://127.0.0.1:18180}"
 OUT_DIR="${OUT_DIR:-docs/acceptance/internal-trial/followup-reminders}"
-mkdir -p "$OUT_DIR" "$OUT_DIR/.raw" "$OUT_DIR/browser"
+mkdir -p "$OUT_DIR" "$OUT_DIR/browser" 2>/dev/null || mkdir -p "$OUT_DIR"
 RAW="$OUT_DIR/.raw"
+e2e_raw_dir_init "$RAW"
 : > "$OUT_DIR/run.log"
 RESULTS_TMP="$RAW/steps.jsonl"
 : > "$RESULTS_TMP"
@@ -97,20 +102,23 @@ PHONE="133$(printf '%08d' $((TS % 100000000)))"
 MANAGER_ROLE_STATUS="OK"
 
 echo "== followup-reminders E2E against $API ==" | tee -a "$OUT_DIR/run.log"
-curl -sf "$API/health" > "$RAW/00-health.json" || { fail "health"; record "health" "FAIL" "api down"; exit 1; }
+curl -sf "$API/health" | e2e_raw_write "$RAW/00-health.json" || { fail "health"; record "health" "FAIL" "api down"; exit 1; }
 pass "health"
 record "health" "PASS" "ok"
 
 login() {
   local email="$1" pass="$2" out="$3"
-  local code
-  code=$(curl -s -o "$out" -w '%{http_code}' -X POST "$API/auth/login" \
+  local code body
+  body=$(curl -s -w '\n%{http_code}' -X POST "$API/auth/login" \
     -H 'Content-Type: application/json' \
     -d "{\"email\":\"$email\",\"password\":\"$pass\"}")
+  code=$(printf '%s' "$body" | tail -n1)
+  body=$(printf '%s' "$body" | sed '$d')
+  printf '%s' "$body" | e2e_raw_write "$out"
   if [[ "$code" != "200" && "$code" != "201" ]]; then
     return 1
   fi
-  python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["access_token"])' "$out"
+  python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])' <<<"$body"
 }
 
 echo "== login manager (FORBIDDEN to fall back to admin) ==" | tee -a "$OUT_DIR/run.log"
@@ -157,13 +165,13 @@ LEAD=$(curl -sf -X POST "$API/leads/intake" -H "$MAUTH" -H 'Content-Type: applic
   \"utm_medium\":\"script\",
   \"utm_campaign\":\"in_app_due\"
 }")
-echo "$LEAD" > "$RAW/04-lead.json"
+printf '%s' "$LEAD" | e2e_raw_write "$RAW/04-lead.json"
 echo "$LEAD" | mask_json > "$OUT_DIR/lead-redacted.json"
 CASE_ID=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["case"]["id"])' <<<"$LEAD")
-curl -sf -X POST "$API/leads/$CASE_ID/qualify" -H "$MAUTH" -H 'Content-Type: application/json' -d '{}' > "$RAW/05-qualify.json"
+curl -sf -X POST "$API/leads/$CASE_ID/qualify" -H "$MAUTH" -H 'Content-Type: application/json' -d '{}' | e2e_raw_write "$RAW/05-qualify.json"
 ASSIGN=$(curl -sf -X POST "$API/leads/$CASE_ID/assign" -H "$MAUTH" -H 'Content-Type: application/json' \
   -d "{\"agent_seat_id\":\"$SEAT1\"}")
-echo "$ASSIGN" > "$RAW/06-assign.json"
+printf '%s' "$ASSIGN" | e2e_raw_write "$RAW/06-assign.json"
 OWN=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["case"]["owner_agent_id"])' <<<"$ASSIGN")
 [[ "$OWN" == "$SEAT1" ]] || { fail "owner mismatch"; exit 1; }
 pass "case assigned to sales1 case=$CASE_ID"
@@ -177,7 +185,7 @@ ACT1=$(curl -sf -X POST "$API/leads/$CASE_ID/activities" -H "$S1AUTH" -H 'Conten
   \"body\":\"设定未来跟进（未到期）\",
   \"next_follow_at\":\"$FUTURE_AT\"
 }")
-echo "$ACT1" > "$RAW/07-act-future.json"
+printf '%s' "$ACT1" | e2e_raw_write "$RAW/07-act-future.json"
 echo "$ACT1" | mask_json > "$OUT_DIR/activity-future-redacted.json"
 CASE_F=$(curl -sf "$API/leads/$CASE_ID" -H "$S1AUTH")
 echo "$CASE_F" | mask_json > "$OUT_DIR/case-before-due-redacted.json"
@@ -185,7 +193,7 @@ NF=$(python3 -c 'import json,sys; c=json.load(sys.stdin)["case"]; print(c.get("n
 echo "case next_follow fields: $NF" | tee -a "$OUT_DIR/run.log"
 
 WB_BEFORE=$(curl -sf "$API/workbench/today" -H "$S1AUTH")
-echo "$WB_BEFORE" > "$RAW/08-wb-before.json"
+printf '%s' "$WB_BEFORE" | e2e_raw_write "$RAW/08-wb-before.json"
 echo "$WB_BEFORE" | mask_json > "$OUT_DIR/sales1-workbench-before-due-redacted.json"
 assert_due_absent "$RAW/08-wb-before.json" "$CASE_ID" "before-due ok" \
   || { fail "future follow-up falsely due"; record "before_due" "FAIL" "appeared in due list"; exit 1; }
@@ -201,14 +209,14 @@ ACT2=$(curl -sf -X POST "$API/leads/$CASE_ID/activities" -H "$S1AUTH" -H 'Conten
   \"next_follow_at\":\"$PAST_AT\",
   \"meta\":{\"channel\":\"call\",\"source\":\"followup_reminder_e2e\"}
 }")
-echo "$ACT2" > "$RAW/09-act-past.json"
+printf '%s' "$ACT2" | e2e_raw_write "$RAW/09-act-past.json"
 echo "$ACT2" | mask_json > "$OUT_DIR/activity-due-redacted.json"
 
 WB_DUE=$(curl -sf "$API/workbench/today" -H "$S1AUTH")
-echo "$WB_DUE" > "$RAW/10-wb-due.json"
+printf '%s' "$WB_DUE" | e2e_raw_write "$RAW/10-wb-due.json"
 echo "$WB_DUE" | mask_json > "$OUT_DIR/sales1-workbench-due-redacted.json"
 DUE_LIST=$(curl -sf "$API/workbench/due-follow-ups" -H "$S1AUTH")
-echo "$DUE_LIST" > "$RAW/11-due-list.json"
+printf '%s' "$DUE_LIST" | e2e_raw_write "$RAW/11-due-list.json"
 echo "$DUE_LIST" | mask_json > "$OUT_DIR/sales1-due-list-redacted.json"
 assert_due_present "$RAW/10-wb-due.json" "$CASE_ID" \
   || { fail "due item missing for owner"; record "after_due" "FAIL" "missing"; exit 1; }
@@ -216,7 +224,7 @@ pass "after due: visible on sales1 workbench"
 record "after_due" "PASS" "owner sees due item"
 
 WB2=$(curl -sf "$API/workbench/today" -H "$S2AUTH")
-echo "$WB2" > "$RAW/12-wb-sales2.json"
+printf '%s' "$WB2" | e2e_raw_write "$RAW/12-wb-sales2.json"
 echo "$WB2" | mask_json > "$OUT_DIR/sales2-workbench-redacted.json"
 assert_due_absent "$RAW/12-wb-sales2.json" "$CASE_ID" "sales2 isolated" \
   || { fail "sales2 leaked due item"; record "isolation" "FAIL" "leak"; exit 1; }
@@ -230,7 +238,7 @@ for i in $(seq 1 60); do
   if curl -sf "$API/health" >/dev/null 2>&1; then break; fi
   sleep 0.5
 done
-curl -sf "$API/health" > "$RAW/13-health-after-restart.json" || { fail "health after restart"; exit 1; }
+curl -sf "$API/health" | e2e_raw_write "$RAW/13-health-after-restart.json" || { fail "health after restart"; exit 1; }
 AFTER_RESTART_AT=$(python3 -c 'from datetime import datetime,timezone; print(datetime.now(timezone.utc).isoformat().replace("+00:00","Z"))')
 
 MTOKEN=$(login "manager@demo.local" "$MANAGER_PASS" "$RAW/14-relogin-manager.json") || { fail "relogin manager"; exit 1; }
@@ -239,10 +247,10 @@ MAUTH="Authorization: Bearer $MTOKEN"
 S1AUTH="Authorization: Bearer $S1TOKEN"
 
 CASE_AFTER=$(curl -sf "$API/leads/$CASE_ID" -H "$S1AUTH")
-echo "$CASE_AFTER" > "$RAW/16-case-after-restart.json"
+printf '%s' "$CASE_AFTER" | e2e_raw_write "$RAW/16-case-after-restart.json"
 echo "$CASE_AFTER" | mask_json > "$OUT_DIR/case-after-restart-redacted.json"
 WB_AFTER=$(curl -sf "$API/workbench/today" -H "$S1AUTH")
-echo "$WB_AFTER" > "$RAW/17-wb-after-restart.json"
+printf '%s' "$WB_AFTER" | e2e_raw_write "$RAW/17-wb-after-restart.json"
 echo "$WB_AFTER" | mask_json > "$OUT_DIR/sales1-workbench-after-restart-redacted.json"
 
 CASE_ID="$CASE_ID" SEAT1="$SEAT1" CASE_FILE="$RAW/16-case-after-restart.json" WB_FILE="$RAW/17-wb-after-restart.json" python3 -c '
@@ -264,12 +272,12 @@ record "persist_restart" "PASS" "open todo preserved"
 
 echo "== handle follow-up ==" | tee -a "$OUT_DIR/run.log"
 HANDLE=$(curl -sf -X POST "$API/leads/$CASE_ID/follow-up/handle" -H "$S1AUTH" -H 'Content-Type: application/json' -d '{}')
-echo "$HANDLE" > "$RAW/18-handle.json"
+printf '%s' "$HANDLE" | e2e_raw_write "$RAW/18-handle.json"
 echo "$HANDLE" | mask_json > "$OUT_DIR/handle-redacted.json"
 HANDLED_AT=$(python3 -c 'from datetime import datetime,timezone; print(datetime.now(timezone.utc).isoformat().replace("+00:00","Z"))')
 
 WB_HANDLED=$(curl -sf "$API/workbench/today" -H "$S1AUTH")
-echo "$WB_HANDLED" > "$RAW/19-wb-handled.json"
+printf '%s' "$WB_HANDLED" | e2e_raw_write "$RAW/19-wb-handled.json"
 echo "$WB_HANDLED" | mask_json > "$OUT_DIR/sales1-workbench-handled-redacted.json"
 CASE_ID="$CASE_ID" HANDLE_FILE="$RAW/18-handle.json" WB_FILE="$RAW/19-wb-handled.json" python3 -c '
 import json,os,sys

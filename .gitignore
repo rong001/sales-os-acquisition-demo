@@ -51,3 +51,7 @@ docs/acceptance/internal-trial/SALES-MASTER-20260923/**/.raw-run/
 # SALES-FOLLOWUP raw JWT dumps
 docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1000/**/.raw*/
 docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1000/**/.raw-run/
+
+# SALES-FOLLOWUP-1112 raw JWT dumps (if any)
+docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1112/**/.raw*/
+docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1112/**/.raw-run/

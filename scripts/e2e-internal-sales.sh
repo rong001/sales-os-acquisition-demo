@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# 内部销售获客与跟进闭环 E2E（合成线索，不含真实客户/密码落盘）
+# DEPRECATED for trial packs — use scripts/acceptance/business-acceptance.mjs
+# 内部销售获客与跟进闭环 E2E（合成线索）。
 # 读取本地 .env 中 DEMO_* 密码；绝不 echo 密码 / JWT。
+# Raw JWT/API body dumps are OFF by default. Opt-in: SALES_OS_E2E_UNSAFE_RAW=1
+# (broken-by-design for trial packs if unsafe raw is required).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/lib/e2e-raw-gate.sh"
 if [[ -f .env ]]; then set -a; # shellcheck disable=SC1091
   source .env; set +a; fi
 
@@ -11,7 +16,7 @@ API="${API_BASE:-http://127.0.0.1:3100}"
 OUT_DIR="${OUT_DIR:-docs/acceptance/internal-trial}"
 mkdir -p "$OUT_DIR"
 RAW="$OUT_DIR/.raw-run"
-mkdir -p "$RAW"
+e2e_raw_dir_init "$RAW"
 : > "$OUT_DIR/run.log"
 
 pass() { echo "PASS: $*" | tee -a "$OUT_DIR/run.log"; }
@@ -60,7 +65,7 @@ PHONE_B="138$(printf '%08d' $(((TS+7) % 100000000)))"
 [[ "$PHONE_A" != "$PHONE_B" ]] || PHONE_B="137$(printf '%08d' $((TS % 100000000)))"
 
 echo "== internal-sales E2E against $API ==" | tee -a "$OUT_DIR/run.log"
-curl -sf "$API/health" | tee "$RAW/00-health.json" >/dev/null
+curl -sf "$API/health" | e2e_raw_write "$RAW/00-health.json"
 pass "health"
 
 login() {
@@ -68,15 +73,25 @@ login() {
   local body
   body=$(curl -sf -X POST "$API/auth/login" -H 'Content-Type: application/json' \
     -d "{\"email\":\"$email\",\"password\":\"$pass\"}")
-  echo "$body" > "$out"
+  # JWT/body in memory only unless SALES_OS_E2E_UNSAFE_RAW=1
+  printf '%s' "$body" | e2e_raw_write "$out"
   python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])' <<<"$body"
+}
+
+# Role from in-memory login body (no disk read of JWT file)
+login_role_from_body() {
+  python3 -c 'import json,sys; print(json.load(sys.stdin).get("user",{}).get("role",""))'
 }
 
 echo "== login manager / sales1 / sales2 ==" | tee -a "$OUT_DIR/run.log"
 MANAGER_ROLE_STATUS="OK"
 MANAGER_USED="manager@demo.local"
-if MTOKEN=$(login "manager@demo.local" "$MANAGER_PASS" "$RAW/01-login-manager.json"); then
-  MROLE=$(python3 -c 'import json; print(json.load(open("'"$RAW"'/01-login-manager.json")).get("user",{}).get("role",""))')
+MLOGIN_BODY=""
+if MLOGIN_BODY=$(curl -sf -X POST "$API/auth/login" -H 'Content-Type: application/json' \
+    -d "{\"email\":\"manager@demo.local\",\"password\":\"$MANAGER_PASS\"}"); then
+  printf '%s' "$MLOGIN_BODY" | e2e_raw_write "$RAW/01-login-manager.json"
+  MTOKEN=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])' <<<"$MLOGIN_BODY")
+  MROLE=$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("user",{}).get("role",""))' <<<"$MLOGIN_BODY")
   if [[ "$MROLE" != "supervisor" && "$MROLE" != "manager" ]]; then
     echo "FAIL: manager login role=$MROLE (expected supervisor/manager) — NOT falling back to admin" | tee -a "$OUT_DIR/run.log"
     MANAGER_ROLE_STATUS="PENDING_VERIFY"
@@ -123,7 +138,7 @@ LEAD_A=$(curl -sf -X POST "$API/leads/intake" -H "$MAUTH" -H 'Content-Type: appl
   \"company_name\":\"合成客户A（通用销售流程）\",
   \"raw\":{\"note\":\"产品说明：内部试用合成；非真实获客随机假数据\",\"acquisition_fields\":[\"utm\",\"channel\",\"invite\",\"manual_import\"]}
 }")
-echo "$LEAD_A" > "$RAW/04-lead-a.json"
+printf '%s' "$LEAD_A" | e2e_raw_write "$RAW/04-lead-a.json"
 echo "$LEAD_A" | mask_json > "$OUT_DIR/lead-a-redacted.json"
 CASE_A=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["case"]["id"])' <<<"$LEAD_A")
 MERGED_A=$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("merged"))' <<<"$LEAD_A")
@@ -148,7 +163,7 @@ LEAD_B=$(curl -sf -X POST "$API/leads/intake" -H "$MAUTH" -H 'Content-Type: appl
   \"invite_code\":\"TRIAL02\",
   \"company_name\":\"合成客户B（通用销售流程）\"
 }")
-echo "$LEAD_B" > "$RAW/05-lead-b.json"
+printf '%s' "$LEAD_B" | e2e_raw_write "$RAW/05-lead-b.json"
 echo "$LEAD_B" | mask_json > "$OUT_DIR/lead-b-redacted.json"
 CASE_B=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["case"]["id"])' <<<"$LEAD_B")
 test -n "$CASE_B" || fail "no case B"
@@ -164,21 +179,21 @@ DUP=$(curl -sf -X POST "$API/leads/intake" -H "$MAUTH" -H 'Content-Type: applica
   \"utm_source\":\"internal_trial\",
   \"utm_medium\":\"manual_dup\"
 }")
-echo "$DUP" > "$RAW/06-dedup.json"
+printf '%s' "$DUP" | e2e_raw_write "$RAW/06-dedup.json"
 echo "$DUP" | mask_json > "$OUT_DIR/dedup-redacted.json"
 MERGED=$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("merged"))' <<<"$DUP")
 [[ "$MERGED" == "True" || "$MERGED" == "true" ]] || fail "expected merged=true got $MERGED"
 pass "dedup merged=true for duplicate phone A"
 
 echo "== 4) qualify + manager assign A→sales1 B→sales2 ==" | tee -a "$OUT_DIR/run.log"
-curl -sf -X POST "$API/leads/$CASE_A/qualify" -H "$MAUTH" -H 'Content-Type: application/json' -d '{}' > "$RAW/07-qualify-a.json"
-curl -sf -X POST "$API/leads/$CASE_B/qualify" -H "$MAUTH" -H 'Content-Type: application/json' -d '{}' > "$RAW/08-qualify-b.json"
+curl -sf -X POST "$API/leads/$CASE_A/qualify" -H "$MAUTH" -H 'Content-Type: application/json' -d '{}' | e2e_raw_write "$RAW/07-qualify-a.json"
+curl -sf -X POST "$API/leads/$CASE_B/qualify" -H "$MAUTH" -H 'Content-Type: application/json' -d '{}' | e2e_raw_write "$RAW/08-qualify-b.json"
 ASSIGN_A=$(curl -sf -X POST "$API/leads/$CASE_A/assign" -H "$MAUTH" -H 'Content-Type: application/json' \
   -d "{\"agent_seat_id\":\"$SEAT1\"}")
 ASSIGN_B=$(curl -sf -X POST "$API/leads/$CASE_B/assign" -H "$MAUTH" -H 'Content-Type: application/json' \
   -d "{\"agent_seat_id\":\"$SEAT2\"}")
-echo "$ASSIGN_A" > "$RAW/09-assign-a.json"
-echo "$ASSIGN_B" > "$RAW/10-assign-b.json"
+printf '%s' "$ASSIGN_A" | e2e_raw_write "$RAW/09-assign-a.json"
+printf '%s' "$ASSIGN_B" | e2e_raw_write "$RAW/10-assign-b.json"
 OWN_A=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["case"]["owner_agent_id"])' <<<"$ASSIGN_A")
 OWN_B=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["case"]["owner_agent_id"])' <<<"$ASSIGN_B")
 [[ "$OWN_A" == "$SEAT1" ]] || fail "A owner mismatch"
@@ -192,29 +207,29 @@ ACT=$(curl -sf -X POST "$API/leads/$CASE_A/activities" -H "$S1AUTH" -H 'Content-
   \"body\":\"内部试用跟进：已电话介绍通用销售流程与产品边界\",
   \"next_follow_at\":\"$NEXT_AT\",\"meta\":{\"channel\":\"call\",\"source\":\"internal_trial\"}
 }")
-echo "$ACT" > "$RAW/11-activity.json"
+printf '%s' "$ACT" | e2e_raw_write "$RAW/11-activity.json"
 echo "$ACT" | mask_json > "$OUT_DIR/activity-redacted.json"
 
 DRAFT=$(curl -sf -X POST "$API/leads/$CASE_A/appointments/draft" -H "$S1AUTH" -H 'Content-Type: application/json' -d '{}')
-echo "$DRAFT" > "$RAW/12-appt-draft.json"
+printf '%s' "$DRAFT" | e2e_raw_write "$RAW/12-appt-draft.json"
 APPT_ID=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<<"$DRAFT")
 CONFIRM=$(curl -sf -X POST "$API/appointments/$APPT_ID/confirm" -H "$S1AUTH" -H 'Content-Type: application/json' -d '{}')
-echo "$CONFIRM" > "$RAW/13-appt-confirm.json"
+printf '%s' "$CONFIRM" | e2e_raw_write "$RAW/13-appt-confirm.json"
 EVENT=$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("event",""))' <<<"$CONFIRM")
 [[ "$EVENT" == "conversion.appointment_valid" ]] || fail "appointment event=$EVENT"
 
 RESULT=$(curl -sf -X POST "$API/leads/$CASE_A/mark-result" -H "$S1AUTH" -H 'Content-Type: application/json' \
   -d '{"result":"won","note":"内部试用：合成商机标记为成交(won)"}')
-echo "$RESULT" > "$RAW/14-mark-result.json"
+printf '%s' "$RESULT" | e2e_raw_write "$RAW/14-mark-result.json"
 STAGE=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["case"]["stage"])' <<<"$RESULT")
 [[ "$STAGE" == "WON" ]] || fail "expected WON got $STAGE"
 pass "sales1 follow-up + appointment reminder + mark won"
 
 # sales2 marks B as qualified nurture
 curl -sf -X POST "$API/leads/$CASE_B/activities" -H "$S2AUTH" -H 'Content-Type: application/json' \
-  -d '{"kind":"note","body":"销售2跟进记录（合成）","meta":{"next_follow_at":"'"$NEXT_AT"'"}}' > "$RAW/15-activity-b.json"
+  -d '{"kind":"note","body":"销售2跟进记录（合成）","meta":{"next_follow_at":"'"$NEXT_AT"'"}}' | e2e_raw_write "$RAW/15-activity-b.json"
 curl -sf -X POST "$API/leads/$CASE_B/mark-result" -H "$S2AUTH" -H 'Content-Type: application/json' \
-  -d '{"result":"nurture","note":"继续培育"}' > "$RAW/16-mark-b.json"
+  -d '{"result":"nurture","note":"继续培育"}' | e2e_raw_write "$RAW/16-mark-b.json"
 pass "sales2 nurture on B"
 
 echo "== 6) manager sees both ==" | tee -a "$OUT_DIR/run.log"
@@ -233,15 +248,19 @@ echo "$FUNNEL" | mask_json > "$OUT_DIR/manager-funnel-redacted.json"
 pass "manager sees A(WON) and B(NURTURE) + funnel"
 
 echo "== 7) negative RBAC: sales1 must NOT access sales2 lead B ==" | tee -a "$OUT_DIR/run.log"
-CODE=$(curl -s -o "$RAW/17-neg-sales1-get-b.json" -w '%{http_code}' \
+NEG_BODY=$(mktemp)
+CODE=$(curl -s -o "$NEG_BODY" -w '%{http_code}' \
   "$API/leads/$CASE_B" -H "$S1AUTH" || true)
+printf '%s' "$(cat "$NEG_BODY")" | e2e_raw_write "$RAW/17-neg-sales1-get-b.json"
+BODY_FOR_NEG=$(cat "$NEG_BODY")
+rm -f "$NEG_BODY"
 echo "sales1 GET lead B → HTTP $CODE" | tee -a "$OUT_DIR/run.log"
 BODY=$(head -c 400 "$RAW/17-neg-sales1-get-b.json")
-echo "body: $BODY" | tee -a "$OUT_DIR/run.log"
+echo "body: (redacted; status only)" | tee -a "$OUT_DIR/run.log"
 python3 - <<PY
 import json
 code=int("$CODE")
-body=open("$RAW/17-neg-sales1-get-b.json").read()
+body="""$BODY_FOR_NEG"""
 out={
   "step":"sales1_access_sales2_lead",
   "http_status": code,

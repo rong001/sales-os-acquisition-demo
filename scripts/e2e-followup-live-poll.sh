@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
+# DEPRECATED for trial packs — use scripts/acceptance/business-acceptance.mjs
+# Raw JWT dumps OFF by default; SALES_OS_E2E_UNSAFE_RAW=1 to opt in.
 # 跨时点作战台到期跟进：设定一次 next_follow_at（未来 25–40s），浏览器停留 / 不改时间不手动刷新，到期后自动出现。
 # 强制 manager@demo.local；不打印密码/JWT/手机明文。
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/lib/e2e-raw-gate.sh"
 if [[ -f .env ]]; then set -a; # shellcheck disable=SC1091
   source .env; set +a; fi
 
@@ -12,8 +16,9 @@ GW="${GATEWAY_BASE:-http://127.0.0.1:18180}"
 OUT_DIR="${OUT_DIR:-docs/acceptance/internal-trial/followup-live-poll}"
 POLL_MS="${POLL_MS:-5000}"
 DELAY_SEC="${FOLLOWUP_DELAY_SEC:-35}"
-mkdir -p "$OUT_DIR" "$OUT_DIR/.raw" "$OUT_DIR/browser"
+mkdir -p "$OUT_DIR" "$OUT_DIR/browser" 2>/dev/null || mkdir -p "$OUT_DIR"
 RAW="$OUT_DIR/.raw"
+e2e_raw_dir_init "$RAW"
 : > "$OUT_DIR/run.log"
 RESULTS_TMP="$RAW/steps.jsonl"
 : > "$RESULTS_TMP"
@@ -69,20 +74,23 @@ TS=$(date +%s)
 PHONE="134$(printf '%08d' $((TS % 100000000)))"
 
 echo "== followup-live-poll E2E against $API gw=$GW delay=${DELAY_SEC}s poll=${POLL_MS}ms ==" | tee -a "$OUT_DIR/run.log"
-curl -sf "$API/health" > "$RAW/00-health.json" || { fail "health"; exit 1; }
+curl -sf "$API/health" | e2e_raw_write "$RAW/00-health.json" || { fail "health"; exit 1; }
 pass "health"
 record "health" "PASS" "ok"
 
 login() {
   local email="$1" pass="$2" out="$3"
-  local code
-  code=$(curl -s -o "$out" -w '%{http_code}' -X POST "$API/auth/login" \
+  local code body
+  body=$(curl -s -w '\n%{http_code}' -X POST "$API/auth/login" \
     -H 'Content-Type: application/json' \
     -d "{\"email\":\"$email\",\"password\":\"$pass\"}")
+  code=$(printf '%s' "$body" | tail -n1)
+  body=$(printf '%s' "$body" | sed '$d')
+  printf '%s' "$body" | e2e_raw_write "$out"
   if [[ "$code" != "200" && "$code" != "201" ]]; then
     return 1
   fi
-  python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["access_token"])' "$out"
+  python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])' <<<"$body"
 }
 
 echo "== login manager (no admin fallback) ==" | tee -a "$OUT_DIR/run.log"
@@ -122,13 +130,13 @@ LEAD=$(curl -sf -X POST "$API/leads/intake" -H "$MAUTH" -H 'Content-Type: applic
   \"utm_medium\":\"script\",
   \"utm_campaign\":\"cross_time\"
 }")
-echo "$LEAD" > "$RAW/04-lead.json"
+printf '%s' "$LEAD" | e2e_raw_write "$RAW/04-lead.json"
 echo "$LEAD" | mask_json > "$OUT_DIR/lead-redacted.json"
 CASE_ID=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["case"]["id"])' <<<"$LEAD")
-curl -sf -X POST "$API/leads/$CASE_ID/qualify" -H "$MAUTH" -H 'Content-Type: application/json' -d '{}' > "$RAW/05-qualify.json"
+curl -sf -X POST "$API/leads/$CASE_ID/qualify" -H "$MAUTH" -H 'Content-Type: application/json' -d '{}' | e2e_raw_write "$RAW/05-qualify.json"
 ASSIGN=$(curl -sf -X POST "$API/leads/$CASE_ID/assign" -H "$MAUTH" -H 'Content-Type: application/json' \
   -d "{\"agent_seat_id\":\"$SEAT1\"}")
-echo "$ASSIGN" > "$RAW/06-assign.json"
+printf '%s' "$ASSIGN" | e2e_raw_write "$RAW/06-assign.json"
 pass "case assigned case=$CASE_ID"
 record "assign" "PASS" "sales1"
 
@@ -141,7 +149,7 @@ ACT=$(curl -sf -X POST "$API/leads/$CASE_ID/activities" -H "$S1AUTH" -H 'Content
   \"body\":\"跨时点跟进：仅设定一次，等待墙上时钟到期\",
   \"next_follow_at\":\"$NEXT_FOLLOW_AT\"
 }")
-echo "$ACT" > "$RAW/07-act-once.json"
+printf '%s' "$ACT" | e2e_raw_write "$RAW/07-act-once.json"
 echo "$ACT" | mask_json > "$OUT_DIR/activity-once-redacted.json"
 CASE_SNAP=$(curl -sf "$API/leads/$CASE_ID" -H "$S1AUTH")
 echo "$CASE_SNAP" | mask_json > "$OUT_DIR/case-after-set-redacted.json"

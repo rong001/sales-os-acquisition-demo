@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
+# DEPRECATED for trial packs — use scripts/acceptance/business-acceptance.mjs
+# Raw JWT dumps OFF by default; SALES_OS_E2E_UNSAFE_RAW=1 to opt in.
 # 预约确认鉴权前置 E2E：字段级比对，禁止 manager→admin 回退；绝不打印密码/JWT/手机号。
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/lib/e2e-raw-gate.sh"
 if [[ -f .env ]]; then set -a; # shellcheck disable=SC1091
   source .env; set +a; fi
 
 API="${API_BASE:-http://127.0.0.1:3100}"
 OUT_DIR="${OUT_DIR:-docs/acceptance/internal-trial/confirm-appointment-rbac}"
-mkdir -p "$OUT_DIR" "$OUT_DIR/.raw"
+mkdir -p "$OUT_DIR" "$OUT_DIR/browser" 2>/dev/null || mkdir -p "$OUT_DIR"
 RAW="$OUT_DIR/.raw"
+e2e_raw_dir_init "$RAW"
 : > "$OUT_DIR/run.log"
 RESULTS_TMP="$RAW/steps.jsonl"
 : > "$RESULTS_TMP"
@@ -73,23 +78,25 @@ MANAGER_ROLE_STATUS="OK"
 LOGIN_ROLE=""
 
 echo "== confirm-appointment-rbac E2E against $API ==" | tee -a "$OUT_DIR/run.log"
-curl -sf "$API/health" > "$RAW/00-health.json" || { fail "health"; record "health" "FAIL" "api down"; exit 1; }
+curl -sf "$API/health" | e2e_raw_write "$RAW/00-health.json" || { fail "health"; record "health" "FAIL" "api down"; exit 1; }
 pass "health"
 record "health" "PASS" "ok"
 
 login_role() {
-  # prints access_token; writes LOGIN_ROLE via file because $(...) is a subshell
+  # prints access_token; role sidecar in ephemeral RAW (durable only if UNSAFE)
   local email="$1" pass="$2" out="$3"
   local code body
-  code=$(curl -s -o "$out" -w '%{http_code}' -X POST "$API/auth/login" \
+  body=$(curl -s -w '\n%{http_code}' -X POST "$API/auth/login" \
     -H 'Content-Type: application/json' \
     -d "{\"email\":\"$email\",\"password\":\"$pass\"}")
-  body=$(cat "$out")
+  code=$(printf '%s' "$body" | tail -n1)
+  body=$(printf '%s' "$body" | sed '$d')
+  printf '%s' "$body" | e2e_raw_write "$out"
   case "$code" in
     200|201) ;;
-    *) echo "" > "$RAW/_last_login_role"; return 1 ;;
+    *) printf '' | e2e_raw_write "$RAW/_last_login_role"; return 1 ;;
   esac
-  python3 -c 'import json,sys; print(json.load(sys.stdin).get("user",{}).get("role",""))' <<<"$body" > "$RAW/_last_login_role"
+  python3 -c 'import json,sys; print(json.load(sys.stdin).get("user",{}).get("role",""))' <<<"$body" | e2e_raw_write "$RAW/_last_login_role"
   python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])' <<<"$body"
 }
 read_login_role() { LOGIN_ROLE=$(cat "$RAW/_last_login_role" 2>/dev/null || true); }
@@ -241,15 +248,15 @@ LEAD=$(curl -sf -X POST "$API/leads/intake" -H "$MAUTH" -H 'Content-Type: applic
   \"invite_code\":\"RBAC01\",
   \"company_name\":\"合成客户-预约鉴权\"
 }")
-echo "$LEAD" > "$RAW/04-lead-s2.json"
+printf '%s' "$LEAD" | e2e_raw_write "$RAW/04-lead-s2.json"
 echo "$LEAD" | mask_json > "$OUT_DIR/lead-s2-redacted.json"
 CASE_ID=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["case"]["id"])' <<<"$LEAD")
 if [[ -z "$CASE_ID" ]]; then fail "no case"; exit 1; fi
 
-curl -sf -X POST "$API/leads/$CASE_ID/qualify" -H "$MAUTH" -H 'Content-Type: application/json' -d '{}' > "$RAW/05-qualify.json"
+curl -sf -X POST "$API/leads/$CASE_ID/qualify" -H "$MAUTH" -H 'Content-Type: application/json' -d '{}' | e2e_raw_write "$RAW/05-qualify.json"
 ASSIGN=$(curl -sf -X POST "$API/leads/$CASE_ID/assign" -H "$MAUTH" -H 'Content-Type: application/json' \
   -d "{\"agent_seat_id\":\"$SEAT2\"}")
-echo "$ASSIGN" > "$RAW/06-assign.json"
+printf '%s' "$ASSIGN" | e2e_raw_write "$RAW/06-assign.json"
 OWN=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["case"]["owner_agent_id"])' <<<"$ASSIGN")
 if [[ "$OWN" != "$SEAT2" ]]; then
   fail "owner mismatch"
@@ -260,7 +267,7 @@ pass "lead assigned to sales2"
 record "assign_sales2" "PASS" "case owned by sales2"
 
 DRAFT=$(curl -sf -X POST "$API/leads/$CASE_ID/appointments/draft" -H "$S2AUTH" -H 'Content-Type: application/json' -d '{}')
-echo "$DRAFT" > "$RAW/07-draft.json"
+printf '%s' "$DRAFT" | e2e_raw_write "$RAW/07-draft.json"
 echo "$DRAFT" | mask_json > "$OUT_DIR/draft-redacted.json"
 APPT_ID=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<<"$DRAFT")
 APPT_STATUS=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])' <<<"$DRAFT")
@@ -270,7 +277,7 @@ record "draft_by_owner" "PASS" "status=draft"
 
 BEFORE=$(snapshot_case "$CASE_ID" "$APPT_ID" "before")
 echo "$BEFORE" | mask_json > "$OUT_DIR/snapshot-before-redacted.json"
-echo "$BEFORE" > "$RAW/snapshot-before.json"
+printf '%s' "$BEFORE" | e2e_raw_write "$RAW/snapshot-before.json"
 pass "snapshot BEFORE taken (manager GET)"
 record "snapshot_before" "PASS" "fields: appt status/valid/confirmed_at, stage, protect_until, event counts"
 
