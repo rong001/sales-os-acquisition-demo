@@ -18,6 +18,12 @@ OUT_DIR="${OUT_DIR:-docs/acceptance/internal-trial/followup-reminders}"
 mkdir -p "$OUT_DIR" "$OUT_DIR/browser" 2>/dev/null || mkdir -p "$OUT_DIR"
 RAW="$OUT_DIR/.raw"
 e2e_raw_dir_init "$RAW"
+if [[ "${SALES_OS_E2E_UNSAFE_RAW:-0}" != "1" ]]; then
+  echo "SKIP/REFUSE: $0 is deprecated for trial packs and refuses disk JWT/raw by default."
+  echo "Use: node scripts/acceptance/business-acceptance.mjs"
+  echo "Or set SALES_OS_E2E_UNSAFE_RAW=1 for unsafe local debug only (NOT memory-only)."
+  exit 2
+fi
 : > "$OUT_DIR/run.log"
 RESULTS_TMP="$RAW/steps.jsonl"
 : > "$RESULTS_TMP"

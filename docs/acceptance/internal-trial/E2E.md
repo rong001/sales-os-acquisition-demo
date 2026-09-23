@@ -1,7 +1,8 @@
 # 内部销售闭环 — 人工复测步骤（合成线索）
 
 > 仅用合成数据。密码从本地 `.env` 的 `DEMO_*` 读取，**不要**写入本文或截图明文。  
-> 自动化：`npm run e2e:internal`（`scripts/e2e-internal-sales.sh`）。  
+> **Trial packs:** `npm run acceptance:business`（`scripts/acceptance/business-acceptance.mjs`；JWT memory-only）。
+> Legacy：`npm run e2e:internal` deprecated（refuses disk JWT unless `SALES_OS_E2E_UNSAFE_RAW=1`）。  
 > 预约确认鉴权专项：`npm run e2e:confirm-appt`（见 `confirm-appointment-rbac/E2E.md`）。
 
 ## 前置
