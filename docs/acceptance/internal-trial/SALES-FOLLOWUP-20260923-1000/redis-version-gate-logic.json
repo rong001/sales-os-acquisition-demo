@@ -1,0 +1,35 @@
+{
+  "minMajor": 5,
+  "rows": [
+    {
+      "version": "3.0.504",
+      "expect": false,
+      "got": false,
+      "pass": true
+    },
+    {
+      "version": "5.0.14",
+      "expect": true,
+      "got": true,
+      "pass": true
+    },
+    {
+      "version": "6.2.0",
+      "expect": true,
+      "got": true,
+      "pass": true
+    },
+    {
+      "version": "7.0.0",
+      "expect": true,
+      "got": true,
+      "pass": true
+    },
+    {
+      "version": "4.0.14",
+      "expect": false,
+      "got": false,
+      "pass": true
+    }
+  ]
+}

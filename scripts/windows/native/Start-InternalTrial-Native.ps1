@@ -2,14 +2,27 @@
 <#
 .SYNOPSIS
   Start Sales OS internal trial on Windows WITHOUT Docker.
-  Isolated Postgres+Redis on 127.0.0.1 (default 15432/16379) + Node API + static gateway.
-  Gates on GET http://127.0.0.1:NATIVE_WEB_PORT/api/health (ok + sales-os-api).
-  Never prints secret values. Never reuses default 5432/6379 if occupied by other apps —
-  always uses dedicated ports. Never overwrites foreign data directories.
+  Isolated Postgres+Redis on 127.0.0.1 (default 15432/16379; configurable —
+  user trial may use 55432/56379) + Node API + worker + static gateway.
+  Gates on GET http://127.0.0.1:NATIVE_WEB_PORT/api/health (ok + sales-os-api),
+  Redis 5+, worker alive. API_HOST forced to 127.0.0.1 (loopback-only).
+  Never prints secret values. Never reuses 5432/6379. Never overwrites foreign data.
 #>
 $ErrorActionPreference = "Stop"
-$Root = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
 Set-Location $Root
+. (Join-Path $PSScriptRoot "NativeCommon.ps1")
+
+# Override Fail to cleanup processes we started on this run
+function Fail([string]$Msg) {
+  Write-Host "FAIL: $Msg" -ForegroundColor Red
+  if ($script:StartedSomething) {
+    Write-Host "Cleaning up processes started by this script..." -ForegroundColor Yellow
+    try { & (Join-Path $PSScriptRoot "Stop-InternalTrial-Native.ps1") } catch { }
+  }
+  exit 1
+}
+
 $NativeDir = Join-Path $Root "scripts\windows\native"
 $DataRoot = Join-Path $Root ".data\native"
 $PgData = Join-Path $DataRoot "pg"
@@ -19,28 +32,15 @@ $LogDir = Join-Path $DataRoot "logs"
 $VendorWin = Join-Path $Root "vendor\windows"
 $EnvFile = Join-Path $Root ".env.native"
 $MarkerFile = Join-Path $DataRoot "SALES_OS_NATIVE_TRIAL.marker"
+$script:StartedSomething = $false
 
-function Fail([string]$Msg) {
-  Write-Host "FAIL: $Msg" -ForegroundColor Red
-  exit 1
-}
-
-function Parse-DotEnv([string]$Path) {
-  $map = @{}
-  if (-not (Test-Path $Path)) { return $map }
-  Get-Content -LiteralPath $Path -Encoding UTF8 | ForEach-Object {
-    $line = $_.Trim()
-    if ($line -eq "" -or $line.StartsWith("#")) { return }
-    $eq = $line.IndexOf("=")
-    if ($eq -lt 1) { return }
-    $key = $line.Substring(0, $eq).Trim()
-    $val = $line.Substring($eq + 1).Trim()
-    if (($val.StartsWith('"') -and $val.EndsWith('"')) -or ($val.StartsWith("'") -and $val.EndsWith("'"))) {
-      if ($val.Length -ge 2) { $val = $val.Substring(1, $val.Length - 2) }
-    }
-    if ($key -ne "") { $map[$key] = $val }
+function Invoke-FailureCleanup {
+  Write-Host "Cleaning up processes started by this script..." -ForegroundColor Yellow
+  try {
+    & (Join-Path $NativeDir "Stop-InternalTrial-Native.ps1")
+  } catch {
+    Write-Host "WARN: cleanup Stop failed: $($_.Exception.Message)"
   }
-  return $map
 }
 
 function New-RandomSecret([int]$Bytes = 24) {
@@ -49,26 +49,12 @@ function New-RandomSecret([int]$Bytes = 24) {
   return [Convert]::ToBase64String($buf).TrimEnd('=') -replace '[+/]', 'A'
 }
 
-function Test-ApiHealthJson([string]$Body) {
-  if ([string]::IsNullOrWhiteSpace($Body)) { return $false }
-  $trim = $Body.TrimStart()
-  if (-not ($trim.StartsWith("{") -or $trim.StartsWith("["))) { return $false }
-  try { $j = $Body | ConvertFrom-Json -ErrorAction Stop } catch { return $false }
-  $ok = $false
-  if ($null -ne $j.ok) {
-    if ($j.ok -is [bool]) { $ok = [bool]$j.ok }
-    elseif ("$($j.ok)" -eq "True" -or "$($j.ok)" -eq "true" -or "$($j.ok)" -eq "1") { $ok = $true }
-  }
-  $svc = ""
-  if ($null -ne $j.service) { $svc = [string]$j.service }
-  return ($ok -and $svc -eq "sales-os-api")
-}
-
 function Test-PortFree([int]$Port) {
-  $listeners = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
-    Where-Object { $_.LocalPort -eq $Port }
-  if ($listeners) { return $false }
-  # Fallback for older PS without Get-NetTCPConnection
+  try {
+    $listeners = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+      Where-Object { $_.LocalPort -eq $Port }
+    if ($listeners) { return $false }
+  } catch { }
   try {
     $tcp = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback, $Port)
     $tcp.Start(); $tcp.Stop(); return $true
@@ -77,44 +63,50 @@ function Test-PortFree([int]$Port) {
   }
 }
 
-function Assert-PortFreeOrOurs([int]$Port, [string]$Label) {
+function Assert-PortFree([int]$Port, [string]$Label) {
   if (Test-PortFree $Port) { return }
-  # If our pid files claim it, allow restart path to stop first
-  Fail "port-collision: $Label port $Port is already in use on this machine. Choose another NATIVE_*_PORT in .env.native (never reuse Sub2API 5432/6379)."
+  Fail "port-collision: $Label port $Port is already in use. Choose another NATIVE_*_PORT in .env.native (never reuse Sub2API 5432/6379). Example alternate pair used in trial: 55432/56379."
 }
 
 function Find-PgBin([string]$Name) {
-  $cmd = Get-Command $Name -ErrorAction SilentlyContinue
-  if ($cmd) { return $cmd.Source }
   $cands = @(
     (Join-Path $VendorWin "pgsql\bin\$Name.exe"),
     (Join-Path $VendorWin "pgsql\bin\$Name")
   )
-  foreach ($c in $cands) { if (Test-Path $c) { return $c } }
+  foreach ($c in $cands) { if (Test-Path -LiteralPath $c) { return $c } }
+  $cmd = Get-Command $Name -ErrorAction SilentlyContinue
+  if ($cmd) { return $cmd.Source }
   return $null
 }
 
 function Find-RedisServer() {
-  $cmd = Get-Command "redis-server" -ErrorAction SilentlyContinue
-  if ($cmd) { return $cmd.Source }
+  # Prefer project vendor (Redis 5+) over PATH (may be ancient 3.0.x)
   $cands = @(
     (Join-Path $VendorWin "redis\redis-server.exe"),
     (Join-Path $VendorWin "Redis\redis-server.exe")
   )
-  foreach ($c in $cands) { if (Test-Path $c) { return $c } }
+  foreach ($c in $cands) { if (Test-Path -LiteralPath $c) { return $c } }
+  $cmd = Get-Command "redis-server" -ErrorAction SilentlyContinue
+  if ($cmd) { return $cmd.Source }
   return $null
 }
 
+function Quote-RedisConfPath([string]$Path) {
+  # Redis conf: quote paths that contain spaces
+  $fwd = ($Path -replace '\\', '/')
+  if ($fwd -match '\s') { return "`"$fwd`"" }
+  return $fwd
+}
+
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-  Fail "node-missing: Install Node.js 20+ LTS from https://nodejs.org/ then re-open PowerShell."
+  Fail "node-missing: Install Node.js 20+ LTS (or Node 24.x) from https://nodejs.org/ then re-open PowerShell. Official MSI includes npm."
 }
 if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
-  Fail "npm-missing: Node.js install incomplete (npm not on PATH)."
+  Fail "npm-missing: Node.js install incomplete (npm not on PATH). Install official Node MSI (includes npm), then re-open PowerShell."
 }
 
 # --- Ensure .env.native ---
-if (-not (Test-Path $EnvFile)) {
-  $example = Join-Path $NativeDir ".env.native.example"
+if (-not (Test-Path -LiteralPath $EnvFile)) {
   $pgPass = New-RandomSecret 18
   $jwt = New-RandomSecret 32
   $demo = New-RandomSecret 12
@@ -124,6 +116,8 @@ NATIVE_PG_PORT=15432
 NATIVE_REDIS_PORT=16379
 NATIVE_API_PORT=39300
 NATIVE_WEB_PORT=19280
+# Loopback-only API bind (native). Docker leaves API_HOST unset → 0.0.0.0
+API_HOST=127.0.0.1
 POSTGRES_USER=sales
 POSTGRES_PASSWORD=$pgPass
 POSTGRES_DB=sales_os
@@ -167,11 +161,11 @@ $PgPort = PortOrDefault "NATIVE_PG_PORT" 15432
 $RedisPort = PortOrDefault "NATIVE_REDIS_PORT" 16379
 $ApiPort = PortOrDefault "NATIVE_API_PORT" 39300
 $WebPort = PortOrDefault "NATIVE_WEB_PORT" 19280
+# Native MUST loopback-only
+$ApiHost = "127.0.0.1"
 
-# Hard refuse classic Sub2API defaults unless explicitly overridden AND free —
-# still warn: we never bind to 5432/6379 by default.
 if ($PgPort -eq 5432 -or $RedisPort -eq 6379) {
-  Fail "refusing default Sub2API ports: set NATIVE_PG_PORT/NATIVE_REDIS_PORT to dedicated values (e.g. 15432/16379)."
+  Fail "refusing default Sub2API ports: set NATIVE_PG_PORT/NATIVE_REDIS_PORT to dedicated values (e.g. 15432/16379 or 55432/56379)."
 }
 
 $PgUser = if ($envMap.ContainsKey("POSTGRES_USER")) { $envMap["POSTGRES_USER"] } else { "sales" }
@@ -180,56 +174,71 @@ $PgPass = $envMap["POSTGRES_PASSWORD"]
 
 # --- Protect foreign data dirs ---
 New-Item -ItemType Directory -Force -Path $DataRoot, $RunDir, $LogDir | Out-Null
-if (Test-Path $PgData) {
-  if (-not (Test-Path $MarkerFile)) {
+if (-not (Test-PathUnderRoot -Candidate $DataRoot -Root $Root)) {
+  Fail "data-dir-escape: .data/native resolved outside project root — refusing."
+}
+if (Test-Path -LiteralPath $PgData) {
+  if (-not (Test-Path -LiteralPath $MarkerFile)) {
     Fail "data-dir-foreign: .data/native exists without SALES_OS_NATIVE_TRIAL.marker — refusing to overwrite. Move/rename the folder or create the marker only if you own this trial data."
   }
 } else {
   New-Item -ItemType Directory -Force -Path $PgData | Out-Null
   "sales-os-native-trial" | Set-Content -LiteralPath $MarkerFile -Encoding UTF8
 }
-if (-not (Test-Path $RedisData)) { New-Item -ItemType Directory -Force -Path $RedisData | Out-Null }
-if (-not (Test-Path $MarkerFile)) {
+if (-not (Test-Path -LiteralPath $RedisData)) { New-Item -ItemType Directory -Force -Path $RedisData | Out-Null }
+if (-not (Test-Path -LiteralPath $MarkerFile)) {
   "sales-os-native-trial" | Set-Content -LiteralPath $MarkerFile -Encoding UTF8
+}
+
+# Idempotent Start: stop prior owned run first (safe Stop verifies ownership)
+if (Test-Path -LiteralPath (Join-Path $RunDir "api.pid") -or
+    Test-Path -LiteralPath (Join-Path $RunDir "gateway.pid") -or
+    Test-Path -LiteralPath (Join-Path $RunDir "worker.pid") -or
+    Test-Path -LiteralPath (Join-Path $RunDir "redis.pid")) {
+  Write-Host "Prior native PID files found — stopping owned processes before re-start..."
+  & (Join-Path $NativeDir "Stop-InternalTrial-Native.ps1")
+  Start-Sleep -Seconds 2
 }
 
 $initdb = Find-PgBin "initdb"
 $pgCtl = Find-PgBin "pg_ctl"
 $psql = Find-PgBin "psql"
-$postgres = Find-PgBin "postgres"
+$pgIsReady = Find-PgBin "pg_isready"
 $redisServer = Find-RedisServer
 
 if (-not $initdb -or -not $pgCtl -or -not $psql) {
   Fail @"
 postgres-binaries-missing: initdb/pg_ctl/psql not found on PATH or vendor\windows\pgsql\bin.
 Run: .\scripts\windows\native\Fetch-NativeDeps.ps1
-Or install PostgreSQL from https://www.postgresql.org/download/windows/ and add its bin to PATH
-(then still use dedicated ports 15432/16379 — do not point at Sub2API data dirs).
+Or install PostgreSQL 15/16/17 from https://www.postgresql.org/download/windows/ and add its bin to PATH
+(then still use dedicated ports — do not point at Sub2API data dirs).
 "@
 }
 if (-not $redisServer) {
   Fail @"
-redis-binaries-missing: redis-server not found on PATH or vendor\windows\redis\.
-Run: .\scripts\windows\native\Fetch-NativeDeps.ps1
-Or place tporadowski Redis redis-server.exe under vendor\windows\redis\
+redis-binaries-missing: redis-server not found under vendor\windows\redis\ (preferred) or PATH.
+Worker needs Redis 5+ (streams). Run: .\scripts\windows\native\Fetch-NativeDeps.ps1
+(tporadowski Redis 5.0.14.1). Do not use Redis 3.0.x. Do not touch other Redis services.
 "@
 }
 
-Assert-PortFreeOrOurs $PgPort "Postgres"
-Assert-PortFreeOrOurs $RedisPort "Redis"
-Assert-PortFreeOrOurs $ApiPort "API"
-Assert-PortFreeOrOurs $WebPort "Web"
+Assert-PortFree $PgPort "Postgres"
+Assert-PortFree $RedisPort "Redis"
+Assert-PortFree $ApiPort "API"
+Assert-PortFree $WebPort "Web"
+
+try {
 
 # --- Init Postgres if needed ---
 $PgVersionFile = Join-Path $PgData "PG_VERSION"
-if (-not (Test-Path $PgVersionFile)) {
+if (-not (Test-Path -LiteralPath $PgVersionFile)) {
   Write-Host "Initializing isolated Postgres data dir (.data/native/pg)..."
   $pwFile = Join-Path $RunDir "pg_pw.txt"
   $PgPass | Set-Content -LiteralPath $pwFile -Encoding ASCII
-  & $initdb -D $PgData -U $PgUser -A password --pwfile=$pwFile -E UTF8 --locale=C 2>&1 | Out-Null
+  # PowerShell passes args as argv — quote-safe for paths with spaces
+  & $initdb @('-D', $PgData, '-U', $PgUser, '-A', 'password', "--pwfile=$pwFile", '-E', 'UTF8', '--locale=C') 2>&1 | Out-Null
   if ($LASTEXITCODE -ne 0) { Fail "initdb failed (exit $LASTEXITCODE)" }
   Remove-Item -LiteralPath $pwFile -Force -ErrorAction SilentlyContinue
-  # Loopback-only listen
   $conf = Join-Path $PgData "postgresql.conf"
   Add-Content -LiteralPath $conf -Value "`nlisten_addresses = '127.0.0.1'`nport = $PgPort`n"
   $hba = Join-Path $PgData "pg_hba.conf"
@@ -244,45 +253,83 @@ local all all scram-sha-256
 # --- Start Postgres ---
 Write-Host "Starting Postgres on 127.0.0.1:$PgPort ..."
 $pgLog = Join-Path $LogDir "postgres.log"
-& $pgCtl -D $PgData -l $pgLog -o "-p $PgPort -h 127.0.0.1" start 2>&1 | Out-Null
+& $pgCtl @('-D', $PgData, '-l', $pgLog, '-o', "-p $PgPort -h 127.0.0.1", 'start') 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) {
-  # may already be running from prior native start
-  & $pgCtl -D $PgData status 2>&1 | Out-Null
+  & $pgCtl @('-D', $PgData, 'status') 2>&1 | Out-Null
   if ($LASTEXITCODE -ne 0) { Fail "postgres-start-failed (see .data/native/logs/postgres.log)" }
 }
-# Create DB if missing
+$script:StartedSomething = $true
+
+if (-not (Wait-TcpAccept -HostName "127.0.0.1" -Port $PgPort -TimeoutSec 60 -Label "Postgres")) {
+  Fail "postgres-not-ready: TCP 127.0.0.1:$PgPort did not accept within 60s"
+}
+if ($pgIsReady) {
+  & $pgIsReady -h 127.0.0.1 -p $PgPort -U $PgUser 2>&1 | Out-Null
+}
+
 $env:PGPASSWORD = $PgPass
-& $psql -h 127.0.0.1 -p $PgPort -U $PgUser -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$PgDb'" 2>$null | Out-Null
 $dbCheck = & $psql -h 127.0.0.1 -p $PgPort -U $PgUser -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$PgDb'"
 if ("$dbCheck".Trim() -ne "1") {
   & $psql -h 127.0.0.1 -p $PgPort -U $PgUser -d postgres -c "CREATE DATABASE $PgDb OWNER $PgUser;" | Out-Null
 }
 Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
 
-# --- Start Redis (loopback) ---
+# --- Start Redis (loopback), quote paths with spaces ---
 Write-Host "Starting Redis on 127.0.0.1:$RedisPort ..."
 $redisConf = Join-Path $RunDir "redis.conf"
+$dirLine = "dir " + (Quote-RedisConfPath $RedisData)
 @"
 bind 127.0.0.1
 port $RedisPort
-dir $( $RedisData -replace '\\','/' )
+$dirLine
 appendonly yes
 protected-mode yes
 "@ | Set-Content -LiteralPath $redisConf -Encoding ASCII
+
 $redisOut = Join-Path $LogDir "redis.out.log"
 $redisErr = Join-Path $LogDir "redis.err.log"
-$redisProc = Start-Process -FilePath $redisServer -ArgumentList @($redisConf) `
-  -RedirectStandardOutput $redisOut -RedirectStandardError $redisErr -PassThru -WindowStyle Hidden
-$redisProc.Id | Set-Content -LiteralPath (Join-Path $RunDir "redis.pid") -Encoding ASCII
+$redisPidFile = Join-Path $RunDir "redis.pid"
+# Quote conf path for ArgumentList when spaces present
+$null = Start-LoggedProcess -FilePath $redisServer -ArgumentList @($redisConf) `
+  -WorkingDirectory (Split-Path -Parent $redisServer) `
+  -OutLog $redisOut -ErrLog $redisErr -PidFile $redisPidFile
+
+$redisCli = Find-RedisCliNear $redisServer
+$redisReady = $false
+$deadlineRedis = (Get-Date).AddSeconds(30)
+while ((Get-Date) -lt $deadlineRedis) {
+  if ($redisCli -and (Invoke-RedisPing -RedisCli $redisCli -HostName "127.0.0.1" -Port $RedisPort)) {
+    $redisReady = $true
+    break
+  }
+  if (-not $redisCli) {
+    if (Wait-TcpAccept -HostName "127.0.0.1" -Port $RedisPort -TimeoutSec 1) {
+      # TCP up but no cli — still try version via server binary later
+      $redisReady = $true
+      break
+    }
+  }
+  Start-Sleep -Milliseconds 500
+}
+if (-not $redisReady) {
+  Fail "redis-not-ready: PING/TCP failed on 127.0.0.1:$RedisPort (see .data/native/logs/redis.*.log)"
+}
+
+$redisVer = Get-RedisVersionString -RedisCli $redisCli -Host "127.0.0.1" -Port $RedisPort -RedisServerPath $redisServer
+Write-Host "Redis version: $redisVer"
+Assert-RedisVersionOk -Version $redisVer -MinMajor 5
 
 # --- Node deps / build ---
-if (-not (Test-Path (Join-Path $Root "node_modules"))) {
+if (-not (Test-Path -LiteralPath (Join-Path $Root "node_modules"))) {
   Write-Host "npm ci (first run)..."
   npm ci
   if ($LASTEXITCODE -ne 0) { npm install; if ($LASTEXITCODE -ne 0) { Fail "npm-install-failed" } }
 }
-if (-not (Test-Path (Join-Path $Root "apps\api\dist\main.js"))) {
-  Write-Host "Building API/web/worker..."
+$apiMain = Join-Path $Root "apps\api\dist\main.js"
+$workerMain = Join-Path $Root "apps\worker\dist\main.js"
+$webDist = Join-Path $Root "apps\web\dist\index.html"
+if (-not (Test-Path -LiteralPath $apiMain) -or -not (Test-Path -LiteralPath $workerMain) -or -not (Test-Path -LiteralPath $webDist)) {
+  Write-Host "Building API/worker/web..."
   npm run build
   if ($LASTEXITCODE -ne 0) { Fail "npm-build-failed" }
 }
@@ -290,20 +337,21 @@ if (-not (Test-Path (Join-Path $Root "apps\api\dist\main.js"))) {
 $DatabaseUrl = "postgres://${PgUser}:${PgPass}@127.0.0.1:${PgPort}/${PgDb}"
 $RedisUrl = "redis://127.0.0.1:${RedisPort}"
 
-# Refresh derived URLs into .env.native without echoing secrets
 $raw = Get-Content -LiteralPath $EnvFile -Raw -Encoding UTF8
 if ($raw -notmatch '(?m)^DATABASE_URL=') { $raw += "`nDATABASE_URL=$DatabaseUrl`n" }
 else { $raw = [regex]::Replace($raw, '(?m)^DATABASE_URL=.*$', "DATABASE_URL=$DatabaseUrl") }
 if ($raw -notmatch '(?m)^REDIS_URL=') { $raw += "REDIS_URL=$RedisUrl`n" }
 else { $raw = [regex]::Replace($raw, '(?m)^REDIS_URL=.*$', "REDIS_URL=$RedisUrl") }
+if ($raw -notmatch '(?m)^API_HOST=') { $raw += "API_HOST=127.0.0.1`n" }
+else { $raw = [regex]::Replace($raw, '(?m)^API_HOST=.*$', "API_HOST=127.0.0.1") }
 Set-Content -LiteralPath $EnvFile -Value $raw -Encoding UTF8
 
-# --- Start API ---
-Write-Host "Starting API on 127.0.0.1:$ApiPort ..."
-$apiEnv = @{
+$nodeExe = (Get-Command node).Source
+$commonNodeEnv = @{
   DATABASE_URL = $DatabaseUrl
   REDIS_URL = $RedisUrl
   JWT_SECRET = $envMap["JWT_SECRET"]
+  API_HOST = $ApiHost
   API_PORT = "$ApiPort"
   PORT = "$ApiPort"
   SEED_ON_BOOT = if ($envMap.ContainsKey("SEED_ON_BOOT")) { $envMap["SEED_ON_BOOT"] } else { "true" }
@@ -318,50 +366,96 @@ $apiEnv = @{
   REAL_EMAIL_ENABLED = "false"
   NODE_ENV = "production"
 }
+
+# --- Start API (loopback) ---
+Write-Host "Starting API on ${ApiHost}:$ApiPort (API_HOST=$ApiHost) ..."
 $apiOut = Join-Path $LogDir "api.out.log"
 $apiErr = Join-Path $LogDir "api.err.log"
-$pInfo = New-Object System.Diagnostics.ProcessStartInfo
-$pInfo.FileName = (Get-Command node).Source
-$pInfo.Arguments = "`"$(Join-Path $Root 'apps\api\dist\main.js')`""
-$pInfo.WorkingDirectory = $Root
-$pInfo.UseShellExecute = $false
-$pInfo.RedirectStandardOutput = $true
-$pInfo.RedirectStandardError = $true
-foreach ($k in $apiEnv.Keys) { $pInfo.Environment[$k] = [string]$apiEnv[$k] }
-$apiProc = New-Object System.Diagnostics.Process
-$apiProc.StartInfo = $pInfo
-$null = $apiProc.Start()
-$apiProc.Id | Set-Content (Join-Path $RunDir "api.pid")
-Start-Job -ScriptBlock { param($p,$f) while (-not $p.HasExited) { $l=$p.StandardOutput.ReadLine(); if ($null -ne $l) { Add-Content $f $l } } } -ArgumentList $apiProc,$apiOut | Out-Null
-Start-Job -ScriptBlock { param($p,$f) while (-not $p.HasExited) { $l=$p.StandardError.ReadLine(); if ($null -ne $l) { Add-Content $f $l } } } -ArgumentList $apiProc,$apiErr | Out-Null
+$null = Start-LoggedProcess -FilePath $nodeExe -ArgumentList @($apiMain) `
+  -WorkingDirectory $Root -EnvMap $commonNodeEnv `
+  -OutLog $apiOut -ErrLog $apiErr -PidFile (Join-Path $RunDir "api.pid")
 
-# --- Start gateway (web static + /api proxy) ---
+# --- Start worker ---
+Write-Host "Starting worker..."
+$workerOut = Join-Path $LogDir "worker.out.log"
+$workerErr = Join-Path $LogDir "worker.err.log"
+$workerEnv = @{
+  DATABASE_URL = $DatabaseUrl
+  REDIS_URL = $RedisUrl
+  NODE_ENV = "production"
+}
+$null = Start-LoggedProcess -FilePath $nodeExe -ArgumentList @($workerMain) `
+  -WorkingDirectory $Root -EnvMap $workerEnv `
+  -OutLog $workerOut -ErrLog $workerErr -PidFile (Join-Path $RunDir "worker.pid")
+
+# --- Start gateway ---
 Write-Host "Starting web gateway on 127.0.0.1:$WebPort ..."
 $gwOut = Join-Path $LogDir "gateway.out.log"
 $gwErr = Join-Path $LogDir "gateway.err.log"
-$gInfo = New-Object System.Diagnostics.ProcessStartInfo
-$gInfo.FileName = (Get-Command node).Source
-$gInfo.Arguments = "`"$(Join-Path $Root 'deploy\public-gateway.mjs')`""
-$gInfo.WorkingDirectory = $Root
-$gInfo.UseShellExecute = $false
-$gInfo.RedirectStandardOutput = $true
-$gInfo.RedirectStandardError = $true
-$gInfo.Environment["GATEWAY_HOST"] = "127.0.0.1"
-$gInfo.Environment["GATEWAY_PORT"] = "$WebPort"
-$gInfo.Environment["API_TARGET"] = "http://127.0.0.1:$ApiPort"
-$gInfo.Environment["GATEWAY_WEB_MODE"] = "static"
-$gwProc = New-Object System.Diagnostics.Process
-$gwProc.StartInfo = $gInfo
-$null = $gwProc.Start()
-$gwProc.Id | Set-Content (Join-Path $RunDir "gateway.pid")
+$gwMain = Join-Path $Root "deploy\public-gateway.mjs"
+$gwEnv = @{
+  GATEWAY_HOST = "127.0.0.1"
+  GATEWAY_PORT = "$WebPort"
+  API_TARGET = "http://${ApiHost}:$ApiPort"
+  GATEWAY_WEB_MODE = "static"
+}
+$null = Start-LoggedProcess -FilePath $nodeExe -ArgumentList @($gwMain) `
+  -WorkingDirectory $Root -EnvMap $gwEnv `
+  -OutLog $gwOut -ErrLog $gwErr -PidFile (Join-Path $RunDir "gateway.pid")
 
-# --- Health gate ---
+# --- Wait API health (direct) ---
+$apiHealthUrl = "http://${ApiHost}:$ApiPort/health"
+$apiOk = $false
+$deadlineApi = (Get-Date).AddSeconds(90)
+Write-Host "Waiting for API health: $apiHealthUrl"
+while ((Get-Date) -lt $deadlineApi) {
+  try {
+    $resp = Invoke-WebRequest -Uri $apiHealthUrl -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+    if ([int]$resp.StatusCode -ge 200 -and [int]$resp.StatusCode -lt 300 -and (Test-ApiHealthJson ([string]$resp.Content))) {
+      $apiOk = $true
+      break
+    }
+  } catch { }
+  if (Test-LogLooksFatal $apiErr) { break }
+  Start-Sleep -Seconds 2
+}
+if (-not $apiOk) {
+  Fail "api-or-db-not-ready: API health gate failed (see .data/native/logs/api.*.log)"
+}
+
+# --- Wait worker ---
+$workerOk = $false
+$deadlineWorker = (Get-Date).AddSeconds(45)
+Write-Host "Waiting for worker (process + log readiness)..."
+while ((Get-Date) -lt $deadlineWorker) {
+  $wPidText = Get-Content -LiteralPath (Join-Path $RunDir "worker.pid") -ErrorAction SilentlyContinue | Select-Object -First 1
+  $alive = $false
+  if ($wPidText -match '^\d+$') {
+    try { if (Get-Process -Id ([int]$wPidText) -ErrorAction SilentlyContinue) { $alive = $true } } catch { }
+  }
+  if ($alive -and (Test-WorkerReadyFromLog $workerOut)) { $workerOk = $true; break }
+  if ($alive -and -not (Test-LogLooksFatal $workerErr)) {
+    # Soft ready: process alive + redis PING + no fatal after a few seconds
+    $elapsed = ((Get-Date) - ($deadlineWorker.AddSeconds(-45))).TotalSeconds
+    if ($elapsed -ge 8 -and $redisCli -and (Invoke-RedisPing -RedisCli $redisCli -HostName "127.0.0.1" -Port $RedisPort)) {
+      $workerOk = $true
+      break
+    }
+  }
+  if (Test-LogLooksFatal $workerErr) { break }
+  Start-Sleep -Seconds 1
+}
+if (-not $workerOk) {
+  Fail "worker-not-ready: worker process/log check failed (see .data/native/logs/worker.*.log). Redis must be 5+ for XGROUP."
+}
+
+# --- Health gate via web ---
 $healthUrl = "http://127.0.0.1:$WebPort/api/health"
-$deadline = (Get-Date).AddSeconds(120)
+$deadline = (Get-Date).AddSeconds(60)
 $passed = $false
 $lastBody = $null
 $lastStatus = $null
-Write-Host "Waiting for web /api/health (up to 120s): $healthUrl"
+Write-Host "Waiting for web /api/health: $healthUrl"
 while ((Get-Date) -lt $deadline) {
   try {
     $resp = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
@@ -382,14 +476,23 @@ if ($passed) {
   Write-Host ""
   Write-Host "OK. Browser: http://127.0.0.1:$WebPort" -ForegroundColor Green
   Write-Host "Health gate passed: GET $healthUrl (ok + sales-os-api)"
+  Write-Host "Redis $redisVer OK (>=5). Worker PID recorded. API_HOST=$ApiHost"
+  Write-Host "Logs: .data/native/logs/  PIDs: .data/native/run/"
   Write-Host "Demo emails: manager@demo.local / agent@demo.local / agent2@demo.local (passwords only in .env.native)"
   Write-Host "Stop: .\scripts\windows\native\Stop-InternalTrial-Native.ps1"
   exit 0
 }
 
 Write-Host ""
-Write-Host "FAIL: api-or-db-not-ready — web /api/health gate did not pass within 120s" -ForegroundColor Red
+Write-Host "FAIL: api-or-db-not-ready — web /api/health gate did not pass" -ForegroundColor Red
 Write-Host "URL: $healthUrl"
 if ($null -ne $lastStatus) { Write-Host "Last HTTP: $lastStatus" } else { Write-Host "Last HTTP: (no response)" }
 Write-Host "服务不可用。切勿当作已可用。"
+Invoke-FailureCleanup
 exit 1
+
+} catch {
+  Write-Host "FAIL: $($_.Exception.Message)" -ForegroundColor Red
+  if ($script:StartedSomething) { Invoke-FailureCleanup }
+  exit 1
+}

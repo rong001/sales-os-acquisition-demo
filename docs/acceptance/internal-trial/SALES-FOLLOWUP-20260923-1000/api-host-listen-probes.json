@@ -1,0 +1,7 @@
+{
+  "probes": [
+    null,
+    null
+  ],
+  "note": "mirrors API_HOST default vs native 127.0.0.1"
+}

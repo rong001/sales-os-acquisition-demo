@@ -1,0 +1,19 @@
+{
+  "suite": "SALES-FOLLOWUP-20260923-1000",
+  "pack_name": "sales-os-internal-trial-local-20260923-followup1000",
+  "ran_at": "2026-09-23T02:06:06Z",
+  "host_os": "Linux (bot box) — NOT user Windows PC",
+  "parent_tip": "2597920691ce52c6b1038f018b39805c436a83bf",
+  "git_sha_at_evidence_pre_commit": "2597920691ce52c6b1038f018b39805c436a83bf",
+  "gates": {
+    "api_host_source_and_dist": "PASS",
+    "api_host_listen_probes_0_0_0_0_and_127_0_0_1": "PASS",
+    "redis_version_gate_logic": "PASS",
+    "ps1_structure_brace_check": "PASS (static)",
+    "bot_existing_hostnet_web_api_health": "PASS (prior stack; not Windows)",
+    "windows_native_start_test_stop": "PENDING (Codex on user Windows)"
+  },
+  "overall_bot": "PASS (script/unit + prior hostnet health)",
+  "overall_windows_host": "PENDING — do not claim PASS",
+  "public_web_sample_vs_synthetic": "unchanged distinct labeling"
+}

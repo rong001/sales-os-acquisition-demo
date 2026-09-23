@@ -47,3 +47,7 @@ vendor/windows/
 # SALES-MASTER raw JWT dumps
 docs/acceptance/internal-trial/SALES-MASTER-20260923/**/.raw*/
 docs/acceptance/internal-trial/SALES-MASTER-20260923/**/.raw-run/
+
+# SALES-FOLLOWUP raw JWT dumps
+docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1000/**/.raw*/
+docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1000/**/.raw-run/

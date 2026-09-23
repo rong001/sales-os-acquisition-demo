@@ -2,73 +2,86 @@
 <#
 .SYNOPSIS
   Read-only health gate for Windows-native trial.
+  Checks web /api/health, Redis 5+, worker PID alive, redis PING.
   Never dumps .env.native values. Never prints SUCCESS if health fails.
 #>
 $ErrorActionPreference = "Stop"
-$Root = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
+$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
 Set-Location $Root
+. (Join-Path $PSScriptRoot "NativeCommon.ps1")
+
 $EnvFile = Join-Path $Root ".env.native"
+$DataRoot = Join-Path $Root ".data\native"
+$RunDir = Join-Path $DataRoot "run"
+$LogDir = Join-Path $DataRoot "logs"
+$VendorWin = Join-Path $Root "vendor\windows"
 
-function Fail([string]$Msg) {
-  Write-Host "FAIL: $Msg" -ForegroundColor Red
-  exit 1
-}
-
-function Parse-DotEnv([string]$Path) {
-  $map = @{}
-  if (-not (Test-Path $Path)) { return $map }
-  Get-Content -LiteralPath $Path -Encoding UTF8 | ForEach-Object {
-    $line = $_.Trim()
-    if ($line -eq "" -or $line.StartsWith("#")) { return }
-    $eq = $line.IndexOf("=")
-    if ($eq -lt 1) { return }
-    $key = $line.Substring(0, $eq).Trim()
-    $val = $line.Substring($eq + 1).Trim()
-    if (($val.StartsWith('"') -and $val.EndsWith('"')) -or ($val.StartsWith("'") -and $val.EndsWith("'"))) {
-      if ($val.Length -ge 2) { $val = $val.Substring(1, $val.Length - 2) }
-    }
-    if ($key -ne "") { $map[$key] = $val }
-  }
-  return $map
-}
-
-function Test-ApiHealthJson([string]$Body) {
-  if ([string]::IsNullOrWhiteSpace($Body)) { return $false }
-  $trim = $Body.TrimStart()
-  if (-not ($trim.StartsWith("{") -or $trim.StartsWith("["))) { return $false }
-  try { $j = $Body | ConvertFrom-Json -ErrorAction Stop } catch { return $false }
-  $ok = $false
-  if ($null -ne $j.ok) {
-    if ($j.ok -is [bool]) { $ok = [bool]$j.ok }
-    elseif ("$($j.ok)" -eq "True" -or "$($j.ok)" -eq "true" -or "$($j.ok)" -eq "1") { $ok = $true }
-  }
-  $svc = ""
-  if ($null -ne $j.service) { $svc = [string]$j.service }
-  return ($ok -and $svc -eq "sales-os-api")
-}
-
-if (-not (Test-Path $EnvFile)) { Fail "missing .env.native (run Start-InternalTrial-Native.ps1 first)" }
+if (-not (Test-Path -LiteralPath $EnvFile)) { Fail "missing .env.native (run Start-InternalTrial-Native.ps1 first)" }
 $envMap = Parse-DotEnv $EnvFile
-$WebPort = "19280"
-if ($envMap.ContainsKey("NATIVE_WEB_PORT") -and $envMap["NATIVE_WEB_PORT"] -match '^\d+$') {
-  $WebPort = $envMap["NATIVE_WEB_PORT"]
+
+function PortOr([string]$Key, [string]$Default) {
+  if ($envMap.ContainsKey($Key) -and $envMap[$Key] -match '^\d+$') { return $envMap[$Key] }
+  return $Default
 }
-$ApiPort = "39300"
-if ($envMap.ContainsKey("NATIVE_API_PORT") -and $envMap["NATIVE_API_PORT"] -match '^\d+$') {
-  $ApiPort = $envMap["NATIVE_API_PORT"]
+
+$WebPort = PortOr "NATIVE_WEB_PORT" "19280"
+$ApiPort = PortOr "NATIVE_API_PORT" "39300"
+$RedisPort = [int](PortOr "NATIVE_REDIS_PORT" "16379")
+
+# Redis 5+ gate
+$redisServer = $null
+foreach ($c in @(
+  (Join-Path $VendorWin "redis\redis-server.exe"),
+  (Join-Path $VendorWin "Redis\redis-server.exe")
+)) { if (Test-Path -LiteralPath $c) { $redisServer = $c; break } }
+if (-not $redisServer) {
+  $cmd = Get-Command redis-server -ErrorAction SilentlyContinue
+  if ($cmd) { $redisServer = $cmd.Source }
 }
+$redisCli = Find-RedisCliNear $redisServer
+if (-not $redisCli) {
+  Fail "redis-cli-missing: cannot verify Redis version/PING. Ensure vendor\windows\redis\ from Fetch-NativeDeps.ps1"
+}
+if (-not (Invoke-RedisPing -RedisCli $redisCli -HostName "127.0.0.1" -Port $RedisPort)) {
+  Fail "redis-ping-failed: 127.0.0.1:$RedisPort — is native stack started?"
+}
+$redisVer = Get-RedisVersionString -RedisCli $redisCli -Host "127.0.0.1" -Port $RedisPort -RedisServerPath $redisServer
+Assert-RedisVersionOk -Version $redisVer -MinMajor 5
+Write-Host "Redis $redisVer (>=5) PING OK on 127.0.0.1:$RedisPort"
+
+# Worker process
+$workerPidFile = Join-Path $RunDir "worker.pid"
+if (-not (Test-Path -LiteralPath $workerPidFile)) {
+  Fail "worker-pid-missing: worker not started (Start must launch worker)"
+}
+$wPidText = Get-Content -LiteralPath $workerPidFile | Select-Object -First 1
+if ($wPidText -notmatch '^\d+$') { Fail "worker-pid-invalid" }
+$wPid = [int]$wPidText
+try {
+  $wp = Get-Process -Id $wPid -ErrorAction Stop
+} catch {
+  Fail "worker-not-running: pid $wPid dead"
+}
+if (-not (Test-ProcessBelongsToProject -ProcId $wPid -Root $Root)) {
+  Fail "worker-pid-foreign: pid $wPid does not appear owned by this project"
+}
+$workerOut = Join-Path $LogDir "worker.out.log"
+$workerErr = Join-Path $LogDir "worker.err.log"
+if (Test-LogLooksFatal $workerErr) {
+  Fail "worker-log-fatal: see .data/native/logs/worker.err.log"
+}
+Write-Host "Worker pid=$wPid alive (project-owned)"
 
 $healthUrl = "http://127.0.0.1:$WebPort/api/health"
 try {
   $resp = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
   $body = [string]$resp.Content
   if ([int]$resp.StatusCode -ge 200 -and [int]$resp.StatusCode -lt 300 -and (Test-ApiHealthJson $body)) {
-    Write-Host "OK. http://127.0.0.1:$WebPort  (web /api/health = ok + sales-os-api)" -ForegroundColor Green
+    Write-Host "OK. http://127.0.0.1:$WebPort  (web /api/health = ok + sales-os-api; Redis $redisVer; worker alive)" -ForegroundColor Green
     exit 0
   }
   Fail "api-or-db-not-ready: unexpected health body (not printed)"
 } catch {
-  # classify
   $apiOk = $false
   try {
     $ar = Invoke-WebRequest -Uri "http://127.0.0.1:$ApiPort/health" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop

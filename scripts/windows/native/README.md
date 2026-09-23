@@ -1,48 +1,58 @@
-# Windows-native internal trial (no Docker / no WSL)
+# Windows 原生内部试用（无 Docker / 无 WSL）
 
-For Windows 11 when **Docker Desktop is not available**. Uses **isolated**
-Postgres + Redis on `127.0.0.1` only with dedicated ports (default **15432** /
-**16379**) and data under repo `.data/native/` — **never** reuses Sub2API’s
-default `5432` / `6379`.
+适用于 Windows 11 **没有 Docker Desktop** 的场景。使用仓库内隔离的
+Postgres + Redis（仅 `127.0.0.1`，默认端口 **15432 / 16379**；可在
+`.env.native` 改为例如 **55432 / 56379**），数据在 `.data/native/` —
+**绝不**复用 Sub2API 的 `5432` / `6379`。
 
-## Quick start
+## 快速开始
 
 ```powershell
 cd sales-os-app
+.\scripts\windows\native\Fetch-NativeDeps.ps1   # 一次性：Redis 5+
 .\scripts\windows\native\Start-InternalTrial-Native.ps1
-# browser: http://127.0.0.1:19280
+# 浏览器: http://127.0.0.1:19280
 .\scripts\windows\native\Test-InternalTrial-Native.ps1
 .\scripts\windows\native\Stop-InternalTrial-Native.ps1
 ```
 
-`Start-InternalTrial-Native.ps1` generates `.env.native` with random secrets if
-missing (file is gitignored). It **refuses** to print SUCCESS unless
-`GET /api/health` through the web port returns JSON `ok` + `sales-os-api`.
+`Start` 若缺少 `.env.native` 会生成随机密钥（已 gitignore）。
+**只有**经 Web 端口的 `GET /api/health` 返回 JSON `ok` + `sales-os-api`
+才打印 OK。静态 SPA 的 200 **不算**就绪。
 
-## Dependencies the script expects
+## 依赖
 
-1. **Node.js 20+** on PATH (`node`, `npm`) — https://nodejs.org/ (LTS MSI)
-2. **PostgreSQL 15/16/17 Windows binaries** either:
-   - Already installed and available as `pg_ctl` / `initdb` / `psql` on PATH, **or**
-   - Portable tree under `vendor/windows/pgsql/` (see `Fetch-NativeDeps.ps1`)
-3. **Redis** Windows build either:
-   - `redis-server` on PATH, **or**
-   - `vendor/windows/redis/redis-server.exe` (tporadowski/redis, BSD-like)
+1. **Node.js 20+**（官方 MSI；含 npm）。Node 24.x / npm 11 亦可。
+   若出现 `npm-missing`：安装官方 Node 后**重新打开** PowerShell。
+2. **PostgreSQL 15/16/17** Windows 二进制：
+   - PATH 上有 `pg_ctl` / `initdb` / `psql`，或
+   - `vendor/windows/pgsql/bin/`（见 `Fetch-NativeDeps.ps1` 说明）
+3. **Redis 5+**（worker 需要 Streams：`XGROUP` / `XADD`）：
+   - **优先** `vendor/windows/redis/redis-server.exe`（`Fetch-NativeDeps.ps1`
+     拉取 [tporadowski/redis](https://github.com/tporadowski/redis) **5.0.14.1**）
+   - Redis **3.0.x**（如 3.0.504）**不够用**，Start/Test 会明确 FAIL
+   - 不安装/不替换其它端口上的 Redis 服务
 
-`Fetch-NativeDeps.ps1` downloads official/known sources into `vendor/windows/`
-and writes SHA256SUMS. Run once with user approval for outbound download.
+### 校验和策略（诚实）
 
-## Isolation guarantees
+`Fetch-NativeDeps.ps1`：若脚本内 **未钉扎**已知上游 SHA256，则只计算并记录
+**本地 hash**，文案为 `LOCAL-ONLY-NOT-UPSTREAM-VERIFIED`，**不会**声称
+“upstream verified” 或 “matched upstream”。仅当钉扎了已知校验和且比对相等时，
+才说 “matched pinned checksum”。
 
-| Item | Behavior |
+## 隔离约定
+
+| 项 | 行为 |
 |---|---|
-| Ports | Defaults 15432 / 16379 / 39300 / 19280; fail if occupied |
-| Bind | Postgres/Redis configured for `127.0.0.1` only |
-| Data dirs | `.data/native/pg` and `.data/native/redis` under this repo |
-| Foreign data | Refuses if data dir markers look like another product |
-| Secrets | Only in local `.env.native` (not committed) |
+| 端口 | 默认 15432 / 16379 / 39300 / 19280；占用则 FAIL；可改 `.env.native` |
+| 绑定 | Postgres/Redis/`API_HOST` → `127.0.0.1`（原生强制） |
+| Docker | 容器不设 `API_HOST` 时 API 默认 `0.0.0.0`（与 bridge 兼容） |
+| 数据 | `.data/native/pg` + `redis`；带 `SALES_OS_NATIVE_TRIAL.marker` |
+| 日志 | `.data/native/logs/*.log`（独立文件，无 Start-Job 跨进程重定向） |
+| 进程 | Hidden 窗口；Stop 前校验 PID 命令行/路径属于本仓库绝对路径 |
+| Worker | Start 会启动 worker 并写入 `run/worker.pid`；Test 检查存活 |
 
-## Relation to Docker path
+## 与 Docker 路径关系
 
-If Docker Desktop **is** available, prefer `..\Start-InternalTrial.ps1` +
-`docker-compose.internal-trial.yml` instead.
+若已安装并可运行 Docker Desktop，优先用
+`..\Start-InternalTrial.ps1` + `docker-compose.internal-trial.yml`。

@@ -66,7 +66,7 @@ docker compose -f docker-compose.internal-trial.yml \
 
 ```powershell
 cd sales-os-app
-# 一次性拉取 Redis 等依赖（Postgres 见 README：EDB zip 或官方安装到 PATH）
+# 一次性：Redis 5+ → vendor\windows\redis\（Postgres 见 native README）
 .\scripts\windows\native\Fetch-NativeDeps.ps1
 .\scripts\windows\native\Start-InternalTrial-Native.ps1
 # 浏览器默认: http://127.0.0.1:19280
@@ -76,11 +76,15 @@ cd sales-os-app
 
 隔离约定：
 
-- 端口默认 **15432 / 16379 / 39300 / 19280**（拒绝占用 Sub2API 常用的 5432/6379）
+- 端口默认 **15432 / 16379 / 39300 / 19280**（拒绝 5432/6379；可在 `.env.native` 改为例如 **55432 / 56379**）
+- **API_HOST=127.0.0.1**（原生强制 loopback；Docker 不设则默认 `0.0.0.0`）
+- **Redis 5+**（worker 需要 Streams；3.0.x 会 FAIL；用 `Fetch-NativeDeps.ps1` 拉 tporadowski 5.0.14.1 到 `vendor/windows/redis/`）
 - 数据目录：仓库内 `.data/native/`（带 marker；不覆盖外来数据目录）
+- 日志：`.data/native/logs/`；Stop 前校验 PID 属于本仓库路径
 - 密钥：本地 `.env.native`（gitignored；启动脚本可自动生成随机值）
+- Node：官方 MSI（含 npm）。曾出现 `npm-missing` 时请装官方 Node 后重开终端
 
-**切勿**复用已有 Sub2API 的 Postgres/Redis 数据目录或默认端口。
+**切勿**复用已有 Sub2API 的 Postgres/Redis 数据目录或默认端口。校验和：未钉扎上游 SHA256 时只记本地 hash，不宣称 upstream verified。
 
 ---
 
@@ -89,7 +93,7 @@ cd sales-os-app
 1. 先跑健康门禁（Docker：`Test-InternalTrial.ps1`；原生：`Test-InternalTrial-Native.ps1`）。  
 2. 门禁失败 → **禁止**宣称可用；按脚本分类（`docker-not-running` / `api-or-db-not-ready` / `web-proxy-broken` / `port-collision`）修复后重试。  
 3. 门禁通过后再做浏览器登录（在 `/login` **键入**账号，禁止 localStorage 注入）。  
-4. 业务回归可参考 `docs/acceptance/internal-trial/SALES-MASTER-20260923/`。
+4. 业务回归可参考 `docs/acceptance/internal-trial/SALES-MASTER-20260923/`；本轮修复证据见 `SALES-FOLLOWUP-20260923-1000/`（Linux bot hostnet；Windows 需本机复测）。
 
 ---
 
