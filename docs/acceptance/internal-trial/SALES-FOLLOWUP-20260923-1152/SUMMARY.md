@@ -91,6 +91,7 @@ See `UI-PENDING.md`. API login ≠ typed browser UI.
 - `be3903f` — docs: SALES-FOLLOWUP-20260923-1152 bot harness evidence + UI待测
 - `eaf5194` — chore: ship followup1152 pack + SHA256
 - `5ff2ea2` — docs: pin SUMMARY to pack tip SHA
+- `28cbea8` — docs: tip SHA SALES-FOLLOWUP-20260923-1152 → 5ff2ea2
 
 
 ## Pack
@@ -102,4 +103,4 @@ See `UI-PENDING.md`. API login ≠ typed browser UI.
 
 
 ## Tip
-`5ff2ea2`
+`28cbea8`
