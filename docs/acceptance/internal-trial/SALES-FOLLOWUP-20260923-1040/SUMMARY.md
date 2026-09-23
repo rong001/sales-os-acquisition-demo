@@ -3,7 +3,7 @@
 Windows native Start hang after "Starting PostgreSQL" — pipeline handle inheritance fix + port default move off Sub2API/Garnet.
 
 ## Root cause
-**Confirmed** (code inspection + bot mock): `& pg_ctl … 2>&1 | Out-Null` (and `initdb` the same) leaves stdout/stderr pipes inherited by long-lived postgres; PowerShell waits forever after short-lived `pg_ctl` exits. Matches user facts (PG ready on 127.0.0.1:55433, pg_ctl already exited, Start never continued).
+**Confirmed** (code inspection + bot mock): PowerShell `& pg_ctl … 2>&1 | Out-Null` (and `initdb` the same) leaves stdout/stderr pipes inherited by long-lived postgres; PowerShell waits forever after short-lived `pg_ctl` exits. Matches user facts (PG ready on 127.0.0.1:55433, pg_ctl already exited, Start never continued).
 
 Bot harness (Linux pwsh): BAD pipe probe `observed_hang=True`; GOOD `Invoke-NativeToolProcess` (file redirects + WaitForExit on starter only) returned exit 0 in ~0.6s.
 
@@ -17,7 +17,7 @@ Bot harness (Linux pwsh): BAD pipe probe `observed_hang=True`; GOOD `Invoke-Nati
 7. Harness — AST ban on Out-Null/Out-String after pg_ctl/initdb/redis-server; pipe-vs-file hang probe; default-port asserts.
 
 ## Quality gate (bot Linux)
-- `Parser.ParseFile` all `scripts/windows/**/*.ps1` → **TOTAL_PARSE_ERRORS=0**
+- `Parser.ParseFile` all `scripts/windows/**/*.ps1` → **TOTAL_PARSE_ERRORS=0** (9 files)
 - `Test-NativeCommon-Harness.ps1` → **HARNESS RESULT=PASS**
 - Grep/AST: no `| Out-Null` after pg_ctl/initdb/redis-server start in production scripts
 
@@ -36,11 +36,12 @@ Unzip/tar over source; **keep your private `.env.native` and `.data/`** (pack do
 - `results.json`
 
 ## Commits (pushed to main)
--  — fix: native Start hang — no pipe Out-Null on pg_ctl/initdb; ports off Sub2API
--  — chore: ship followup1040 pack + SHA256
+- `276f46e07625fc3b8b5209d43c754f8cc510cefb` — fix: native Start hang — no pipe Out-Null on pg_ctl/initdb; ports off Sub2API
+- `9948203acea73ed815d5467cbf4bb8f9ab6fe596` — chore: ship followup1040 pack + SHA256
+- `1b6d5d8668575fe57e38edc3a0e71355c2954d05` — docs: pin summary to pack SHAs (this tip)
 
 ## Pack
-- 
+- `sales-os-internal-trial-local-20260923-followup1040.tar.gz`
 - bytes: 4849146
-- SHA256: 
-- Also at  and ; symlink  → followup1040
+- SHA256: `4b208a20c798366094f84caa4ee2d1b1cbaa5a601006010e9c54d3d8427b981c`
+- Also at `/workspace/` and `releases/`; symlink `sales-os-internal-trial-local.tar.gz` → followup1040
