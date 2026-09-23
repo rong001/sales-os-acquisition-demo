@@ -89,7 +89,7 @@ See `UI-PENDING.md`. API login ≠ typed browser UI.
 - `1cf664d` — feat(acceptance): real vs synthetic harness with SKIP layering
 - `af472c9` — fix: refuse e2e disk JWT by default; point trial to business-acceptance
 - `be3903f` — docs: SALES-FOLLOWUP-20260923-1152 bot harness evidence + UI待测
-- (pack tip commits follow)
+- `eaf5194` — chore: ship followup1152 pack + SHA256
 
 
 ## Pack
@@ -101,5 +101,4 @@ See `UI-PENDING.md`. API login ≠ typed browser UI.
 
 
 ## Tip
-
-(see pin commit)
+`eaf5194`
