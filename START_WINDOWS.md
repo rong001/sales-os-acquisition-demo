@@ -76,7 +76,7 @@ cd sales-os-app
 
 隔离约定：
 
-- 端口默认 **15432 / 16379 / 39300 / 19280**（拒绝 5432/6379；可在 `.env.native` 改为例如 **55432 / 56379**）
+- 端口默认 **55433 / 56380 / 39300 / 19280**（拒绝 5432/6379；避免 Sub2API/Garnet 的 **15432 / 16379**；可在 `.env.native` 改为例如 **55432 / 56379** 若空闲）
 - **API_HOST=127.0.0.1**（原生强制 loopback；Docker 不设则默认 `0.0.0.0`）
 - **Redis 5+**（worker 需要 Streams；3.0.x 会 FAIL；用 `Fetch-NativeDeps.ps1` 拉 tporadowski 5.0.14.1 到 `vendor/windows/redis/`）
 - 数据目录：仓库内 `.data/native/`（带 marker；不覆盖外来数据目录）
@@ -84,7 +84,7 @@ cd sales-os-app
 - 密钥：本地 `.env.native`（gitignored；启动脚本可自动生成随机值）
 - Node：官方 MSI（含 npm）。曾出现 `npm-missing` 时请装官方 Node 后重开终端
 
-**切勿**复用已有 Sub2API 的 Postgres/Redis 数据目录或默认端口。校验和：未钉扎上游 SHA256 时只记本地 hash，不宣称 upstream verified。
+**切勿**复用已有 Sub2API/Garnet 的数据目录或端口（常见 **15432 / 16379**）。端口占用时 Start **明确 FAIL**，不杀占用进程、不改写外来库。解压覆盖源码时保留 `.env.native` 与 `.data/`。校验和：未钉扎上游 SHA256 时只记本地 hash，不宣称 upstream verified。
 
 ---
 

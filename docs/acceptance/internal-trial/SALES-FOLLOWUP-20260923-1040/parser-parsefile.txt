@@ -1,0 +1,10 @@
+PASS Start-InternalTrial.ps1
+PASS Stop-InternalTrial.ps1
+PASS Test-InternalTrial.ps1
+PASS Fetch-NativeDeps.ps1
+PASS NativeCommon.ps1
+PASS Start-InternalTrial-Native.ps1
+PASS Stop-InternalTrial-Native.ps1
+PASS Test-InternalTrial-Native.ps1
+PASS Test-NativeCommon-Harness.ps1
+TOTAL_PARSE_ERRORS=0 FILES=9

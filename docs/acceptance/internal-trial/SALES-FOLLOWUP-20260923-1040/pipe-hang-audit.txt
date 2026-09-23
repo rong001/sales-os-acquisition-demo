@@ -1,0 +1,80 @@
+=== Production native/*.ps1 lines with Out-Null / Out-String ===
+scripts/windows/native/Fetch-NativeDeps.ps1:16:New-Item -ItemType Directory -Force -Path $Vendor, $Cache | Out-Null
+scripts/windows/native/Fetch-NativeDeps.ps1:94:  New-Item -ItemType Directory -Force -Path $dep.DestDir | Out-Null
+scripts/windows/native/NativeCommon.ps1:176:  if ($outDir) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
+scripts/windows/native/NativeCommon.ps1:180:    New-Item -ItemType File -Force -Path $lf | Out-Null
+scripts/windows/native/NativeCommon.ps1:253:      # Short-lived --version: capture without pipeline (avoid Out-String hang class)
+scripts/windows/native/NativeCommon.ps1:322:    NEVER use `& tool … 2>&1 | Out-Null` for daemon starters: long-lived children
+scripts/windows/native/NativeCommon.ps1:338:  if ($outDir) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
+scripts/windows/native/NativeCommon.ps1:341:    New-Item -ItemType File -Force -Path $lf | Out-Null
+scripts/windows/native/Start-InternalTrial-Native.ps1:181:New-Item -ItemType Directory -Force -Path $DataRoot, $RunDir, $LogDir | Out-Null
+scripts/windows/native/Start-InternalTrial-Native.ps1:190:  New-Item -ItemType Directory -Force -Path $PgData | Out-Null
+scripts/windows/native/Start-InternalTrial-Native.ps1:193:if (-not (Test-Path -LiteralPath $RedisData)) { New-Item -ItemType Directory -Force -Path $RedisData | Out-Null }
+scripts/windows/native/Start-InternalTrial-Native.ps1:239:# CRITICAL: never pipe initdb/pg_ctl through `| Out-Null` / `| Out-String`.
+scripts/windows/native/Start-InternalTrial-Native.ps1:304:    & $pgIsReady -h 127.0.0.1 -p $PgPort -U $PgUser 2>$null | Out-Null
+scripts/windows/native/Start-InternalTrial-Native.ps1:317:  & $psql -h 127.0.0.1 -p $PgPort -U $PgUser -d postgres -c "CREATE DATABASE $PgDb OWNER $PgUser;" 2>$null | Out-Null
+scripts/windows/native/Stop-InternalTrial-Native.ps1:47:  if (-not (Test-Path -LiteralPath $LogDir)) { New-Item -ItemType Directory -Force -Path $LogDir | Out-Null }
+
+=== Daemon starters must use Invoke-NativeToolProcess / Start-LoggedProcess ===
+scripts/windows/native/Start-InternalTrial-Native.ps1:86:    (Join-Path $VendorWin "redis\redis-server.exe"),
+scripts/windows/native/Start-InternalTrial-Native.ps1:87:    (Join-Path $VendorWin "Redis\redis-server.exe")
+scripts/windows/native/Start-InternalTrial-Native.ps1:90:  $cmd = Get-Command "redis-server" -ErrorAction SilentlyContinue
+scripts/windows/native/Start-InternalTrial-Native.ps1:209:$initdb = Find-PgBin "initdb"
+scripts/windows/native/Start-InternalTrial-Native.ps1:210:$pgCtl = Find-PgBin "pg_ctl"
+scripts/windows/native/Start-InternalTrial-Native.ps1:215:if (-not $initdb -or -not $pgCtl -or -not $psql) {
+scripts/windows/native/Start-InternalTrial-Native.ps1:217:postgres-binaries-missing: initdb/pg_ctl/psql not found on PATH or vendor\windows\pgsql\bin.
+scripts/windows/native/Start-InternalTrial-Native.ps1:225:redis-binaries-missing: redis-server not found under vendor\windows\redis\ (preferred) or PATH.
+scripts/windows/native/Start-InternalTrial-Native.ps1:239:# CRITICAL: never pipe initdb/pg_ctl through `| Out-Null` / `| Out-String`.
+scripts/windows/native/Start-InternalTrial-Native.ps1:246:  $initOut = Join-Path $LogDir "initdb.out.log"
+scripts/windows/native/Start-InternalTrial-Native.ps1:247:  $initErr = Join-Path $LogDir "initdb.err.log"
+scripts/windows/native/Start-InternalTrial-Native.ps1:249:    $initCode = Invoke-NativeToolProcess -FilePath $initdb `
+scripts/windows/native/Start-InternalTrial-Native.ps1:251:      -WorkingDirectory (Split-Path -Parent $initdb) `
+scripts/windows/native/Start-InternalTrial-Native.ps1:252:      -OutLog $initOut -ErrLog $initErr -TimeoutSec 180 -Label "initdb"
+scripts/windows/native/Start-InternalTrial-Native.ps1:254:    Fail "initdb-failed: $($_.Exception.Message)"
+scripts/windows/native/Start-InternalTrial-Native.ps1:256:  if ($initCode -ne 0) { Fail "initdb failed (exit $initCode; see .data/native/logs/initdb.*.log)" }
+scripts/windows/native/Start-InternalTrial-Native.ps1:269:# --- Start Postgres (wait on short-lived pg_ctl only; then poll readiness) ---
+scripts/windows/native/Start-InternalTrial-Native.ps1:272:$pgCtlOut = Join-Path $LogDir "pg_ctl_start.out.log"
+scripts/windows/native/Start-InternalTrial-Native.ps1:273:$pgCtlErr = Join-Path $LogDir "pg_ctl_start.err.log"
+scripts/windows/native/Start-InternalTrial-Native.ps1:275:  $pgStartCode = Invoke-NativeToolProcess -FilePath $pgCtl `
+scripts/windows/native/Start-InternalTrial-Native.ps1:278:    -OutLog $pgCtlOut -ErrLog $pgCtlErr -TimeoutSec 60 -Label "pg_ctl-start"
+scripts/windows/native/Start-InternalTrial-Native.ps1:283:  $stOut = Join-Path $LogDir "pg_ctl_status.out.log"
+scripts/windows/native/Start-InternalTrial-Native.ps1:284:  $stErr = Join-Path $LogDir "pg_ctl_status.err.log"
+scripts/windows/native/Start-InternalTrial-Native.ps1:287:    $stCode = Invoke-NativeToolProcess -FilePath $pgCtl `
+scripts/windows/native/Start-InternalTrial-Native.ps1:290:      -OutLog $stOut -ErrLog $stErr -TimeoutSec 15 -Label "pg_ctl-status"
+scripts/windows/native/Start-InternalTrial-Native.ps1:292:  if ($stCode -ne 0) { Fail "postgres-start-failed (pg_ctl exit $pgStartCode; see .data/native/logs/postgres.log / pg_ctl_start.*.log)" }
+scripts/windows/native/Start-InternalTrial-Native.ps1:336:# Start-LoggedProcess: file redirects + PassThru; do NOT wait on redis-server lifetime
+scripts/windows/native/Start-InternalTrial-Native.ps1:337:$null = Start-LoggedProcess -FilePath $redisServer -ArgumentList @($redisConf) `
+scripts/windows/native/Start-InternalTrial-Native.ps1:418:$null = Start-LoggedProcess -FilePath $nodeExe -ArgumentList @($apiMain) `
+scripts/windows/native/Start-InternalTrial-Native.ps1:431:$null = Start-LoggedProcess -FilePath $nodeExe -ArgumentList @($workerMain) `
+scripts/windows/native/Start-InternalTrial-Native.ps1:446:$null = Start-LoggedProcess -FilePath $nodeExe -ArgumentList @($gwMain) `
+scripts/windows/native/Stop-InternalTrial-Native.ps1:29:# Postgres via pg_ctl scoped to THIS project's data dir only
+scripts/windows/native/Stop-InternalTrial-Native.ps1:31:$vendor = Join-Path $VendorWin "pgsql\bin\pg_ctl.exe"
+scripts/windows/native/Stop-InternalTrial-Native.ps1:34:  $cmd = Get-Command pg_ctl -ErrorAction SilentlyContinue
+scripts/windows/native/Stop-InternalTrial-Native.ps1:39:    Write-Host "FAIL: refusing pg_ctl stop — PG data path outside project root" -ForegroundColor Red
+scripts/windows/native/Stop-InternalTrial-Native.ps1:45:  Write-Host "Stopping Postgres (pg_ctl -D project .data/native/pg)..."
+scripts/windows/native/Stop-InternalTrial-Native.ps1:48:  $stOut = Join-Path $LogDir "pg_ctl_stop.out.log"
+scripts/windows/native/Stop-InternalTrial-Native.ps1:49:  $stErr = Join-Path $LogDir "pg_ctl_stop.err.log"
+scripts/windows/native/Stop-InternalTrial-Native.ps1:51:    $null = Invoke-NativeToolProcess -FilePath $pgCtl `
+scripts/windows/native/Stop-InternalTrial-Native.ps1:54:      -OutLog $stOut -ErrLog $stErr -TimeoutSec 45 -Label "pg_ctl-stop"
+scripts/windows/native/Stop-InternalTrial-Native.ps1:56:    Write-Host "WARN: pg_ctl stop: $($_.Exception.Message)" -ForegroundColor Yellow
+
+=== Default ports ===
+scripts/windows/native/.env.native.example:7:# (Sub2API often occupies 15432 PG + 16379 Garnet — do NOT use those as Sales OS defaults).
+scripts/windows/native/.env.native.example:8:# Successful trial set: 55433 / 56380 / 39300 / 19280
+scripts/windows/native/.env.native.example:10:NATIVE_PG_PORT=55433
+scripts/windows/native/.env.native.example:11:NATIVE_REDIS_PORT=56380
+scripts/windows/native/.env.native.example:22:# DATABASE_URL=postgres://sales:...@127.0.0.1:55433/sales_os
+scripts/windows/native/.env.native.example:23:# REDIS_URL=redis://127.0.0.1:56380
+scripts/windows/native/Start-InternalTrial-Native.ps1:5:  Isolated Postgres+Redis on 127.0.0.1 (default 55433/56380; configurable —
+scripts/windows/native/Start-InternalTrial-Native.ps1:6:  prior trial ports 55432/56379 OK if free; avoid Sub2API 15432/16379) + Node API + worker + static gateway.
+scripts/windows/native/Start-InternalTrial-Native.ps1:69:  Fail "port-collision: $Label port $Port is already in use by [$who]. Refusing to kill the occupier or attach to a foreign DB. Set another NATIVE_*_PORT in .env.native. Defaults are 55433/56380/39300/19280. Avoid Sub2API/Garnet ports 15432/16379 and classic 5432/6379. Prior free trial pair 55432/56379 is also fine."
+scripts/windows/native/Start-InternalTrial-Native.ps1:116:NATIVE_PG_PORT=55433
+scripts/windows/native/Start-InternalTrial-Native.ps1:117:NATIVE_REDIS_PORT=56380
+scripts/windows/native/Start-InternalTrial-Native.ps1:161:$PgPort = PortOrDefault "NATIVE_PG_PORT" 55433
+scripts/windows/native/Start-InternalTrial-Native.ps1:162:$RedisPort = PortOrDefault "NATIVE_REDIS_PORT" 56380
+scripts/windows/native/Start-InternalTrial-Native.ps1:169:  Fail "refusing classic shared ports 5432/6379: set NATIVE_PG_PORT/NATIVE_REDIS_PORT to dedicated values (defaults 55433/56380; prior 55432/56379 OK if free)."
+scripts/windows/native/Start-InternalTrial-Native.ps1:171:# Soft warn only — port Assert-PortFree will FAIL hard if occupied (e.g. Sub2API on 15432 / Garnet on 16379)
+scripts/windows/native/Start-InternalTrial-Native.ps1:172:if ($PgPort -eq 15432 -or $RedisPort -eq 16379) {
+scripts/windows/native/Start-InternalTrial-Native.ps1:173:  Write-Host "WARN: NATIVE_* port 15432/16379 often occupied by Sub2API/Garnet — prefer defaults 55433/56380." -ForegroundColor Yellow
+START_WINDOWS.md:79:- 端口默认 **55433 / 56380 / 39300 / 19280**（拒绝 5432/6379；避免 Sub2API/Garnet 的 **15432 / 16379**；可在 `.env.native` 改为例如 **55432 / 56379** 若空闲）
+START_WINDOWS.md:87:**切勿**复用已有 Sub2API/Garnet 的数据目录或端口（常见 **15432 / 16379**）。端口占用时 Start **明确 FAIL**，不杀占用进程、不改写外来库。解压覆盖源码时保留 `.env.native` 与 `.data/`。校验和：未钉扎上游 SHA256 时只记本地 hash，不宣称 upstream verified。

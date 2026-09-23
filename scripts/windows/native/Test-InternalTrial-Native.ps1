@@ -26,7 +26,7 @@ function PortOr([string]$Key, [string]$Default) {
 
 $WebPort = PortOr "NATIVE_WEB_PORT" "19280"
 $ApiPort = PortOr "NATIVE_API_PORT" "39300"
-$RedisPort = [int](PortOr "NATIVE_REDIS_PORT" "16379")
+$RedisPort = [int](PortOr "NATIVE_REDIS_PORT" "56380")
 
 # Redis 5+ gate
 $redisServer = $null

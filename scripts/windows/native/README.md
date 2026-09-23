@@ -1,9 +1,10 @@
 # Windows 原生内部试用（无 Docker / 无 WSL）
 
 适用于 Windows 11 **没有 Docker Desktop** 的场景。使用仓库内隔离的
-Postgres + Redis（仅 `127.0.0.1`，默认端口 **15432 / 16379**；可在
-`.env.native` 改为例如 **55432 / 56379**），数据在 `.data/native/` —
-**绝不**复用 Sub2API 的 `5432` / `6379`。
+Postgres + Redis（仅 `127.0.0.1`，默认端口 **55433 / 56380**；可在
+`.env.native` 改为例如 **55432 / 56379** 若空闲），数据在 `.data/native/` —
+**绝不**复用 Sub2API/Garnet 的 `15432` / `16379` 或经典 `5432` / `6379`。
+解压/覆盖源码时请**保留**已有 `.env.native` 与 `.data/`。
 
 ## 快速开始
 
@@ -44,7 +45,7 @@ cd sales-os-app
 
 | 项 | 行为 |
 |---|---|
-| 端口 | 默认 15432 / 16379 / 39300 / 19280；占用则 FAIL；可改 `.env.native` |
+| 端口 | 默认 55433 / 56380 / 39300 / 19280；占用则 FAIL（不杀占用者）；可改 `.env.native` |
 | 绑定 | Postgres/Redis/`API_HOST` → `127.0.0.1`（原生强制） |
 | Docker | 容器不设 `API_HOST` 时 API 默认 `0.0.0.0`（与 bridge 兼容） |
 | 数据 | `.data/native/pg` + `redis`；带 `SALES_OS_NATIVE_TRIAL.marker` |
@@ -76,4 +77,5 @@ Optional harness (PS 5.1 / pwsh 7):
 ```
 
 Covers: no bare `Test-Path A -or Test-Path B`, no `$Host`/`$PID` params, Redis INFO
-multi-line join before `-match`, `Start-Process` ArgumentList quoting for paths with spaces.
+multi-line join before `-match`, `Start-Process` ArgumentList quoting for paths with spaces,
+no `| Out-Null` after `pg_ctl`/`initdb`/`redis-server` start, pipe-vs-file-redirect hang harness.

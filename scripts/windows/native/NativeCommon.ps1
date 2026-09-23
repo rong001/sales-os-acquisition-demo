@@ -250,7 +250,9 @@ function Get-RedisVersionString {
   }
   if ($RedisServerPath -and (Test-Path -LiteralPath $RedisServerPath)) {
     try {
-      $verOut = & $RedisServerPath --version 2>&1 | Out-String
+      # Short-lived --version: capture without pipeline (avoid Out-String hang class)
+      $verRaw = & $RedisServerPath --version 2>$null
+      $verOut = if ($null -eq $verRaw) { "" } elseif ($verRaw -is [System.Array]) { ($verRaw -join "`n") } else { [string]$verRaw }
       if ($verOut -match 'v=([0-9]+\.[0-9]+\.[0-9]+)') { return $Matches[1] }
       if ($verOut -match '([0-9]+\.[0-9]+\.[0-9]+)') { return $Matches[1] }
     } catch { }
@@ -278,8 +280,93 @@ function Assert-RedisVersionOk {
     Fail "redis-version-unknown: could not read Redis version. Worker needs Redis 5+ (streams XGROUP/XADD). Install tporadowski Redis 5.x via Fetch-NativeDeps.ps1 into vendor\windows\redis\ (do not use Redis 3.0.x MSOpenTech)."
   }
   if (-not (Test-RedisVersionAtLeast -Version $Version -MinMajor $MinMajor)) {
-    Fail "redis-too-old: found Redis $Version — need Redis $MinMajor+ for streams (XGROUP/XADD). Redis 3.0.504 is insufficient. Run Fetch-NativeDeps.ps1 (tporadowski Redis 5.0.14.1) into vendor\windows\redis\ and use dedicated NATIVE_REDIS_PORT (default 16379; trial may use 56379). Do not replace other Redis services."
+    Fail "redis-too-old: found Redis $Version — need Redis $MinMajor+ for streams (XGROUP/XADD). Redis 3.0.504 is insufficient. Run Fetch-NativeDeps.ps1 (tporadowski Redis 5.0.14.1) into vendor\windows\redis\ and use dedicated NATIVE_REDIS_PORT (default 56380; prior trial ports 55432/56379 also OK if free). Do not replace other Redis services. Avoid 15432/16379 (Sub2API/Garnet)."
   }
+}
+
+
+function Get-PortOccupierHint {
+  <#
+    Best-effort listener identity for FAIL messages. Never kills.
+    Returns a short string like "pid=1234 name=postgres" or "unknown".
+  #>
+  param([Parameter(Mandatory = $true)][int]$Port)
+  $bits = New-Object System.Collections.Generic.List[string]
+  try {
+    $listeners = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+      Where-Object { $_.LocalPort -eq $Port }
+    foreach ($l in @($listeners)) {
+      $oid = $null
+      try { $oid = [int]$l.OwningProcess } catch { }
+      if (-not $oid) { continue }
+      $info = Get-ProcessOwnershipInfo $oid
+      $nm = if ($info.Name) { $info.Name } else { "?" }
+      $hint = "pid=$oid name=$nm"
+      if ($info.ExecutablePath) {
+        $hint += (" path={0}" -f $info.ExecutablePath)
+      } elseif ($info.CommandLine) {
+        $cl = $info.CommandLine
+        if ($cl.Length -gt 120) { $cl = $cl.Substring(0, 117) + "..." }
+        $hint += (" cmd=$cl")
+      }
+      [void]$bits.Add($hint)
+    }
+  } catch { }
+  if ($bits.Count -eq 0) { return "unknown (could not resolve OwningProcess)" }
+  return ($bits -join "; ")
+}
+
+function Invoke-NativeToolProcess {
+  <#
+    Run a SHORT-LIVED native tool (initdb, pg_ctl, …) without PowerShell pipelines.
+    NEVER use `& tool … 2>&1 | Out-Null` for daemon starters: long-lived children
+    inherit the pipe and hang the parent forever (seen with pg_ctl start on Windows
+    spaced paths). Instead: Start-Process with stdout/stderr redirected to separate
+    log files, WaitForExit on the tool PID only, with an explicit timeout.
+    Does NOT wait on surviving children (postgres/redis-server).
+  #>
+  param(
+    [Parameter(Mandatory = $true)][string]$FilePath,
+    [Parameter(Mandatory = $true)]$ArgumentList,
+    [string]$WorkingDirectory = $null,
+    [Parameter(Mandatory = $true)][string]$OutLog,
+    [Parameter(Mandatory = $true)][string]$ErrLog,
+    [int]$TimeoutSec = 120,
+    [string]$Label = "tool"
+  )
+  $outDir = Split-Path -Parent $OutLog
+  if ($outDir) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
+  foreach ($lf in @($OutLog, $ErrLog)) {
+    if (Test-Path -LiteralPath $lf) { Remove-Item -LiteralPath $lf -Force -ErrorAction SilentlyContinue }
+    New-Item -ItemType File -Force -Path $lf | Out-Null
+  }
+  $argArr = @()
+  if ($ArgumentList -is [System.Array]) { $argArr = @($ArgumentList) } else { $argArr = @([string]$ArgumentList) }
+  $argString = Format-ProcessArgumentListString -Arguments $argArr
+  $spParams = @{
+    FilePath               = $FilePath
+    ArgumentList           = $argString
+    RedirectStandardOutput = $OutLog
+    RedirectStandardError  = $ErrLog
+    PassThru               = $true
+  }
+  if ($WorkingDirectory) { $spParams["WorkingDirectory"] = $WorkingDirectory }
+  $onWindows = $true
+  if ($PSVersionTable.PSVersion.Major -ge 6) { $onWindows = [bool]$IsWindows }
+  if ($onWindows) { $spParams["WindowStyle"] = "Hidden" }
+  $p = Start-Process @spParams
+  if (-not $p) { throw "Start-Process returned null for $Label ($FilePath)" }
+  $ms = [Math]::Max(1000, $TimeoutSec * 1000)
+  $finished = $p.WaitForExit($ms)
+  if (-not $finished) {
+    try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch { }
+    throw ("{0}-timeout: {1} did not exit within {2}s (pid={3}). See {4} / {5}. Surviving children were NOT killed." -f $Label, (Split-Path -Leaf $FilePath), $TimeoutSec, $p.Id, $OutLog, $ErrLog)
+  }
+  # ExitCode may need Refresh on some hosts
+  try { $p.Refresh() } catch { }
+  $code = 0
+  try { $code = [int]$p.ExitCode } catch { $code = -1 }
+  return $code
 }
 
 function Wait-TcpAccept {

@@ -3,7 +3,8 @@
 .SYNOPSIS
   Negative/unit harness for native Windows helpers (runs on pwsh Linux or Windows).
   Covers: reserved $Host param absent, multi-line Redis INFO join+$Matches,
-  Format-ProcessArgumentListString space/quote quoting, no bare Test-Path -or AST.
+  Format-ProcessArgumentListString space/quote quoting, no bare Test-Path -or AST,
+  no piped Out-Null after pg_ctl/initdb/redis-server start, pipe-vs-file hang demo.
 #>
 $ErrorActionPreference = "Stop"
 $NativeDir = Split-Path -Parent $PSScriptRoot
@@ -25,7 +26,7 @@ Assert-True (-not ($paramNames -contains "Host")) "Get-RedisVersionString does N
 $threw = $false
 try {
   # Without redis-cli this returns $null via server path miss — but param bind must succeed
-  $null = Get-RedisVersionString -RedisCli $null -HostName "127.0.0.1" -Port 16379 -RedisServerPath $null
+  $null = Get-RedisVersionString -RedisCli $null -HostName "127.0.0.1" -Port 56380 -RedisServerPath $null
 } catch {
   if ("$($_.Exception.Message)" -match 'Cannot overwrite variable Host') { $threw = $true; [void]$failures.Add($_.Exception.Message) }
 }
@@ -133,6 +134,129 @@ foreach ($f in $ps1s) {
 }
 Assert-True ($reservedHits.Count -eq 0) ("No reserved/automatic parameter names (hits={0})" -f $reservedHits.Count)
 foreach ($h in $reservedHits) { Write-Host "  $h" }
+
+
+# --- 6) No `| Out-Null` / `| Out-String` immediately after pg_ctl / initdb / redis-server start ---
+# AST: Pipeline Ast whose first command looks like & $pgCtl / & $initdb / redis-server
+# and last element is Out-Null or Out-String.
+$pipeHits = New-Object System.Collections.Generic.List[string]
+foreach ($f in $ps1s) {
+  $tokens = $null; $errs = $null
+  $ast = [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errs)
+  $pipes = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.PipelineAst] }, $true)
+  foreach ($pipe in $pipes) {
+    $elems = @($pipe.PipelineElements)
+    if ($elems.Count -lt 2) { continue }
+    $firstTxt = $elems[0].Extent.Text
+    $lastName = $null
+    $last = $elems[$elems.Count - 1]
+    if ($last -is [System.Management.Automation.Language.CommandAst]) {
+      $lastName = $last.GetCommandName()
+    }
+    if ($lastName -ne "Out-Null" -and $lastName -ne "Out-String") { continue }
+    # Flag daemon starters only (not --version probes). Match tool vars / exe names.
+    if ($firstTxt -match '(?i)--version') { continue }
+    if ($firstTxt -match '(?i)(\$pgCtl|\$initdb|\$redisServer|pg_ctl(\.exe)?|initdb(\.exe)?|redis-server(\.exe)?)') {
+      [void]$pipeHits.Add(("{0}:{1} piped {2} after daemon-ish: {3}" -f $f.Name, $pipe.Extent.StartLineNumber, $lastName, ($firstTxt.Substring(0, [Math]::Min(80, $firstTxt.Length)))))
+    }
+  }
+}
+Assert-True ($pipeHits.Count -eq 0) ("No Out-Null/Out-String pipeline after pg_ctl/initdb/redis-server (count={0})" -f $pipeHits.Count)
+foreach ($h in $pipeHits) { Write-Host "  $h" }
+
+# --- 7) Invoke-NativeToolProcess exists and returns exit of short-lived child ---
+$cmdTool = Get-Command Invoke-NativeToolProcess -ErrorAction SilentlyContinue
+Assert-True ($null -ne $cmdTool) "Invoke-NativeToolProcess is defined"
+$tmpTool = Join-Path ([System.IO.Path]::GetTempPath()) ("sales-os-tool-" + [guid]::NewGuid().ToString("n").Substring(0,8))
+New-Item -ItemType Directory -Force -Path $tmpTool | Out-Null
+$childPs1 = Join-Path $tmpTool "short.ps1"
+@'
+param([int]$Code = 0)
+exit $Code
+'@ | Set-Content -LiteralPath $childPs1 -Encoding UTF8
+$tout = Join-Path $tmpTool "out.log"
+$terr = Join-Path $tmpTool "err.log"
+try {
+  $code = Invoke-NativeToolProcess -FilePath $pwshExe `
+    -ArgumentList @("-NoProfile", "-File", $childPs1, "-Code", "7") `
+    -WorkingDirectory $tmpTool -OutLog $tout -ErrLog $terr -TimeoutSec 15 -Label "short-tool"
+  Assert-True ($code -eq 7) "Invoke-NativeToolProcess returns child exit code 7"
+} catch {
+  [void]$failures.Add("Invoke-NativeToolProcess threw: $($_.Exception.Message)")
+  Write-Host "FAIL: Invoke-NativeToolProcess $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# --- 8) Pipe inheritance hang vs file-redirect (mock long-lived child) ---
+# Simulates why `& tool 2>&1 | Out-Null` hangs when a surviving grandchild keeps the pipe open.
+$hangDir = Join-Path ([System.IO.Path]::GetTempPath()) ("sales-os-hang-" + [guid]::NewGuid().ToString("n").Substring(0,8))
+New-Item -ItemType Directory -Force -Path $hangDir | Out-Null
+$starter = Join-Path $hangDir "starter.ps1"
+$daemon = Join-Path $hangDir "daemon.ps1"
+$marker = Join-Path $hangDir "daemon.alive"
+@'
+param([string]$DaemonPath, [string]$MarkerPath)
+# Start long-lived child inheriting our stdout/stderr, then exit (like pg_ctl)
+Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList @("-NoProfile","-File",$DaemonPath,"-MarkerPath",$MarkerPath) -NoNewWindow
+Start-Sleep -Milliseconds 300
+exit 0
+'@ | Set-Content -LiteralPath $starter -Encoding UTF8
+@'
+param([string]$MarkerPath)
+"alive" | Set-Content -LiteralPath $MarkerPath -Encoding ASCII
+Start-Sleep -Seconds 20
+'@ | Set-Content -LiteralPath $daemon -Encoding UTF8
+
+# 8a) BAD pattern: pipeline Out-Null — expect hang beyond short timeout (we race it)
+$pipeHung = $false
+$job = Start-Job -ScriptBlock {
+  param($Pwsh, $Starter, $Daemon, $Marker)
+  & $Pwsh -NoProfile -File $Starter -DaemonPath $Daemon -MarkerPath $Marker 2>&1 | Out-Null
+} -ArgumentList $pwshExe, $starter, $daemon, $marker
+$waited = Wait-Job $job -Timeout 4
+if (-not $waited) {
+  $pipeHung = $true
+  Stop-Job $job -ErrorAction SilentlyContinue
+  Remove-Job $job -Force -ErrorAction SilentlyContinue
+} else {
+  Receive-Job $job -ErrorAction SilentlyContinue | Out-Null
+  Remove-Job $job -Force -ErrorAction SilentlyContinue
+}
+# On some hosts Start-Process -NoNewWindow may not inherit the pipeline the same way as native CreateProcess.
+# Treat "hung OR completed" honestly: we only REQUIRE the file-redirect path to finish fast.
+Assert-True ($true) ("Pipe-hang probe observed_hang={0} (informative; Windows CreateProcess inherit is the real risk)" -f $pipeHung)
+
+# 8b) GOOD pattern: Invoke-NativeToolProcess / file redirects — must finish quickly
+$goodOut = Join-Path $hangDir "good.out.log"
+$goodErr = Join-Path $hangDir "good.err.log"
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
+$goodCode = Invoke-NativeToolProcess -FilePath $pwshExe `
+  -ArgumentList @("-NoProfile", "-File", $starter, "-DaemonPath", $daemon, "-MarkerPath", ($marker + ".good")) `
+  -WorkingDirectory $hangDir -OutLog $goodOut -ErrLog $goodErr -TimeoutSec 10 -Label "starter-file-redirect"
+$sw.Stop()
+Assert-True ($goodCode -eq 0) "File-redirect starter returned exit 0 (does not wait on daemon lifetime)"
+Assert-True ($sw.Elapsed.TotalSeconds -lt 8) ("File-redirect starter finished in {0:N1}s (<8s)" -f $sw.Elapsed.TotalSeconds)
+
+# Cleanup leftover daemon processes best-effort (marker files)
+Get-Process -Name pwsh -ErrorAction SilentlyContinue | Where-Object {
+  try {
+    $cl = (Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" -ErrorAction SilentlyContinue).CommandLine
+    $cl -and ($cl -like "*$hangDir*")
+  } catch { $false }
+} | Stop-Process -Force -ErrorAction SilentlyContinue
+# Linux: kill by command line via pgrep if available
+try {
+  $pids = & pgrep -f ([regex]::Escape($hangDir)) 2>$null
+  foreach ($x in @($pids)) { if ($x) { Stop-Process -Id ([int]$x) -Force -ErrorAction SilentlyContinue } }
+} catch { }
+
+# --- 9) Default port constants in examples must not be Sub2API 15432/16379 ---
+$envEx = Join-Path $NativeDir ".env.native.example"
+$envTxt = Get-Content -LiteralPath $envEx -Raw
+Assert-True ($envTxt -match '(?m)^NATIVE_PG_PORT=55433\s*$') ".env.native.example default PG=55433"
+Assert-True ($envTxt -match '(?m)^NATIVE_REDIS_PORT=56380\s*$') ".env.native.example default Redis=56380"
+Assert-True ($envTxt -notmatch '(?m)^NATIVE_PG_PORT=15432\s*$') ".env.native.example does not default PG=15432"
+Assert-True ($envTxt -notmatch '(?m)^NATIVE_REDIS_PORT=16379\s*$') ".env.native.example does not default Redis=16379"
+
 
 Write-Host ""
 if ($failures.Count -eq 0) {

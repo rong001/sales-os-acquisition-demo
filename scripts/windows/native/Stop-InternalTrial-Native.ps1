@@ -43,7 +43,18 @@ if ($pgCtl -and (Test-Path -LiteralPath $PgData)) {
     Write-Host "WARN: marker missing — still stopping only via -D project pg data dir" -ForegroundColor Yellow
   }
   Write-Host "Stopping Postgres (pg_ctl -D project .data/native/pg)..."
-  & $pgCtl @('-D', $PgData, 'stop', '-m', 'fast') 2>$null | Out-Null
+  $LogDir = Join-Path $DataRoot "logs"
+  if (-not (Test-Path -LiteralPath $LogDir)) { New-Item -ItemType Directory -Force -Path $LogDir | Out-Null }
+  $stOut = Join-Path $LogDir "pg_ctl_stop.out.log"
+  $stErr = Join-Path $LogDir "pg_ctl_stop.err.log"
+  try {
+    $null = Invoke-NativeToolProcess -FilePath $pgCtl `
+      -ArgumentList @('-D', $PgData, 'stop', '-m', 'fast') `
+      -WorkingDirectory (Split-Path -Parent $pgCtl) `
+      -OutLog $stOut -ErrLog $stErr -TimeoutSec 45 -Label "pg_ctl-stop"
+  } catch {
+    Write-Host "WARN: pg_ctl stop: $($_.Exception.Message)" -ForegroundColor Yellow
+  }
 }
 
 if ($WipeData) {

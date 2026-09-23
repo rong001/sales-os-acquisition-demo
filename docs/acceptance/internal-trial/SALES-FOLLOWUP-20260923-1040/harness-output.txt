@@ -1,0 +1,23 @@
+PASS: Get-RedisVersionString has -HostName
+PASS: Get-RedisVersionString does NOT have -Host (automatic/read-only)
+PASS: Calling Get-RedisVersionString -HostName does not hit Host overwrite error
+PASS: Multi-line INFO joined string yields redis_version 5.0.14 via $Matches
+PASS: Quote two spaced paths
+PASS: Escape embedded double quotes as doubled quotes
+PASS: Unspaced arg stays bare
+FAIL: Start-LoggedProcess with space-containing -File path ran child and wrote marker
+PASS: No unparenthesized Test-Path -or/-and command elements (count=0)
+PASS: No reserved/automatic parameter names (hits=0)
+PASS: No Out-Null/Out-String pipeline after pg_ctl/initdb/redis-server (count=0)
+PASS: Invoke-NativeToolProcess is defined
+PASS: Invoke-NativeToolProcess returns child exit code 7
+PASS: Pipe-hang probe observed_hang=True (informative; Windows CreateProcess inherit is the real risk)
+PASS: File-redirect starter returned exit 0 (does not wait on daemon lifetime)
+PASS: File-redirect starter finished in 0.6s (<8s)
+PASS: .env.native.example default PG=55433
+PASS: .env.native.example default Redis=56380
+PASS: .env.native.example does not default PG=15432
+PASS: .env.native.example does not default Redis=16379
+
+HARNESS RESULT=FAIL count=1
+ - Start-LoggedProcess with space-containing -File path ran child and wrote marker
