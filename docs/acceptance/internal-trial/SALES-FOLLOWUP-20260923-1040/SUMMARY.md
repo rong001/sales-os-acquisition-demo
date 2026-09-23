@@ -37,7 +37,7 @@ Unzip/tar over source; **keep your private `.env.native` and `.data/`** (pack do
 
 ## Commits (pushed to main)
 -  — fix: native Start hang — no pipe Out-Null on pg_ctl/initdb; ports off Sub2API
-- (pack ship commit SHA filled after push)
+-  — chore: ship followup1040 pack + SHA256
 
 ## Pack
 - 
