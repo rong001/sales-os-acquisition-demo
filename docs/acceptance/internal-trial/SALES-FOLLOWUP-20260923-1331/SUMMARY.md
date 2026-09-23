@@ -47,7 +47,7 @@ See `DIFF-OVERLAY.md` — prefer overlaying the listed changed files onto an exi
 ## Commits
 
 - `8497186` — feat(api): title honesty, DNS/IP pin, verification current vs historical, outbox recovery
-- (ship + tip pins follow)
+- `b9d0303` — chore: ship followup1331 pack + overlay + SHA256
 
 ## Tip
-(pending ship commit)
+`b9d0303` (pack ship; docs pins follow)
