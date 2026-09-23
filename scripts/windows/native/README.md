@@ -58,6 +58,16 @@ cd sales-os-app
 若已安装并可运行 Docker Desktop，优先用
 `..\Start-InternalTrial.ps1` + `docker-compose.internal-trial.yml`。
 
+## Business acceptance (after Start + Test)
+
+```powershell
+.\scripts\windows\native\Invoke-BusinessAcceptance.ps1
+# equivalent: node .\scripts\acceptance\business-acceptance.mjs
+```
+
+Desensitized PASS/FAIL only; JWT in memory; credentials from `.env.native`.
+See `scripts/acceptance/README.md`. **Does not** claim Windows browser UI PASS.
+
 ## Parser / quality gate (maintainer)
 
 Before shipping native script changes, parse **every** `.ps1` under `scripts/windows/`:

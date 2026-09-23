@@ -102,3 +102,15 @@ cd sales-os-app
 - **不要**用 `bash scripts/supervise.sh`（依赖 `/proc`/`ss`/`pkill`，不适用于 Windows PowerShell）。  
 - 不买新付费服务；不群发邮件/电话/私信；不买线索。  
 - 不含真实客户数据；合成线索与 `source_type=public_web_sample` 公开样例已区分标注。
+
+---
+
+## Business acceptance (after Start + Test)
+
+```powershell
+.\scripts\windows\native\Invoke-BusinessAcceptance.ps1
+```
+
+Desensitized PASS/FAIL; JWT in memory; credentials from `.env.native`.
+See `scripts/acceptance/README.md`. Does **not** replace typed browser UI login.
+
