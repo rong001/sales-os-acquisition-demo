@@ -1,0 +1,4 @@
+- Bot base URL: http://127.0.0.1:18180 (web /api proxy). Native default 19280 on Windows.
+- Due reminder honesty: wall-clock past next_follow_at; in-app due list; no outbound.
+- Persistence: bot = re-login same process; Windows Start→Stop→Start infra already user PASS.
+- Sub2API 15432/16379 not touched.

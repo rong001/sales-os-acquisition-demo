@@ -1,0 +1,180 @@
+{
+  "suite": "business-acceptance",
+  "pack": "SALES-FOLLOWUP-20260923-1112",
+  "ran_at": "2026-09-23T03:23:28.945Z",
+  "base": "http://127.0.0.1:18180",
+  "host_note": "bot-or-local; NOT a claim of Windows browser UI PASS",
+  "public_samples_imported": [
+    {
+      "alias": "a5992771",
+      "company": "Stripe, Inc.",
+      "source_type": "public_web_sample",
+      "official_site_url": "https://stripe.com/",
+      "fetch_time": "2026-09-23T03:23:27.593Z"
+    },
+    {
+      "alias": "e59d1c1b",
+      "company": "GitLab Inc.",
+      "source_type": "public_web_sample",
+      "official_site_url": "https://about.gitlab.com/",
+      "fetch_time": "2026-09-23T03:23:27.593Z"
+    },
+    {
+      "alias": "a8025439",
+      "company": "Cloudflare, Inc.",
+      "source_type": "public_web_sample",
+      "official_site_url": "https://www.cloudflare.com/",
+      "fetch_time": "2026-09-23T03:23:27.593Z"
+    },
+    {
+      "alias": "f71db890",
+      "company": "Notion Labs, Inc.",
+      "source_type": "public_web_sample",
+      "official_site_url": "https://www.notion.com/",
+      "fetch_time": "2026-09-23T03:23:27.593Z"
+    }
+  ],
+  "synthetic_negatives_used": [],
+  "due_reminder_honesty": "Used wall-clock past next_follow_at; in-app due list only; no outbound email/SMS/phone.",
+  "assertions": [
+    {
+      "alias": "health",
+      "status": "PASS",
+      "note": "HTTP 200"
+    },
+    {
+      "alias": "login-manager",
+      "status": "PASS",
+      "note": "HTTP 201 role=supervisor"
+    },
+    {
+      "alias": "login-sales1",
+      "status": "PASS",
+      "note": "ok"
+    },
+    {
+      "alias": "login-sales2",
+      "status": "PASS",
+      "note": "ok"
+    },
+    {
+      "alias": "neg-anon-401",
+      "status": "PASS",
+      "note": "HTTP 401"
+    },
+    {
+      "alias": "neg-wrong-password-401",
+      "status": "PASS",
+      "note": "HTTP 401"
+    },
+    {
+      "alias": "resolve-seats",
+      "status": "PASS",
+      "note": "seats=2"
+    },
+    {
+      "alias": "import-stripe",
+      "status": "PASS",
+      "note": "case_alias=a5992771 merged=true"
+    },
+    {
+      "alias": "import-fetch-hashicorp",
+      "status": "SKIP",
+      "note": "official site fetch HTTP 429 (soft)"
+    },
+    {
+      "alias": "import-gitlab",
+      "status": "PASS",
+      "note": "case_alias=e59d1c1b merged=true"
+    },
+    {
+      "alias": "import-cloudflare",
+      "status": "PASS",
+      "note": "case_alias=a8025439 merged=true"
+    },
+    {
+      "alias": "import-notion",
+      "status": "PASS",
+      "note": "case_alias=f71db890 merged=true"
+    },
+    {
+      "alias": "import-public-count",
+      "status": "PASS",
+      "note": "count=4"
+    },
+    {
+      "alias": "normalize-dedupe",
+      "status": "PASS",
+      "note": "merged=true HTTP 201"
+    },
+    {
+      "alias": "assign-manager",
+      "status": "PASS",
+      "note": "A→sales1"
+    },
+    {
+      "alias": "assign-manager-b",
+      "status": "PASS",
+      "note": "B→sales2"
+    },
+    {
+      "alias": "agent-isolation",
+      "status": "PASS",
+      "note": "sales1→sales2 case HTTP 403"
+    },
+    {
+      "alias": "agent-isolation-workbench",
+      "status": "PASS",
+      "note": "ok"
+    },
+    {
+      "alias": "neg-overreach-no-write",
+      "status": "PASS",
+      "note": "HTTP 403 stage_unchanged=true"
+    },
+    {
+      "alias": "follow-set-due",
+      "status": "PASS",
+      "note": "HTTP 201"
+    },
+    {
+      "alias": "due-reminder",
+      "status": "PASS",
+      "note": "honesty=wall_clock_past next_follow_at; in_app_only; dueList=true wb=true"
+    },
+    {
+      "alias": "opportunity-win",
+      "status": "PASS",
+      "note": "stage=WON"
+    },
+    {
+      "alias": "opportunity-lose",
+      "status": "PASS",
+      "note": "stage=LOST"
+    },
+    {
+      "alias": "manager-funnel",
+      "status": "PASS",
+      "note": "HTTP 200"
+    },
+    {
+      "alias": "manager-board-read",
+      "status": "PASS",
+      "note": "manager sees WON"
+    },
+    {
+      "alias": "persist-restart-cmd",
+      "status": "PASS",
+      "note": "SKIP full Stop→Start on this host; Windows native Start→Stop→Start already PASS (user). Bot verifies re-login persistence."
+    },
+    {
+      "alias": "business-persistence",
+      "status": "PASS",
+      "note": "mode=relogin_same_process stage=WON owner_match=true"
+    }
+  ],
+  "overall": "PASS",
+  "fail_count": 0,
+  "skip_count": 1,
+  "redaction": "no JWT/passwords/raw API bodies/customer detail dumps in this file"
+}

@@ -1,0 +1,31 @@
+== business-acceptance base=http://127.0.0.1:18180 proxy=true ==
+(credentials loaded from .env.native; secrets never printed)
+PASS health — HTTP 200
+PASS login-manager — HTTP 201 role=supervisor
+PASS login-sales1 — ok
+PASS login-sales2 — ok
+PASS neg-anon-401 — HTTP 401
+PASS neg-wrong-password-401 — HTTP 401
+PASS resolve-seats — seats=2
+PASS import-stripe — case_alias=a5992771 merged=true
+SKIP import-fetch-hashicorp — official site fetch HTTP 429 (soft)
+PASS import-gitlab — case_alias=e59d1c1b merged=true
+PASS import-cloudflare — case_alias=a8025439 merged=true
+PASS import-notion — case_alias=f71db890 merged=true
+PASS import-public-count — count=4
+PASS normalize-dedupe — merged=true HTTP 201
+PASS assign-manager — A→sales1
+PASS assign-manager-b — B→sales2
+PASS agent-isolation — sales1→sales2 case HTTP 403
+PASS agent-isolation-workbench — ok
+PASS neg-overreach-no-write — HTTP 403 stage_unchanged=true
+PASS follow-set-due — HTTP 201
+PASS due-reminder — honesty=wall_clock_past next_follow_at; in_app_only; dueList=true wb=true
+PASS opportunity-win — stage=WON
+PASS opportunity-lose — stage=LOST
+PASS manager-funnel — HTTP 200
+PASS manager-board-read — manager sees WON
+PASS persist-restart-cmd — SKIP full Stop→Start on this host; Windows native Start→Stop→Start already PASS (user). Bot verifies re-login persistence.
+PASS business-persistence — mode=relogin_same_process stage=WON owner_match=true
+wrote /workspace/sales-os-app/docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1112/business-acceptance-results.json
+OVERALL PASS (fail_count=0)
