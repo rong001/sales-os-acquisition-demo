@@ -1,0 +1,34 @@
+{
+  "case": "SALES-FOLLOWUP-20260923-1040",
+  "ran_at": "2026-09-23T02:52:44.999883Z",
+  "fix_commit": "276f46e07625fc3b8b5209d43c754f8cc510cefb",
+  "pack": "sales-os-internal-trial-local-20260923-followup1040.tar.gz",
+  "pack_bytes": 4849146,
+  "pack_sha256": "4b208a20c798366094f84caa4ee2d1b1cbaa5a601006010e9c54d3d8427b981c",
+  "parser_parsefile": "PASS TOTAL_PARSE_ERRORS=0 (9 ps1 files)",
+  "harness": "PASS (bot Linux pwsh \u2014 pipe hang observed_hang=True; file-redirect <1s \u2014 not Windows PASS)",
+  "windows_e2e_pass_claimed": false,
+  "root_cause": "confirmed: PowerShell pipeline Out-Null after pg_ctl/initdb inherits handles into long-lived postgres; parent hangs",
+  "defaults_ports": [
+    55433,
+    56380,
+    39300,
+    19280
+  ],
+  "avoid_ports": [
+    15432,
+    16379,
+    5432,
+    6379
+  ],
+  "ps1_fixed": [
+    "scripts/windows/native/NativeCommon.ps1",
+    "scripts/windows/native/Start-InternalTrial-Native.ps1",
+    "scripts/windows/native/Stop-InternalTrial-Native.ps1",
+    "scripts/windows/native/Test-InternalTrial-Native.ps1",
+    "scripts/windows/native/.env.native.example",
+    "scripts/windows/native/README.md",
+    "scripts/windows/native/tests/Test-NativeCommon-Harness.ps1",
+    "START_WINDOWS.md"
+  ]
+}

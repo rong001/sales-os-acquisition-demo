@@ -33,7 +33,14 @@ Unzip/tar over source; **keep your private `.env.native` and `.data/`** (pack do
 - `pipe-hang-audit.txt`
 - `notes.md`
 - `codex-retest.md`
-- `results.json` (after pack)
+- `results.json`
 
-## Pack / commits
-Filled in `results.json` after ship.
+## Commits (pushed to main)
+-  — fix: native Start hang — no pipe Out-Null on pg_ctl/initdb; ports off Sub2API
+- (pack ship commit SHA filled after push)
+
+## Pack
+- 
+- bytes: 4849146
+- SHA256: 
+- Also at  and ; symlink  → followup1040
