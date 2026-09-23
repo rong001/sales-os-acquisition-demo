@@ -38,7 +38,8 @@ Unzip/tar over source; **keep your private `.env.native` and `.data/`** (pack do
 ## Commits (pushed to main)
 - `276f46e07625fc3b8b5209d43c754f8cc510cefb` — fix: native Start hang — no pipe Out-Null on pg_ctl/initdb; ports off Sub2API
 - `9948203acea73ed815d5467cbf4bb8f9ab6fe596` — chore: ship followup1040 pack + SHA256
-- `1b6d5d8668575fe57e38edc3a0e71355c2954d05` — docs: pin summary to pack SHAs (this tip)
+- `1b6d5d8668575fe57e38edc3a0e71355c2954d05` — docs: pin summary to pack SHAs
+- tip after this rewrite: see `git rev-parse HEAD` / origin/main after push
 
 ## Pack
 - `sales-os-internal-trial-local-20260923-followup1040.tar.gz`
