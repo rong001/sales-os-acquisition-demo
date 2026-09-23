@@ -3,11 +3,9 @@
     <div class="topbar">
       <div>
         <h2 style="margin:0">今日作战台</h2>
-        <p class="muted" style="margin:0">{{ user?.display_name }} · {{ user?.tenant_name || '演示销售公司' }} · {{ user?.role }}</p>
+        <p class="muted" style="margin:0">{{ user?.display_name }} · {{ user?.tenant_name || '企业 AI 定制销售' }} · {{ user?.role }}</p>
       </div>
       <div class="row">
-        <a class="btn" href="/p/ticket-grab" target="_blank">落地页·抢票</a>
-        <a class="btn" href="/p/usgate" target="_blank">落地页·USGate</a>
         <button v-if="canFunnel" class="btn" @click="$router.push('/admin/funnel')">漏斗</button>
         <button v-if="canFunnel" class="btn" @click="$router.push('/admin/conversion')">来源转化</button>
         <button v-if="canFunnel" class="btn" @click="$router.push('/admin/growth')">获客配置</button>
@@ -172,8 +170,8 @@ async function runHappyPath() {
   try {
     const phone = `138${String(Date.now()).slice(-8)}`;
     const intake = await LeadApi.intake({
-      phone, name: '演示客户', source_type: 'ad_form', campaign: 'm1-demo',
-      path: 'STANDARD', product_code: 'ticket-grab',
+      phone, name: '试用客户（合成）', source_type: 'ad_form', campaign: 'enterprise-ai-sales',
+      path: 'STANDARD', product_code: 'usgate',
       consent_accepted: true,
       utm_source: 'demo', utm_medium: 'workbench', invite_code: 'DEMO01',
     });
