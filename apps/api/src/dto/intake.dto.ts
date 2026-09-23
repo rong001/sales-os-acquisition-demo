@@ -1,5 +1,5 @@
 import {
-  IsBoolean, IsEmail, IsOptional, IsString, IsArray, MaxLength, MinLength,
+  IsBoolean, IsEmail, IsOptional, IsString, IsArray, IsObject, MaxLength, MinLength,
   ValidateIf,
 } from 'class-validator';
 
@@ -53,4 +53,8 @@ export class PublicIntakeDto {
   @IsOptional() @IsString() @MaxLength(64) invite_code?: string;
   @IsOptional() @IsString() @MaxLength(500) landing_url?: string;
   @IsOptional() @IsString() @MaxLength(64) form_id?: string;
+
+  /** Provenance bag (e.g. public_web_sample fetch metadata). Never use for secrets. */
+  @IsOptional() @IsObject()
+  raw?: Record<string, unknown>;
 }

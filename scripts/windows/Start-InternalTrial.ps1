@@ -89,6 +89,7 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 docker-not-running: Docker 未安装或不在 PATH。
 请先安装并启动 Docker Desktop（https://www.docker.com/products/docker-desktop/），然后重新打开 PowerShell 再运行本脚本。
 本脚本不会自动安装 Docker Desktop。
+若本机无 Docker / 无 WSL：改用 .\scripts\windows\native\Start-InternalTrial-Native.ps1（见 START_WINDOWS.md 路径 B）。
 "@
 }
 

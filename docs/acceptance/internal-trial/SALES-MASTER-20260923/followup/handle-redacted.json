@@ -1,0 +1,22 @@
+{
+  "case": {
+    "id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+    "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+    "identity_id": "c1ec4e24-bffc-4c48-b481-a600de8fa4c7",
+    "source_id": "64df345e-2528-4360-a89f-3a9a57cf9dd7",
+    "scene_id": "landing:ticket-grab",
+    "product_code": "ticket-grab",
+    "path": "STANDARD",
+    "stage": "ASSIGNED",
+    "owner_agent_id": "c30c1b36-65e6-4102-8a33-ded61a573209",
+    "skill_group_id": "42258668-7fb2-41ba-92e0-065929c85434",
+    "flags": {},
+    "intent_level": "unknown",
+    "intent_qualified": false,
+    "next_follow_at": "2026-09-23T01:31:09.595Z",
+    "follow_up_status": "handled",
+    "created_at": "2026-09-23T01:36:09.181Z",
+    "updated_at": "2026-09-23T01:36:15.151Z"
+  },
+  "idempotent": false
+}

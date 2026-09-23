@@ -1,6 +1,6 @@
 # Internal trial pack — Windows (Docker Desktop) + Linux/macOS.
 # Reuses apps/*/Dockerfile and scripts/sql/001_schema.sql.
-# Postgres/Redis: internal network only (no host ports).
+# Postgres/Redis: internal network only (no host ports) — intended for Docker Desktop.
 # Published ports bind 127.0.0.1 only. Defaults: web 18180, api 3100.
 #
 # Usage:
@@ -9,6 +9,11 @@
 #   open http://127.0.0.1:18180
 #
 # Isolated verify (bot): COMPOSE_PROJECT_NAME=salesos_trial_clean HOST_WEB_PORT=19180 HOST_API_PORT=39100 ...
+#
+# If container↔container TCP fails (nested Docker / broken bridge ICC), use the Linux
+# host-network overlay instead:
+#   docker compose -f docker-compose.internal-trial.yml -f docker-compose.internal-trial.linux-hostnet.yml --env-file .env up -d --build
+# Or Windows-native (no Docker): scripts/windows/native/Start-InternalTrial-Native.ps1
 
 name: ${COMPOSE_PROJECT_NAME:-salesos_internal_trial}
 
@@ -28,10 +33,11 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    networks: [trial]
 
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["redis-server", "--appendonly", "yes", "--bind", "0.0.0.0"]
     volumes:
       - redisdata:/data
     healthcheck:
@@ -40,6 +46,7 @@ services:
       timeout: 3s
       retries: 10
     restart: unless-stopped
+    networks: [trial]
 
   api:
     build:
@@ -67,7 +74,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
     restart: unless-stopped
+    networks: [trial]
 
   worker:
     build:
@@ -84,6 +98,7 @@ services:
       api:
         condition: service_started
     restart: unless-stopped
+    networks: [trial]
 
   web:
     build:
@@ -96,8 +111,14 @@ services:
     ports:
       - "127.0.0.1:${HOST_WEB_PORT:-18180}:80"
     depends_on:
-      - api
+      api:
+        condition: service_started
     restart: unless-stopped
+    networks: [trial]
+
+networks:
+  trial:
+    driver: bridge
 
 volumes:
   pgdata:

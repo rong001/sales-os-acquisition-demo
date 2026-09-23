@@ -1,0 +1,30 @@
+{
+  "base": "http://127.0.0.1:19280",
+  "email": "manager@demo.local",
+  "localStorage_inject": false,
+  "typed_credentials": true,
+  "overall": "PASS",
+  "steps": [
+    {
+      "name": "open_/login",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "type_credentials",
+      "ok": true,
+      "detail": "no localStorage inject"
+    },
+    {
+      "name": "session_established",
+      "ok": true,
+      "detail": "url=http://127.0.0.1:19280/ role=supervisor"
+    },
+    {
+      "name": "workbench_loads",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "role": "supervisor"
+}

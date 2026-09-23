@@ -1,0 +1,11 @@
+[
+  {
+    "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+    "owner_agent_id": "c30c1b36-65e6-4102-8a33-ded61a573209",
+    "stage": "ASSIGNED",
+    "product_code": "ticket-grab",
+    "next_follow_at": "2026-09-23T01:31:09.595Z",
+    "follow_up_status": "open",
+    "updated_at": "2026-09-23T01:36:09.627Z"
+  }
+]

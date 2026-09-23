@@ -1,0 +1,337 @@
+{
+  "case": {
+    "id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+    "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+    "identity_id": "c1ec4e24-bffc-4c48-b481-a600de8fa4c7",
+    "source_id": "64df345e-2528-4360-a89f-3a9a57cf9dd7",
+    "scene_id": "landing:ticket-grab",
+    "product_code": "ticket-grab",
+    "path": "STANDARD",
+    "stage": "ASSIGNED",
+    "owner_agent_id": "c30c1b36-65e6-4102-8a33-ded61a573209",
+    "skill_group_id": "42258668-7fb2-41ba-92e0-065929c85434",
+    "flags": {},
+    "intent_level": "unknown",
+    "intent_qualified": false,
+    "next_follow_at": "2026-09-23T01:31:09.595Z",
+    "follow_up_status": "open",
+    "created_at": "2026-09-23T01:36:09.181Z",
+    "updated_at": "2026-09-23T01:36:09.627Z"
+  },
+  "identity": {
+    "id": "c1ec4e24-bffc-4c48-b481-a600de8fa4c7",
+    "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+    "phone": "133****7368",
+    "wechat_id": null,
+    "email": null,
+    "name": "跟进提醒合成线索",
+    "company_name": null,
+    "merge_key": "phone:133****7368",
+    "created_at": "2026-09-23T01:36:09.177Z"
+  },
+  "source": {
+    "id": "64df345e-2528-4360-a89f-3a9a57cf9dd7",
+    "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+    "type": "manual_import",
+    "campaign": "in_app_due",
+    "adset": null,
+    "creative": null,
+    "landing_url": null,
+    "form_id": "landing:ticket-grab",
+    "import_batch_id": null,
+    "utm_source": "followup_reminder_e2e",
+    "utm_medium": "script",
+    "utm_campaign": "in_app_due",
+    "utm_content": null,
+    "utm_term": null,
+    "invite_code": null,
+    "product_code": "ticket-grab",
+    "raw_payload": {
+      "utm": {
+        "medium": "script",
+        "source": "followup_reminder_e2e",
+        "campaign": "in_app_due"
+      },
+      "product_code": "ticket-grab"
+    },
+    "created_at": "2026-09-23T01:36:09.180Z"
+  },
+  "ownership": {
+    "id": "686a6dfc-cf7d-49fe-9ee8-fde118ac626e",
+    "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+    "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+    "agent_id": "c30c1b36-65e6-4102-8a33-ded61a573209",
+    "reason": "admin_assign",
+    "protect_until": "2026-09-25T01:36:09.283Z",
+    "status": "active",
+    "created_at": "2026-09-23T01:36:09.284Z"
+  },
+  "plan": {
+    "id": "2870c2b3-efd5-4699-be97-120****12815",
+    "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+    "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+    "sequence": [
+      {
+        "channel": "mock_call",
+        "max_attempts": 1,
+        "template_ref": "demo-script-ticket-grab"
+      }
+    ],
+    "parallel_group": null,
+    "status": "active",
+    "version": 1,
+    "created_at": "2026-09-23T01:36:09.254Z"
+  },
+  "attempts": [],
+  "receipts": [],
+  "appointments": [],
+  "consents": [
+    {
+      "id": "d39b3876-3446-4bd1-ac9b-b150bedf4147",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "identity_id": "c1ec4e24-bffc-4c48-b481-a600de8fa4c7",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "channel": "call",
+      "status": "granted",
+      "evidence_ref": "consent:v1.0-2026:57d15d2f63f1",
+      "consent_text": "我已阅读并同意贵司在业务沟通范围内通过电话/短信联系我，了解所咨询产品的服务说明。同意可随时撤回。",
+      "consent_text_hash": "57d15d2f63f169f90e1bf9c812928a07e8c0fa22f0a4752204ecb0cb6e658b18",
+      "consent_version": "v1.0-2026",
+      "source_channel": "followup_reminder_e2e",
+      "consent_accepted_at": "2026-09-23T01:36:09.183Z",
+      "ip": null,
+      "user_agent": null,
+      "granted_at": "2026-09-23T01:36:09.183Z",
+      "expires_at": null,
+      "created_at": "2026-09-23T01:36:09.184Z"
+    },
+    {
+      "id": "7779d395-2d1a-4342-96e4-82e4a324137d",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "identity_id": "c1ec4e24-bffc-4c48-b481-a600de8fa4c7",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "channel": "sms",
+      "status": "granted",
+      "evidence_ref": "consent:v1.0-2026:57d15d2f63f1",
+      "consent_text": "我已阅读并同意贵司在业务沟通范围内通过电话/短信联系我，了解所咨询产品的服务说明。同意可随时撤回。",
+      "consent_text_hash": "57d15d2f63f169f90e1bf9c812928a07e8c0fa22f0a4752204ecb0cb6e658b18",
+      "consent_version": "v1.0-2026",
+      "source_channel": "followup_reminder_e2e",
+      "consent_accepted_at": "2026-09-23T01:36:09.183Z",
+      "ip": null,
+      "user_agent": null,
+      "granted_at": "2026-09-23T01:36:09.183Z",
+      "expires_at": null,
+      "created_at": "2026-09-23T01:36:09.186Z"
+    },
+    {
+      "id": "06d77a0e-b1a2-4971-9463-1e53e04eb4dd",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "identity_id": "c1ec4e24-bffc-4c48-b481-a600de8fa4c7",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "channel": "email",
+      "status": "granted",
+      "evidence_ref": "consent:v1.0-2026:57d15d2f63f1",
+      "consent_text": "我已阅读并同意贵司在业务沟通范围内通过电话/短信联系我，了解所咨询产品的服务说明。同意可随时撤回。",
+      "consent_text_hash": "57d15d2f63f169f90e1bf9c812928a07e8c0fa22f0a4752204ecb0cb6e658b18",
+      "consent_version": "v1.0-2026",
+      "source_channel": "followup_reminder_e2e",
+      "consent_accepted_at": "2026-09-23T01:36:09.183Z",
+      "ip": null,
+      "user_agent": null,
+      "granted_at": "2026-09-23T01:36:09.183Z",
+      "expires_at": null,
+      "created_at": "2026-09-23T01:36:09.187Z"
+    }
+  ],
+  "activities": [
+    {
+      "id": "5f62c85f-45ff-4a81-9e9e-fa1304816502",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "actor_user_id": "f8c032ad-efd6-45c5-bcc6-38797bbf4643",
+      "kind": "note",
+      "body": "设定未来跟进（未到期）",
+      "meta": {
+        "next_follow_at": "2026-09-23T03:36:09.364Z"
+      },
+      "created_at": "2026-09-23T01:36:09.394Z"
+    },
+    {
+      "id": "674cd78c-96c8-4598-92b0-c4eb305c7cd8",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "actor_user_id": "f8c032ad-efd6-45c5-bcc6-38797bbf4643",
+      "kind": "note",
+      "body": "设定已到期跟进",
+      "meta": {
+        "source": "followup_reminder_e2e",
+        "channel": "call",
+        "next_follow_at": "2026-09-23T01:31:09.595Z"
+      },
+      "created_at": "2026-09-23T01:36:09.624Z"
+    }
+  ],
+  "events": [
+    {
+      "id": "81741273-4ee7-4874-ac8b-c9692f8a2ac4",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "type": "lead.captured",
+      "occurred_at": "2026-09-23T01:36:09.189Z",
+      "received_at": "2026-09-23T01:36:09.189Z",
+      "actor": "25394cc4-00a6-4eda-8504-44878a67fe05",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "merged": false,
+        "merge_key": "phone:133****7368",
+        "source_id": "64df345e-2528-4360-a89f-3a9a57cf9dd7",
+        "identity_id": "c1ec4e24-bffc-4c48-b481-a600de8fa4c7",
+        "invite_code": null,
+        "product_code": "ticket-grab"
+      },
+      "version": 1
+    },
+    {
+      "id": "f48c12f0-cc71-48ed-b591-57035c8f0802",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "type": "lead.qualified",
+      "occurred_at": "2026-09-23T01:36:09.255Z",
+      "received_at": "2026-09-23T01:36:09.255Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "path": "STANDARD"
+      },
+      "version": 1
+    },
+    {
+      "id": "b72fcafa-a522-4ad5-8cfe-d1847e347ffc",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "type": "lead.path_assigned",
+      "occurred_at": "2026-09-23T01:36:09.260Z",
+      "received_at": "2026-09-23T01:36:09.260Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "path": "STANDARD"
+      },
+      "version": 1
+    },
+    {
+      "id": "e692731d-b1b3-45b7-860c-c8a6b29399e1",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "type": "reach.plan_created",
+      "occurred_at": "2026-09-23T01:36:09.263Z",
+      "received_at": "2026-09-23T01:36:09.263Z",
+      "actor": "system",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "plan_id": "2870c2b3-efd5-4699-be97-120****12815"
+      },
+      "version": 1
+    },
+    {
+      "id": "9a448f94-87a1-40f3-a8bf-4b43d775c647",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "type": "case.assigned",
+      "occurred_at": "2026-09-23T01:36:09.291Z",
+      "received_at": "2026-09-23T01:36:09.291Z",
+      "actor": "25394cc4-00a6-4eda-8504-44878a67fe05",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "agent_id": "c30c1b36-65e6-4102-8a33-ded61a573209"
+      },
+      "version": 1
+    },
+    {
+      "id": "ecb716a7-7e0b-4274-acf9-beb7daf2bdd7",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "type": "ownership.bound",
+      "occurred_at": "2026-09-23T01:36:09.295Z",
+      "received_at": "2026-09-23T01:36:09.295Z",
+      "actor": "25394cc4-00a6-4eda-8504-44878a67fe05",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "ownership_id": "686a6dfc-cf7d-49fe-9ee8-fde118ac626e",
+        "protect_until": "2026-09-25T01:36:09.283Z"
+      },
+      "version": 1
+    },
+    {
+      "id": "8f22ad0f-858c-4961-89cd-180b6c99b477",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "type": "case.followup_added",
+      "occurred_at": "2026-09-23T01:36:09.399Z",
+      "received_at": "2026-09-23T01:36:09.399Z",
+      "actor": "f8c032ad-efd6-45c5-bcc6-38797bbf4643",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "kind": "note",
+        "activity_id": "5f62c85f-45ff-4a81-9e9e-fa1304816502",
+        "next_follow_at": "2026-09-23T03:36:09.364Z",
+        "follow_up_status": "open"
+      },
+      "version": 1
+    },
+    {
+      "id": "3367389c-c511-4b17-8f35-ceb37f53722d",
+      "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+      "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+      "type": "case.followup_added",
+      "occurred_at": "2026-09-23T01:36:09.628Z",
+      "received_at": "2026-09-23T01:36:09.628Z",
+      "actor": "f8c032ad-efd6-45c5-bcc6-38797bbf4643",
+      "correlation_id": null,
+      "causation_id": null,
+      "payload": {
+        "kind": "note",
+        "activity_id": "674cd78c-96c8-4598-92b0-c4eb305c7cd8",
+        "next_follow_at": "2026-09-23T01:31:09.595Z",
+        "follow_up_status": "open"
+      },
+      "version": 1
+    }
+  ],
+  "product": {
+    "code": "ticket-grab",
+    "name_zh": "抢票助手",
+    "name_en": "Ticket Grab",
+    "tagline": "高峰出行预约咨询 · 自愿留资（演示）",
+    "amount_hint": "咨询免费；正式服务费用以确认单为准，不含效果承诺",
+    "cancel_policy": "预约开始前 2 小时可取消；临近 2 小时取消记入爽约统计",
+    "commitment_boundary": "本预约不构成抢票成功率或价格承诺；成单需另行确认",
+    "skill": "ticket-grab",
+    "demo_live_url": "https://159.75.71.192:18444/",
+    "intake_url": "https://159.75.71.192:18444/intake",
+    "capabilities_url": "https://159.75.71.192:18444/capabilities",
+    "repo_url": "https://github.com/rong001/ticket-grab-cloud-demo",
+    "repo_tip": "9ee80b0",
+    "status_label": "演示可用 · 不可标正式可售",
+    "service_disclaimer": "本页为「演示留资」入口，不等于正式服务合同或可售承诺。正式服务以书面确认单为准。",
+    "capabilities": [
+      "火车公开余票查询 live（provider=train12306；trainRealSubmit=false）",
+      "现网 /intake · /capabilities 可访问",
+      "非未授权代购；真实成交/自动购票仍 stub"
+    ],
+    "honesty": [
+      "机票实时可售/票价监控不可用（flightInventoryLive=false / flightFareMonitor=false；OpenSky≠票源；未接合法库存/价格 API）",
+      "邮件通知未实达（待 SMTP）：SMTP→127.0.0.1:587 ECONNREFUSED；NotificationEvent emailed=false — 属阻塞，非成功 MOCK",
+      "产品端到端独立验收未通过；不虚称自动购票",
+      "公开仓 tip 9ee80b0（历史基线曾引用 88f93f3）"
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"message":["phone must be shorter than or equal to 20 characters","phone must be longer than or equal to 6 characters","phone must be a string","email must be shorter than or equal to 120 characters","email must be an email"],"error":"Bad Request","statusCode":400}

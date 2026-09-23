@@ -1,0 +1,81 @@
+{
+  "suite": "SALES-MASTER-20260923",
+  "pack_name": "SALES-MASTER-20260923",
+  "ran_at": "2026-09-23T01:37:36Z",
+  "host_os": "Linux (bot box) — NOT user Windows PC",
+  "git_sha_at_evidence": "62b4ab03454928f9c5e9e02ee3cd4b20398aa054",
+  "root_cause_tcp_timeout": "bot nested-Docker bridge ICC + embedded DNS timeout (api↔postgres/redis)",
+  "firewall_changes": false,
+  "db_redis_public_ports": false,
+  "db_redis_loopback_ports_hostnet": {
+    "pg": "127.0.0.1:15432",
+    "redis": "127.0.0.1:16379"
+  },
+  "verify_project": "salesos_master_20260923",
+  "verify_ports": {
+    "web": "127.0.0.1:19280",
+    "api": "127.0.0.1:39300"
+  },
+  "compose_files": [
+    "docker-compose.internal-trial.yml",
+    "docker-compose.internal-trial.linux-hostnet.yml"
+  ],
+  "gates": {
+    "postgres_healthy": "PASS",
+    "redis_healthy": "PASS",
+    "api_direct_health": "PASS",
+    "web_api_health_json_ok_sales_os_api": "PASS",
+    "web_static_http_200": "PASS (not accepted alone)",
+    "chromium_ui_login_type_credentials": "PASS",
+    "restart_persistence_compose_stop_start": "PASS",
+    "plain_bridge_without_hostnet_on_bot": "FAIL (documented)"
+  },
+  "ui_login": {
+    "base": "http://127.0.0.1:19280",
+    "email": "manager@demo.local",
+    "localStorage_inject": false,
+    "typed_credentials": true,
+    "overall": "PASS",
+    "steps": [
+      {
+        "name": "open_/login",
+        "ok": true,
+        "detail": null
+      },
+      {
+        "name": "type_credentials",
+        "ok": true,
+        "detail": "no localStorage inject"
+      },
+      {
+        "name": "session_established",
+        "ok": true,
+        "detail": "url=http://127.0.0.1:19280/ role=supervisor"
+      },
+      {
+        "name": "workbench_loads",
+        "ok": true,
+        "detail": null
+      }
+    ],
+    "role": "supervisor"
+  },
+  "public_web_samples_imported": 4,
+  "e2e": {
+    "internal_sales": "PASS",
+    "followup_reminders": "PASS",
+    "negative_rbac": "PASS"
+  },
+  "windows_native_scripts": [
+    "scripts/windows/native/Start-InternalTrial-Native.ps1",
+    "scripts/windows/native/Stop-InternalTrial-Native.ps1",
+    "scripts/windows/native/Test-InternalTrial-Native.ps1",
+    "scripts/windows/native/Fetch-NativeDeps.ps1",
+    "scripts/windows/native/README.md",
+    "scripts/windows/native/.env.native.example"
+  ],
+  "stop_at_acceptance": false,
+  "overall_bot_hostnet_path": "PASS",
+  "overall_bot_plain_bridge": "FAIL",
+  "overall_windows_host": "PENDING (scripts shipped)"
+}

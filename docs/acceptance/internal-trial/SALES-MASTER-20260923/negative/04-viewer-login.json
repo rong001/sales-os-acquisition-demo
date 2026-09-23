@@ -1,0 +1,11 @@
+{
+  "access_token": "***",
+  "user": {
+    "id": "cca7a8b2-1659-4b9b-bb3d-c9c1a8b07e39",
+    "email": "viewer@demo.local",
+    "display_name": "演示访客(只读)",
+    "role": "viewer",
+    "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+    "tenant_name": "演示销售公司"
+  }
+}

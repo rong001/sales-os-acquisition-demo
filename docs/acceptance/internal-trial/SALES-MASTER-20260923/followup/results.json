@@ -1,0 +1,75 @@
+{
+  "suite": "followup-reminders",
+  "ran_at": "2026-09-23T01:36:19.419246Z",
+  "api": "http://127.0.0.1:39300",
+  "gateway": "http://127.0.0.1:19280",
+  "synthetic_only": true,
+  "scope": "站内提醒；外部消息送达仍待接入",
+  "manager_role": "OK",
+  "case_id": "ef80c6bd-8651-4a73-8911-d9d15163619d",
+  "owner": "agent@demo.local",
+  "timestamps": {
+    "before_due_set_at": "2026-09-23T01:36:09.377903Z",
+    "future_next_follow_at": "2026-09-23T03:36:09.364990Z",
+    "due_set_at": "2026-09-23T01:36:09.607925Z",
+    "past_next_follow_at": "2026-09-23T01:31:09.595217Z",
+    "before_restart_at": "2026-09-23T01:36:09.911427Z",
+    "after_restart_at": "2026-09-23T01:36:14.776969Z",
+    "handled_at": "2026-09-23T01:36:15.192145Z"
+  },
+  "browser_path": "/ （今日作战台）→ 区块「到期跟进」",
+  "user_trial_step": "登录 sales1（agent@demo.local）→ 打开作战台 / → 在「到期跟进」看到到期待办 → 点「已处理」后该项消失且刷新不再出现",
+  "steps": [
+    {
+      "id": "health",
+      "status": "PASS",
+      "note": "ok"
+    },
+    {
+      "id": "manager_login",
+      "status": "PASS",
+      "note": "role=supervisor"
+    },
+    {
+      "id": "sales_login",
+      "status": "PASS",
+      "note": "ok"
+    },
+    {
+      "id": "assign",
+      "status": "PASS",
+      "note": "sales1"
+    },
+    {
+      "id": "before_due",
+      "status": "PASS",
+      "note": "future next_follow_at excluded"
+    },
+    {
+      "id": "after_due",
+      "status": "PASS",
+      "note": "owner sees due item"
+    },
+    {
+      "id": "isolation",
+      "status": "PASS",
+      "note": "sales2 isolated"
+    },
+    {
+      "id": "persist_restart",
+      "status": "PASS",
+      "note": "open todo preserved"
+    },
+    {
+      "id": "handle",
+      "status": "PASS",
+      "note": "dismissed"
+    }
+  ],
+  "overall": "PASS",
+  "persist_restart": "PASS",
+  "in_app_due_reminder": "PASS",
+  "external_delivery": "PENDING — 外部 SMS/Call/Email 仍待接入",
+  "redaction": "no phones/JWT/passwords in committed artifacts",
+  "browser_screenshot": "ok"
+}

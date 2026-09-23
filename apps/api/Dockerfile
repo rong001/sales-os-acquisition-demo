@@ -10,6 +10,7 @@ COPY apps/api ./
 RUN npm run build
 
 FROM node:20-alpine
+RUN apk add --no-cache wget
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/dist ./dist

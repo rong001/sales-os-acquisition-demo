@@ -1,0 +1,42 @@
+[
+  {
+    "seat_id": "687b03cb-55d5-4f3d-a3cb-a9a4f890d869",
+    "user_id": "25394cc4-00a6-4eda-8504-44878a67fe05",
+    "display_name": "演示经理",
+    "email": "ma***@demo.local",
+    "role": "supervisor",
+    "online": true,
+    "current_load": 0,
+    "skill_group_id": "42258668-7fb2-41ba-92e0-065929c85434"
+  },
+  {
+    "seat_id": "d8bf0aab-5f38-45df-8240-ee2bc8f54eb4",
+    "user_id": "76ecfb99-7bdd-41cc-9885-e4cb929f6212",
+    "display_name": "演示管理员",
+    "email": "ad***@demo.local",
+    "role": "admin",
+    "online": true,
+    "current_load": 0,
+    "skill_group_id": "42258668-7fb2-41ba-92e0-065929c85434"
+  },
+  {
+    "seat_id": "c30c1b36-65e6-4102-8a33-ded61a573209",
+    "user_id": "f8c032ad-efd6-45c5-bcc6-38797bbf4643",
+    "display_name": "演示销售1",
+    "email": "ag***@demo.local",
+    "role": "agent",
+    "online": true,
+    "current_load": 1,
+    "skill_group_id": "42258668-7fb2-41ba-92e0-065929c85434"
+  },
+  {
+    "seat_id": "b7abb398-aa0c-47ac-9188-3f8aa16f0f29",
+    "user_id": "90dc7a68-6ce6-44f9-ada7-25dae76657f3",
+    "display_name": "演示销售2",
+    "email": "ag***@demo.local",
+    "role": "agent",
+    "online": true,
+    "current_load": 1,
+    "skill_group_id": "42258668-7fb2-41ba-92e0-065929c85434"
+  }
+]

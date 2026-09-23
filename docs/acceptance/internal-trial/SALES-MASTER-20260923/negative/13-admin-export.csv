@@ -1,0 +1,11 @@
+﻿case_id,product,stage,path,name,phone_masked,email,utm_source,utm_medium,utm_campaign,invite_code,created_at
+"c043e0d3-2d87-428a-aeb2-e0c6e0ea59a8","ticket-grab","NEW","STANDARD","负面用例","137****7379","","","","","","2026-09-23T01:36:19.895Z"
+"86e8bb11-e2e3-4d75-8275-7a99974c8db9","usgate","NEW","STANDARD","负面用例","137****7379","","neg","","","","2026-09-23T01:36:19.769Z"
+"ef80c6bd-8651-4a73-8911-d9d15163619d","ticket-grab","ASSIGNED","STANDARD","跟进提醒合成线索","133****7368","","followup_reminder_e2e","script","in_app_due","","2026-09-23T01:36:09.181Z"
+"4f5d45a8-4d5e-444d-be28-2d53d9d0290a","ticket-grab","NEW","STANDARD","内部试用线索A","139****7367","trial_a_1790127367@example.com","internal_trial","manual_dup","","","2026-09-23T01:36:07.788Z"
+"8eb6f1ae-c7b7-4028-a5a7-4206d7f4dbe0","usgate","NURTURE","STANDARD","内部试用线索B","138****7374","trial_b_1790127367@example.com","internal_trial","manual","internal_sales_loop","TRIAL02","2026-09-23T01:36:07.717Z"
+"69e7f6cf-0316-4cce-9afb-7b1010465132","ticket-grab","WON","STANDARD","内部试用线索A","139****7367","trial_a_1790127367@example.com","internal_trial","manual","internal_sales_loop","TRIAL01","2026-09-23T01:36:07.619Z"
+"17617da0-c204-4552-9cde-08934bfe3518","ticket-grab","NEW","STANDARD","Notion Labs, Inc.","","public-sample+notion-labs-inc@demo.local","public_web_sample","manual_import","SALES-MASTER-20260923","","2026-09-23T01:35:56.118Z"
+"bf9c0576-799f-4002-9c2c-388847ca26b1","usgate","NEW","STANDARD","Cloudflare, Inc.","","public-sample+cloudflare-inc@demo.local","public_web_sample","manual_import","SALES-MASTER-20260923","","2026-09-23T01:35:55.570Z"
+"fe3467be-0e85-4dea-ae0b-c8dcfc745242","ticket-grab","NEW","STANDARD","GitLab Inc.","","public-sample+gitlab-inc@demo.local","public_web_sample","manual_import","SALES-MASTER-20260923","","2026-09-23T01:35:55.436Z"
+"0df9e36d-cbb0-4902-b6a1-6ce201b48d20","usgate","NEW","STANDARD","Stripe, Inc.","","public-sample+stripe-inc@demo.local","public_web_sample","manual_import","SALES-MASTER-20260923","","2026-09-23T01:35:55.084Z"

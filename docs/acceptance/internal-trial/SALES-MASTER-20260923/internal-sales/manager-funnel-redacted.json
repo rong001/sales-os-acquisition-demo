@@ -1,0 +1,21 @@
+{
+  "funnel": {
+    "intake": 7,
+    "qualified": 2,
+    "assigned": 2,
+    "reached_intent": 0,
+    "appointed": 1,
+    "ordered": 0,
+    "won": 1,
+    "lost": 0
+  },
+  "by_product": {
+    "usgate": 3,
+    "ticket-grab": 4
+  },
+  "stages": {
+    "NEW": 5,
+    "NURTURE": 1,
+    "WON": 1
+  }
+}

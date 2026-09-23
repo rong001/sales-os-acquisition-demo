@@ -1,0 +1,350 @@
+{
+  "imported_at": "2026-09-23T01:35:54.698Z",
+  "api": "http://127.0.0.1:39300",
+  "source_type": "public_web_sample",
+  "note": "Company-level public profiles only; no individual PII scrape; intent/budget not invented.",
+  "samples": [
+    {
+      "company_name": "Stripe, Inc.",
+      "official_site_url": "https://stripe.com/",
+      "fetch_time": "2026-09-23T01:35:54.698Z",
+      "match_reason_vs_icp": "Global B2B payments platform; public company site; fits cloud/SaaS buyer ICP for sales-ops tooling demos.",
+      "source_type": "public_web_sample",
+      "fetch": {
+        "ok": true,
+        "status": 200,
+        "final_url": "https://stripe.com/",
+        "bytes": 664716,
+        "title": "Stripe | Financial Infrastructure to Grow Your Revenue"
+      },
+      "intake": {
+        "http": 201,
+        "body": {
+          "case": {
+            "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+            "identity_id": "389b52ef-f29c-4ad3-accc-6605b3981fb3",
+            "source_id": "b492a1c5-e38f-44d5-84d7-3d0cede42c66",
+            "scene_id": "landing:usgate",
+            "product_code": "usgate",
+            "path": "STANDARD",
+            "stage": "NEW",
+            "owner_agent_id": null,
+            "skill_group_id": null,
+            "next_follow_at": null,
+            "follow_up_status": null,
+            "id": "0df9e36d-cbb0-4902-b6a1-6ce201b48d20",
+            "flags": {},
+            "intent_level": "unknown",
+            "intent_qualified": false,
+            "created_at": "2026-09-23T01:35:55.084Z",
+            "updated_at": "2026-09-23T01:35:55.084Z"
+          },
+          "identity": {
+            "id": "389b52ef-f29c-4ad3-accc-6605b3981fb3",
+            "name": "Stripe, Inc.",
+            "phone": null,
+            "email": "public-sample+stripe-inc@demo.local",
+            "merge_key": "email:public-sample+stripe-inc@demo.local"
+          },
+          "source": {
+            "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+            "type": "public_web_sample",
+            "campaign": "SALES-MASTER-20260923",
+            "landing_url": "https://stripe.com/",
+            "form_id": "landing:usgate",
+            "utm_source": "public_web_sample",
+            "utm_medium": "manual_import",
+            "utm_campaign": "SALES-MASTER-20260923",
+            "utm_content": null,
+            "utm_term": null,
+            "invite_code": null,
+            "product_code": "usgate",
+            "raw_payload": {
+              "source_type": "public_web_sample",
+              "official_site_url": "https://stripe.com/",
+              "fetch_time": "2026-09-23T01:35:54.698Z",
+              "fetch_http_status": 200,
+              "fetch_title": "Stripe | Financial Infrastructure to Grow Your Revenue",
+              "fetch_final_url": "https://stripe.com/",
+              "match_reason_vs_icp": "Global B2B payments platform; public company site; fits cloud/SaaS buyer ICP for sales-ops tooling demos.",
+              "intent": "unknown",
+              "budget": "unknown",
+              "label": "public_web_sample_not_synthetic_regression"
+            },
+            "adset": null,
+            "creative": null,
+            "import_batch_id": null,
+            "id": "b492a1c5-e38f-44d5-84d7-3d0cede42c66",
+            "created_at": "2026-09-23T01:35:55.081Z"
+          },
+          "merged": false,
+          "product": {
+            "code": "usgate",
+            "name_zh": "USGate"
+          }
+        }
+      }
+    },
+    {
+      "company_name": "HashiCorp",
+      "official_site_url": "https://www.hashicorp.com/",
+      "fetch_time": "2026-09-23T01:35:54.698Z",
+      "match_reason_vs_icp": "Infrastructure automation vendor (public site); B2B developer-tooling ICP adjacency.",
+      "source_type": "public_web_sample",
+      "fetch": {
+        "ok": false,
+        "status": 429,
+        "final_url": "https://www.hashicorp.com/",
+        "bytes": 31199,
+        "title": "Vercel Security Checkpoint"
+      },
+      "intake": {
+        "skipped": true,
+        "reason": "official site fetch HTTP 429"
+      }
+    },
+    {
+      "company_name": "GitLab Inc.",
+      "official_site_url": "https://about.gitlab.com/",
+      "fetch_time": "2026-09-23T01:35:54.698Z",
+      "match_reason_vs_icp": "DevSecOps platform company; public about site; B2B software ICP.",
+      "source_type": "public_web_sample",
+      "fetch": {
+        "ok": true,
+        "status": 200,
+        "final_url": "https://about.gitlab.com/",
+        "bytes": 227158,
+        "title": "GitLab - Speed with control for agentic software engineering"
+      },
+      "intake": {
+        "http": 201,
+        "body": {
+          "case": {
+            "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+            "identity_id": "460b0725-3f8c-4224-886f-b8453102ecdd",
+            "source_id": "e516a434-a613-4719-8cfb-40c0d3968452",
+            "scene_id": "landing:ticket-grab",
+            "product_code": "ticket-grab",
+            "path": "STANDARD",
+            "stage": "NEW",
+            "owner_agent_id": null,
+            "skill_group_id": null,
+            "next_follow_at": null,
+            "follow_up_status": null,
+            "id": "fe3467be-0e85-4dea-ae0b-c8dcfc745242",
+            "flags": {},
+            "intent_level": "unknown",
+            "intent_qualified": false,
+            "created_at": "2026-09-23T01:35:55.436Z",
+            "updated_at": "2026-09-23T01:35:55.436Z"
+          },
+          "identity": {
+            "id": "460b0725-3f8c-4224-886f-b8453102ecdd",
+            "name": "GitLab Inc.",
+            "phone": null,
+            "email": "public-sample+gitlab-inc@demo.local",
+            "merge_key": "email:public-sample+gitlab-inc@demo.local"
+          },
+          "source": {
+            "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+            "type": "public_web_sample",
+            "campaign": "SALES-MASTER-20260923",
+            "landing_url": "https://about.gitlab.com/",
+            "form_id": "landing:ticket-grab",
+            "utm_source": "public_web_sample",
+            "utm_medium": "manual_import",
+            "utm_campaign": "SALES-MASTER-20260923",
+            "utm_content": null,
+            "utm_term": null,
+            "invite_code": null,
+            "product_code": "ticket-grab",
+            "raw_payload": {
+              "source_type": "public_web_sample",
+              "official_site_url": "https://about.gitlab.com/",
+              "fetch_time": "2026-09-23T01:35:54.698Z",
+              "fetch_http_status": 200,
+              "fetch_title": "GitLab - Speed with control for agentic software engineering",
+              "fetch_final_url": "https://about.gitlab.com/",
+              "match_reason_vs_icp": "DevSecOps platform company; public about site; B2B software ICP.",
+              "intent": "unknown",
+              "budget": "unknown",
+              "label": "public_web_sample_not_synthetic_regression"
+            },
+            "adset": null,
+            "creative": null,
+            "import_batch_id": null,
+            "id": "e516a434-a613-4719-8cfb-40c0d3968452",
+            "created_at": "2026-09-23T01:35:55.432Z"
+          },
+          "merged": false,
+          "product": {
+            "code": "ticket-grab",
+            "name_zh": "抢票助手"
+          }
+        }
+      }
+    },
+    {
+      "company_name": "Cloudflare, Inc.",
+      "official_site_url": "https://www.cloudflare.com/",
+      "fetch_time": "2026-09-23T01:35:54.698Z",
+      "match_reason_vs_icp": "Edge/security network vendor; public corporate site; B2B infrastructure ICP.",
+      "source_type": "public_web_sample",
+      "fetch": {
+        "ok": true,
+        "status": 200,
+        "final_url": "https://www.cloudflare.com/",
+        "bytes": 1322917,
+        "title": "Cloudflare: Build for the agent era"
+      },
+      "intake": {
+        "http": 201,
+        "body": {
+          "case": {
+            "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+            "identity_id": "5b975efa-ef98-454c-ae0d-c5f0fd9de39f",
+            "source_id": "5907012f-8de5-42e3-bd05-3cefdb183549",
+            "scene_id": "landing:usgate",
+            "product_code": "usgate",
+            "path": "STANDARD",
+            "stage": "NEW",
+            "owner_agent_id": null,
+            "skill_group_id": null,
+            "next_follow_at": null,
+            "follow_up_status": null,
+            "id": "bf9c0576-799f-4002-9c2c-388847ca26b1",
+            "flags": {},
+            "intent_level": "unknown",
+            "intent_qualified": false,
+            "created_at": "2026-09-23T01:35:55.570Z",
+            "updated_at": "2026-09-23T01:35:55.570Z"
+          },
+          "identity": {
+            "id": "5b975efa-ef98-454c-ae0d-c5f0fd9de39f",
+            "name": "Cloudflare, Inc.",
+            "phone": null,
+            "email": "public-sample+cloudflare-inc@demo.local",
+            "merge_key": "email:public-sample+cloudflare-inc@demo.local"
+          },
+          "source": {
+            "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+            "type": "public_web_sample",
+            "campaign": "SALES-MASTER-20260923",
+            "landing_url": "https://www.cloudflare.com/",
+            "form_id": "landing:usgate",
+            "utm_source": "public_web_sample",
+            "utm_medium": "manual_import",
+            "utm_campaign": "SALES-MASTER-20260923",
+            "utm_content": null,
+            "utm_term": null,
+            "invite_code": null,
+            "product_code": "usgate",
+            "raw_payload": {
+              "source_type": "public_web_sample",
+              "official_site_url": "https://www.cloudflare.com/",
+              "fetch_time": "2026-09-23T01:35:54.698Z",
+              "fetch_http_status": 200,
+              "fetch_title": "Cloudflare: Build for the agent era",
+              "fetch_final_url": "https://www.cloudflare.com/",
+              "match_reason_vs_icp": "Edge/security network vendor; public corporate site; B2B infrastructure ICP.",
+              "intent": "unknown",
+              "budget": "unknown",
+              "label": "public_web_sample_not_synthetic_regression"
+            },
+            "adset": null,
+            "creative": null,
+            "import_batch_id": null,
+            "id": "5907012f-8de5-42e3-bd05-3cefdb183549",
+            "created_at": "2026-09-23T01:35:55.567Z"
+          },
+          "merged": false,
+          "product": {
+            "code": "usgate",
+            "name_zh": "USGate"
+          }
+        }
+      }
+    },
+    {
+      "company_name": "Notion Labs, Inc.",
+      "official_site_url": "https://www.notion.com/",
+      "fetch_time": "2026-09-23T01:35:54.698Z",
+      "match_reason_vs_icp": "B2B productivity SaaS; public marketing site; collaboration-software ICP.",
+      "source_type": "public_web_sample",
+      "fetch": {
+        "ok": true,
+        "status": 200,
+        "final_url": "https://www.notion.com/",
+        "bytes": 225793,
+        "title": "The AI workspace that works for you. | Notion"
+      },
+      "intake": {
+        "http": 201,
+        "body": {
+          "case": {
+            "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+            "identity_id": "b4299795-68ca-45ac-ab5b-76e57fe433d7",
+            "source_id": "cdcaa9c2-5a8e-48b1-8703-63256e97c35c",
+            "scene_id": "landing:ticket-grab",
+            "product_code": "ticket-grab",
+            "path": "STANDARD",
+            "stage": "NEW",
+            "owner_agent_id": null,
+            "skill_group_id": null,
+            "next_follow_at": null,
+            "follow_up_status": null,
+            "id": "17617da0-c204-4552-9cde-08934bfe3518",
+            "flags": {},
+            "intent_level": "unknown",
+            "intent_qualified": false,
+            "created_at": "2026-09-23T01:35:56.118Z",
+            "updated_at": "2026-09-23T01:35:56.118Z"
+          },
+          "identity": {
+            "id": "b4299795-68ca-45ac-ab5b-76e57fe433d7",
+            "name": "Notion Labs, Inc.",
+            "phone": null,
+            "email": "public-sample+notion-labs-inc@demo.local",
+            "merge_key": "email:public-sample+notion-labs-inc@demo.local"
+          },
+          "source": {
+            "tenant_id": "b6efeba9-2b36-414b-be99-69bf301d9509",
+            "type": "public_web_sample",
+            "campaign": "SALES-MASTER-20260923",
+            "landing_url": "https://www.notion.com/",
+            "form_id": "landing:ticket-grab",
+            "utm_source": "public_web_sample",
+            "utm_medium": "manual_import",
+            "utm_campaign": "SALES-MASTER-20260923",
+            "utm_content": null,
+            "utm_term": null,
+            "invite_code": null,
+            "product_code": "ticket-grab",
+            "raw_payload": {
+              "source_type": "public_web_sample",
+              "official_site_url": "https://www.notion.com/",
+              "fetch_time": "2026-09-23T01:35:54.698Z",
+              "fetch_http_status": 200,
+              "fetch_title": "The AI workspace that works for you. | Notion",
+              "fetch_final_url": "https://www.notion.com/",
+              "match_reason_vs_icp": "B2B productivity SaaS; public marketing site; collaboration-software ICP.",
+              "intent": "unknown",
+              "budget": "unknown",
+              "label": "public_web_sample_not_synthetic_regression"
+            },
+            "adset": null,
+            "creative": null,
+            "import_batch_id": null,
+            "id": "cdcaa9c2-5a8e-48b1-8703-63256e97c35c",
+            "created_at": "2026-09-23T01:35:56.117Z"
+          },
+          "merged": false,
+          "product": {
+            "code": "ticket-grab",
+            "name_zh": "抢票助手"
+          }
+        }
+      }
+    }
+  ]
+}

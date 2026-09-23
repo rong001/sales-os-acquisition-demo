@@ -1,0 +1,50 @@
+{
+  "suite": "internal-sales-loop",
+  "ran_at": "2026-09-23T01:36:08.622526Z",
+  "api": "http://127.0.0.1:39300",
+  "synthetic_only": true,
+  "acquisition_fields_explained": [
+    "source_type=manual_import（手工录入/导入）",
+    "utm_source/medium/campaign/content（投放/渠道归因）",
+    "invite_code（邀请码）",
+    "source_channel（渠道字段）",
+    "公开落地页 /public/leads/intake 亦支持同类字段（本轮用认证手工录入）"
+  ],
+  "cases": {
+    "A": {
+      "id": "69e7f6cf-0316-4cce-9afb-7b1010465132",
+      "stage": "WON",
+      "assigned_to": "agent@demo.local",
+      "phone_masked": "139****7367"
+    },
+    "B": {
+      "id": "8eb6f1ae-c7b7-4028-a5a7-4206d7f4dbe0",
+      "stage": "NURTURE",
+      "assigned_to": "agent2@demo.local",
+      "phone_masked": "138****7374"
+    }
+  },
+  "steps": {
+    "create_leads": "PASS",
+    "dedup": "PASS",
+    "manager_assign": "PASS",
+    "follow_up_and_reminder": "PASS",
+    "mark_result": "PASS",
+    "manager_view": "PASS",
+    "negative_rbac": "PASS",
+    "persist_restart": "SEE_e2e_followup_reminders"
+  },
+  "roles_used": {
+    "管理员": "admin@demo.local",
+    "经理": "manager@demo.local",
+    "销售1": "agent@demo.local",
+    "销售2": "agent2@demo.local"
+  },
+  "manager_role": "OK",
+  "caveats": {
+    "manager_role_independent_proof": "OK",
+    "persist_restart": "SEE_e2e_followup_reminders",
+    "next_follow_at_vs_due_reminder": "IN_APP_PASS — LeadCase.next_follow_at + workbench due list；外部消息送达仍待接入"
+  },
+  "redaction": "no phones/JWT/passwords in this file"
+}

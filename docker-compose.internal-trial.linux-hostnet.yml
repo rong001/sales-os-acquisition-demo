@@ -1,0 +1,72 @@
+# Overlay for Linux hosts where Compose bridge ICC / embedded DNS is broken
+# (api↔postgres/redis TCP timeout). Publishes PG/Redis to 127.0.0.1 ONLY and
+# runs api/worker/web with network_mode: host so they reach loopback ports.
+#
+# NOT for Windows Docker Desktop (use plain docker-compose.internal-trial.yml).
+# Does NOT open DB/Redis on 0.0.0.0 / public interfaces.
+#
+# Usage:
+#   docker compose -f docker-compose.internal-trial.yml \
+#     -f docker-compose.internal-trial.linux-hostnet.yml \
+#     --env-file .env up -d --build
+#
+# Defaults: HOST_PG_PORT=15432 HOST_REDIS_PORT=16379
+#           HOST_API_PORT=39300 HOST_WEB_PORT=19280
+
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${HOST_PG_PORT:-15432}:5432"
+
+  redis:
+    ports:
+      - "127.0.0.1:${HOST_REDIS_PORT:-16379}:6379"
+
+  api:
+    network_mode: host
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-sales}:${POSTGRES_PASSWORD:-CHANGE_ME}@127.0.0.1:${HOST_PG_PORT:-15432}/${POSTGRES_DB:-sales_os}
+      REDIS_URL: redis://127.0.0.1:${HOST_REDIS_PORT:-16379}
+      JWT_SECRET: ${JWT_SECRET:-CHANGE_ME}
+      API_PORT: "${HOST_API_PORT:-39300}"
+      SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
+      DEMO_AGENT_PASSWORD: ${DEMO_AGENT_PASSWORD:-CHANGE_ME}
+      DEMO_AGENT2_PASSWORD: ${DEMO_AGENT2_PASSWORD:-CHANGE_ME}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-CHANGE_ME}
+      DEMO_MANAGER_PASSWORD: ${DEMO_MANAGER_PASSWORD:-CHANGE_ME}
+      DEMO_VIEWER_PASSWORD: ${DEMO_VIEWER_PASSWORD:-CHANGE_ME}
+      DEMO_TENANT_SLUG: ${DEMO_TENANT_SLUG:-demo}
+      REAL_SMS_ENABLED: ${REAL_SMS_ENABLED:-false}
+      REAL_CALL_ENABLED: ${REAL_CALL_ENABLED:-false}
+      REAL_EMAIL_ENABLED: ${REAL_EMAIL_ENABLED:-false}
+    ports: !reset []
+    networks: !reset []
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:${HOST_API_PORT:-39300}/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 25s
+
+  worker:
+    network_mode: host
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-sales}:${POSTGRES_PASSWORD:-CHANGE_ME}@127.0.0.1:${HOST_PG_PORT:-15432}/${POSTGRES_DB:-sales_os}
+      REDIS_URL: redis://127.0.0.1:${HOST_REDIS_PORT:-16379}
+    ports: !reset []
+    networks: !reset []
+
+  web:
+    network_mode: host
+    environment:
+      HOST_WEB_PORT: ${HOST_WEB_PORT:-19280}
+      HOST_API_PORT: ${HOST_API_PORT:-39300}
+      NGINX_ENVSUBST_TEMPLATE_SUFFIX: .template
+      VITE_API_BASE: /api
+    volumes:
+      - ./apps/web/docker/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    ports: !reset []
+    networks: !reset []
+    depends_on:
+      api:
+        condition: service_healthy

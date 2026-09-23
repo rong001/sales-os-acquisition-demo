@@ -38,3 +38,12 @@ docs/acceptance/internal-trial/windows-compose-boot/.raw/
 
 # Boot reliability raw
 docs/acceptance/internal-trial/boot-reliability/.raw/
+
+# Windows-native trial local state / secrets / bulky vendor bins
+.env.native
+.data/
+vendor/windows/
+
+# SALES-MASTER raw JWT dumps
+docs/acceptance/internal-trial/SALES-MASTER-20260923/**/.raw*/
+docs/acceptance/internal-trial/SALES-MASTER-20260923/**/.raw-run/
