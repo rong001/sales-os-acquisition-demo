@@ -2,7 +2,7 @@
   "suite": "SALES-FOLLOWUP-20260923-1000",
   "pack_name": "sales-os-internal-trial-local-20260923-followup1000",
   "ran_at": "2026-09-23T02:06:06Z",
-  "host_os": "Linux (bot box) — NOT user Windows PC",
+  "host_os": "Linux (bot box) \u2014 NOT user Windows PC",
   "parent_tip": "2597920691ce52c6b1038f018b39805c436a83bf",
   "git_sha_at_evidence_pre_commit": "2597920691ce52c6b1038f018b39805c436a83bf",
   "gates": {
@@ -14,6 +14,14 @@
     "windows_native_start_test_stop": "PENDING (Codex on user Windows)"
   },
   "overall_bot": "PASS (script/unit + prior hostnet health)",
-  "overall_windows_host": "PENDING — do not claim PASS",
-  "public_web_sample_vs_synthetic": "unchanged distinct labeling"
+  "overall_windows_host": "PENDING \u2014 do not claim PASS",
+  "public_web_sample_vs_synthetic": "unchanged distinct labeling",
+  "pack": {
+    "name": "sales-os-internal-trial-local-20260923-followup1000.tar.gz",
+    "path_repo": "releases/sales-os-internal-trial-local-20260923-followup1000.tar.gz",
+    "path_workspace": "/workspace/sales-os-internal-trial-local-20260923-followup1000.tar.gz",
+    "bytes": 4816635,
+    "sha256": "a133b21ff61f2811fa639ed2f4425ac66030b6071a60d33085f4ea2709855d97"
+  },
+  "git_sha_code": "1ab9b3d37b87c3e4b0e91a9bb0fce5840490e7dc"
 }
