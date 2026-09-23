@@ -81,7 +81,8 @@ Artifacts: `business-acceptance-results.json`, `bot-harness-console.txt`, `resul
 - `020fded` — docs: SALES-FOLLOWUP-20260923-1217 bot harness evidence + UI待测
 - `938b6a4` — chore: ship followup1217 pack + SHA256
 - `1cd37af` — docs: pin SUMMARY to pack tip SHA
-- `439bea4` — docs: tip SHA SALES-FOLLOWUP-20260923-1217
+- `05b17e0` — docs: list pin commit in SUMMARY
+- `ca720a8` — docs: tip SHA SALES-FOLLOWUP-20260923-1217 (this tip)
 
 ## Pack
 
@@ -91,4 +92,4 @@ Artifacts: `business-acceptance-results.json`, `bot-harness-console.txt`, `resul
 - Also at `/workspace/` and `releases/`; symlink `sales-os-internal-trial-local.tar.gz` → followup1217
 
 ## Tip
-`439bea4`
+`ca720a8`
