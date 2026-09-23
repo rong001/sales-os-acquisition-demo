@@ -927,7 +927,20 @@ export class LeadsService {
       blocked: 'BLOCKED',
     };
     c.stage = stageMap[r];
-    c.flags = { ...c.flags, result: r, result_at: new Date().toISOString(), result_by: user.sub };
+    const src = c.source_id ? await this.sources.findOne({ where: { id: c.source_id } }) : null;
+    const isSynthetic =
+      src?.type === 'synthetic_fixture' ||
+      (src?.raw_payload && (src.raw_payload as Record<string, unknown>).label === 'SYNTHETIC_FIXTURE');
+    c.flags = {
+      ...c.flags,
+      result: r,
+      result_at: new Date().toISOString(),
+      result_by: user.sub,
+      // Demo / synthetic WON is never customer 成交
+      demo_not_customer_deal: true,
+      source_type: src?.type || null,
+      synthetic_fixture: !!isSynthetic,
+    };
     await this.cases.save(c);
 
     if (note?.trim()) {
@@ -952,7 +965,255 @@ export class LeadsService {
     return { case: c };
   }
 
-    async exportLeadsCsv(user: AuthUser): Promise<string> {
+
+  /**
+   * Authorized public-list / public-web enterprise lead import.
+   * Hard-separates provenance records from synthetic_fixture sales fixtures.
+   * Unknown contact / demand / consent → store UNKNOWN; never invent person or consent=true.
+   * No outbound email/phone/DM/purchase.
+   */
+  async importAuthorizedPublicList(
+    user: AuthUser,
+    body: {
+      items?: Array<{
+        company_name: string;
+        official_site_url: string;
+        product_code?: string;
+        match_reason_vs_icp: string;
+        public_facts_excerpt?: string;
+        contact_person?: string;
+        demand?: string;
+        consent_status?: string;
+      }>;
+      fetch_official?: boolean;
+      batch_label?: string;
+    },
+  ) {
+    if (!this.isAdmin(user)) throw new ForbiddenException('需要经理/管理员权限导入公开来源名单');
+    const items = Array.isArray(body?.items) ? body.items : [];
+    if (!items.length) throw new BadRequestException('items 不能为空');
+    if (items.length > 20) throw new BadRequestException('单次最多 20 条');
+
+    const batchId = `authpub-${Date.now().toString(36)}`;
+    const fetchOfficial = body.fetch_official !== false;
+    const results: Array<Record<string, unknown>> = [];
+
+    for (const rawItem of items) {
+      const company = String(rawItem.company_name || '').trim();
+      const officialUrl = String(rawItem.official_site_url || '').trim();
+      const matchReason = String(rawItem.match_reason_vs_icp || '').trim();
+      if (!company || !officialUrl || !matchReason) {
+        throw new BadRequestException('每条须含 company_name / official_site_url / match_reason_vs_icp');
+      }
+      let parsed: URL;
+      try {
+        parsed = new URL(officialUrl);
+      } catch {
+        throw new BadRequestException(`非法 URL: ${officialUrl.slice(0, 80)}`);
+      }
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        throw new BadRequestException('仅允许 http/https 公开来源 URL');
+      }
+
+      const product = getProduct(rawItem.product_code || 'sales-agent');
+      const contactPerson = (rawItem.contact_person || 'UNKNOWN').trim() || 'UNKNOWN';
+      const demand = (rawItem.demand || 'UNKNOWN').trim() || 'UNKNOWN';
+      const consentStatus = (rawItem.consent_status || 'UNKNOWN').trim().toUpperCase() || 'UNKNOWN';
+      if (consentStatus === 'GRANTED' || consentStatus === 'TRUE') {
+        throw new BadRequestException('公开来源导入不得伪造成 consent granted；未知请用 UNKNOWN');
+      }
+
+      const fetchTime = new Date().toISOString();
+      let excerpt = (rawItem.public_facts_excerpt || '').trim();
+      let fetchMeta: Record<string, unknown> = {
+        skipped_live_fetch: !fetchOfficial,
+        status: null,
+        final_url: officialUrl,
+        title: null,
+      };
+
+      if (fetchOfficial) {
+        const ac = new AbortController();
+        const t = setTimeout(() => ac.abort(), 15000);
+        try {
+          const res = await fetch(officialUrl, {
+            method: 'GET',
+            redirect: 'follow',
+            signal: ac.signal,
+            headers: { 'user-agent': 'sales-os-authorized-import/1.0 (+read-only; company pages only)' },
+          });
+          const text = await res.text();
+          const title = (text.match(/<title[^>]*>([^<]*)<\/title>/i) || [, ''])[1].trim().slice(0, 160) || null;
+          const descMatch = text.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
+            || text.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
+          const desc = descMatch ? descMatch[1].trim().slice(0, 280) : '';
+          fetchMeta = {
+            skipped_live_fetch: false,
+            status: res.status,
+            final_url: res.url,
+            title,
+            bytes: text.length,
+          };
+          if (!excerpt) {
+            excerpt = [title, desc].filter(Boolean).join(' — ').slice(0, 400) || 'UNKNOWN';
+          }
+        } catch (e) {
+          fetchMeta = {
+            skipped_live_fetch: false,
+            status: 0,
+            error: String((e as Error)?.name || (e as Error)?.message || e).slice(0, 120),
+            final_url: officialUrl,
+            title: null,
+          };
+          if (!excerpt) excerpt = 'UNKNOWN';
+        } finally {
+          clearTimeout(t);
+        }
+      } else if (!excerpt) {
+        excerpt = 'UNKNOWN';
+      }
+
+      const normUrl = `${parsed.protocol}//${parsed.host}${parsed.pathname}`.replace(/\/$/, '').toLowerCase();
+      const mergeKey = `public_url:${normUrl}`;
+
+      let identity = await this.identities.findOne({ where: { tenant_id: user.tenant_id, merge_key: mergeKey } });
+      let merged = false;
+      if (!identity) {
+        identity = await this.identities.save(this.identities.create({
+          tenant_id: user.tenant_id,
+          phone: null,
+          email: null,
+          name: contactPerson === 'UNKNOWN' ? null : contactPerson,
+          company_name: company,
+          merge_key: mergeKey,
+        }));
+      } else {
+        merged = true;
+        if (!identity.company_name) identity.company_name = company;
+        await this.identities.save(identity);
+      }
+
+      const provenance = {
+        source_type: 'authorized_public_list_import',
+        official_site_url: officialUrl,
+        fetch_time: fetchTime,
+        fetch_meta: fetchMeta,
+        public_facts_excerpt: excerpt,
+        match_reason_vs_icp: matchReason,
+        contact_person: contactPerson,
+        demand,
+        consent_status: consentStatus,
+        label: 'REAL_PUBLIC_SOURCE_NOT_SYNTHETIC',
+        batch_label: body.batch_label || null,
+      };
+
+      const source = await this.sources.save(this.sources.create({
+        tenant_id: user.tenant_id,
+        type: 'authorized_public_list_import',
+        campaign: body.batch_label || 'authorized_public_list',
+        landing_url: officialUrl,
+        form_id: `authorized_public:${product.code}`,
+        import_batch_id: batchId,
+        utm_source: 'authorized_public_list',
+        utm_medium: 'import_api',
+        utm_campaign: body.batch_label || 'enterprise_lead_import',
+        product_code: product.code,
+        raw_payload: provenance,
+      }));
+
+      const leadCase = await this.cases.save(this.cases.create({
+        tenant_id: user.tenant_id,
+        identity_id: identity.id,
+        source_id: source.id,
+        path: 'ENTERPRISE_PUBLIC',
+        stage: 'NEW',
+        scene_id: `authorized_public:${product.code}`,
+        product_code: product.code,
+        flags: {
+          source_type: 'authorized_public_list_import',
+          contact_person: contactPerson,
+          demand,
+          consent_status: consentStatus,
+          demo_not_customer_deal: true,
+          real_public_source: true,
+        },
+      }));
+
+      // Consent UNKNOWN → store explicit unknown rows; never invent granted
+      if (consentStatus === 'UNKNOWN') {
+        for (const ch of ['call', 'sms', 'email']) {
+          await this.consents.save(this.consents.create({
+            tenant_id: user.tenant_id,
+            identity_id: identity.id,
+            case_id: leadCase.id,
+            channel: ch,
+            status: 'unknown',
+            evidence_ref: 'consent:UNKNOWN:public_source',
+            consent_text: null,
+            consent_text_hash: null,
+            consent_version: null,
+            source_channel: 'authorized_public_list_import',
+            consent_accepted_at: null,
+            granted_at: null,
+          }));
+        }
+      }
+
+      await this.events.emit({
+        tenant_id: user.tenant_id, case_id: leadCase.id, type: 'lead.captured',
+        actor: user.sub,
+        payload: {
+          identity_id: identity.id, source_id: source.id, merge_key: mergeKey,
+          merged, product_code: product.code, source_type: 'authorized_public_list_import',
+        },
+        aggregate_id: leadCase.id,
+      });
+      await this.events.audit({
+        tenant_id: user.tenant_id, actor_user_id: user.sub,
+        action: 'lead.import_authorized_public',
+        resource_type: 'LeadCase', resource_id: leadCase.id,
+        detail: {
+          company_name: company,
+          official_site_url: officialUrl,
+          product_code: product.code,
+          consent_status: consentStatus,
+          contact_person: contactPerson,
+          demand,
+          merged,
+          batch_id: batchId,
+        },
+      });
+
+      results.push({
+        case_id: leadCase.id,
+        merged,
+        company_name: company,
+        official_site_url: officialUrl,
+        product_code: product.code,
+        source_type: 'authorized_public_list_import',
+        contact_person: contactPerson,
+        demand,
+        consent_status: consentStatus,
+        fetch_time: fetchTime,
+        public_facts_excerpt: excerpt.slice(0, 200),
+        match_reason_vs_icp: matchReason,
+      });
+    }
+
+    return {
+      batch_id: batchId,
+      imported: results.length,
+      items: results,
+      honesty: {
+        real_vs_synthetic: 'These records are authorized_public_list_import (real public-source provenance). Synthetic fixtures use source_type=synthetic_fixture separately.',
+        unknowns: 'contact_person / demand / consent default UNKNOWN when not known; never invented.',
+        no_outbound: true,
+      },
+    };
+  }
+
+
+  async exportLeadsCsv(user: AuthUser): Promise<string> {
     if (!this.isAdmin(user)) throw new ForbiddenException('需要管理员权限');
     const cases = await this.cases.find({
       where: { tenant_id: user.tenant_id },

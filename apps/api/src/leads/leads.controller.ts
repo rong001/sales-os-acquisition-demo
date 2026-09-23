@@ -20,6 +20,16 @@ export class LeadsController {
     return this.leads.intake(user, body as never);
   }
 
+  /** Authorized enterprise public-list / public-web import with provenance. Manager+ only. */
+  @Post('leads/import/authorized-public-list')
+  @Roles('admin', 'supervisor')
+  importAuthorizedPublicList(
+    @CurrentUser() user: AuthUser,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.leads.importAuthorizedPublicList(user, body as never);
+  }
+
   @Post('leads/:caseId/qualify')
   @Roles('agent', 'admin', 'supervisor')
   qualify(@CurrentUser() user: AuthUser, @Param('caseId') caseId: string) {
