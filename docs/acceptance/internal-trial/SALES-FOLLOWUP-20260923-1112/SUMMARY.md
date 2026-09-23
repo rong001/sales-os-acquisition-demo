@@ -72,6 +72,17 @@ cd sales-os-app
 
 Tar over source; **keep** existing `.env.native` and `.data/`.
 
+## Commits (pushed to main)
+
+- `84456a9` — fix: gate e2e raw JWT dumps behind ephemeral/unsafe opt-in
+- `0c4fca1` — feat: add business acceptance harness (Node + Windows wrapper)
+- `ea58603` — fix: enterprise AI sales copy on login/workbench/funnel
+- `fb49d9d` — docs: SALES-FOLLOWUP-20260923-1112 bot harness evidence + UI待测
+- (pack commit below) — chore: ship followup1112 pack + SHA256
+
 ## Pack
 
-See pack SHA in this folder after ship.
+- `sales-os-internal-trial-local-20260923-followup1112.tar.gz`
+- bytes: 4858982
+- SHA256: `c3466e97a1aeba40d93e7a6c522720c922ef52c245fc4745df1e0846dc83c6e7`
+- Also at `/workspace/` and `releases/`; symlink `sales-os-internal-trial-local.tar.gz` → followup1112

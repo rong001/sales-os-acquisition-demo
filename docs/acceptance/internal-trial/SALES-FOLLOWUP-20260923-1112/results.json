@@ -1,0 +1,11 @@
+{
+  "suite": "SALES-FOLLOWUP-20260923-1112",
+  "pack_name": "sales-os-internal-trial-local-20260923-followup1112.tar.gz",
+  "bytes": 4858982,
+  "sha256": "c3466e97a1aeba40d93e7a6c522720c922ef52c245fc4745df1e0846dc83c6e7",
+  "ran_at": "2026-09-23T03:19:31.046297Z",
+  "host_os": "Linux (bot box) \u2014 NOT user Windows PC",
+  "bot_harness_overall": "PASS",
+  "windows_browser_ui": "NOT_CLAIMED \u2014 see UI-PENDING.md",
+  "windows_infra_already_pass": "user-cited followup1040 Start\u2192Test\u2192Stop\u2192Start exit0"
+}
