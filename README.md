@@ -161,6 +161,7 @@ API_BASE="$(cat docs/acceptance/public-https/PUBLIC_URL.txt)/api" \
 - `docs/USER_ACTIONS.md` — 需人工完成的步骤
 - `docs/screenshots/` — 界面截图
 - `docs/PROJECT_MATRIX.md` — 三项目索引
+- `docs/background/salesforce-agentforce-reference.md` — Salesforce/Agentforce CRM 行业参考（非客户）
 
 ## 可访问地址
 
