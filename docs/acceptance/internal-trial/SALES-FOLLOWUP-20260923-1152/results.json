@@ -1,0 +1,14 @@
+{
+  "pack_name": "sales-os-internal-trial-local-20260923-followup1152.tar.gz",
+  "pack_bytes": 4876745,
+  "pack_sha256": "41d6d3aeed0d68db06cacf9533c0673005ba6005ace50cd9a022c040b21cb8b3",
+  "overall": "PASS",
+  "ui_pending": true,
+  "bot_base": "http://127.0.0.1:18180",
+  "skips": [
+    "persist-restart-cmd",
+    "fault-native-redis-pg-ports",
+    "ui-typed-browser-login"
+  ],
+  "git_tip_pre_pack_docs": "be3903f"
+}

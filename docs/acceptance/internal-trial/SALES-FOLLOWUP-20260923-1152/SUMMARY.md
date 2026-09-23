@@ -84,12 +84,22 @@ See `UI-PENDING.md`. API login ≠ typed browser UI.
 
 ## Commits
 
-(filled after push)
+- `852b348` — feat(api): enterprise products + authorized public-list import
+- `9ddd412` — feat(web): authorized public import UI + enterprise product filters
+- `1cf664d` — feat(acceptance): real vs synthetic harness with SKIP layering
+- `af472c9` — fix: refuse e2e disk JWT by default; point trial to business-acceptance
+- `be3903f` — docs: SALES-FOLLOWUP-20260923-1152 bot harness evidence + UI待测
+- (pack tip commits follow)
+
 
 ## Pack
 
-(filled after ship)
+- `sales-os-internal-trial-local-20260923-followup1152.tar.gz`
+- bytes: 4876745
+- SHA256: `41d6d3aeed0d68db06cacf9533c0673005ba6005ace50cd9a022c040b21cb8b3`
+- Also at `/workspace/` and `releases/`; symlink `sales-os-internal-trial-local.tar.gz` → followup1152
+
 
 ## Tip
 
-(filled after pack tip commit)
+(see pin commit)
