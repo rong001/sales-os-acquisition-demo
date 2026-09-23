@@ -1,0 +1,21 @@
+{
+  "pack": "SALES-FOLLOWUP-20260923-1217",
+  "overall": "PASS",
+  "api_subsuite": "PASS",
+  "real_source_gate": "PASS",
+  "ui": "SKIP",
+  "product_green": "NO",
+  "fail_count": 0,
+  "skip_count": 3,
+  "verification_summary": {
+    "fetch_verified": 3,
+    "fetch_failed": 2,
+    "source_provided": 0,
+    "pending_verification": 0,
+    "acceptance_gate": "Only fetch_verified counts toward real-source acceptance; require >=3"
+  },
+  "health_contract": {
+    "liveness": "GET /health/live",
+    "readiness": "GET /health and GET /health/ready (web /api/health \u2192 readiness)"
+  }
+}
