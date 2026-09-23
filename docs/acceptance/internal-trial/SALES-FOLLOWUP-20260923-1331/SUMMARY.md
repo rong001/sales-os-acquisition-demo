@@ -36,6 +36,18 @@ See `DIFF-OVERLAY.md` — prefer overlaying the listed changed files onto an exi
 6. Typed UI still in `UI-PENDING.md` — never claim API PASS = product green
 7. Never touch Sub2API 15432/16379
 
-## Tip
+## Pack
 
-Pack ship commit SHA filled after `chore: ship` (see git log / this file tip pin).
+- `sales-os-internal-trial-local-20260923-followup1331.tar.gz`
+- bytes: 5305227
+- SHA256: `ea578dbe1b5393f20d07f01d55d41870da351b1b0f17cf457f489d8b552efab5`
+- Overlay (changed files only): `sales-os-internal-trial-local-20260923-followup1331-overlay.tar.gz` (57254 bytes, SHA256 `105b1687d483f2a972d05644cc38c19fcf2cb52518b7f6017cc654dc34148421`)
+- Symlink `sales-os-internal-trial-local.tar.gz` → followup1331 under `/workspace` and `releases/`
+
+## Commits
+
+- `8497186` — feat(api): title honesty, DNS/IP pin, verification current vs historical, outbox recovery
+- (ship + tip pins follow)
+
+## Tip
+(pending ship commit)
