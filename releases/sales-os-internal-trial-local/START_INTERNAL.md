@@ -7,12 +7,16 @@ Bot 机器上的 `http://127.0.0.1:18180` **不能**当作你的试用入口。
 
 | 系统 | 推荐方式 | 文档 |
 |---|---|---|
-| **Windows（推荐内部试用）** | Docker Desktop + PowerShell | **[START_WINDOWS.md](./START_WINDOWS.md)** |
+| **Windows（推荐内部试用）** | Docker Desktop **或** 无 Docker 时原生 Node+隔离 PG/Redis | **[START_WINDOWS.md](./START_WINDOWS.md)** |
 | **Linux / macOS** | 同一套 Docker Compose，或本机 Node + `supervise.sh` | 见下方 |
 
 ### Windows（推荐）
 
-见 **START_WINDOWS.md**：复制 `.env.internal-trial.example` → `.env`，运行 `scripts/windows/Start-InternalTrial.ps1`（成功条件含 Web `/api/health`），打开 `http://127.0.0.1:18180`。自检：`Test-InternalTrial.ps1`。
+见 **START_WINDOWS.md**：
+
+- Docker：`.env.internal-trial.example` → `.env`，`Start-InternalTrial.ps1` → `http://127.0.0.1:18180`
+- 无 Docker：`scripts/windows/native/Start-InternalTrial-Native.ps1` → 默认 `http://127.0.0.1:19280`
+
 
 ### Linux / macOS — Docker Compose（与 Windows 同栈）
 

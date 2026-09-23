@@ -1,66 +1,100 @@
-# 内部试用 · Windows 启动（Docker Desktop + PowerShell）
+# 内部试用 · Windows 启动
 
-**推荐路径。** 本机需已安装并运行 **Docker Desktop**；脚本**不会**替你安装。
+两条路径（二选一）：
 
-## 依赖
+| 条件 | 路径 | 入口 |
+|---|---|---|
+| 已安装并运行 **Docker Desktop** | **A. Docker Compose（推荐）** | `.\scripts\windows\Start-InternalTrial.ps1` |
+| **无 Docker / 无 WSL**（或 Desktop 不可用） | **B. Windows 原生 Node + 隔离 PG/Redis** | `.\scripts\windows\native\Start-InternalTrial-Native.ps1` |
 
-1. [Docker Desktop](https://www.docker.com/products/docker-desktop/) 已安装且托盘图标显示 Running  
-2. PowerShell 5.1+（Windows 自带即可）
+本机验收以 **本机** `http://127.0.0.1:…` 为准；Bot Linux ≠ 你的 Windows，勿把远端 bot 端口当试用入口。
 
-若 `docker` 命令不存在或 `docker info` 失败：**到此停止**，先装好/启动 Docker Desktop，再继续。
+脚本**不会**打印 SUCCESS/OK，除非 `GET /api/health`（经 Web 端口）返回 JSON `ok: true` 且 `service: sales-os-api`。静态 SPA 的 200 **不算**就绪。
 
-## 最短步骤
+---
+
+## A. Docker Desktop + PowerShell（推荐）
+
+### 依赖
+
+1. [Docker Desktop](https://www.docker.com/products/docker-desktop/) 已安装且托盘 Running  
+2. PowerShell 5.1+
+
+若 `docker` 不存在或 `docker info` 失败：改走 **B. 原生路径**，或先装好 Desktop。
+
+### 最短步骤
 
 ```powershell
 cd sales-os-app
 copy .env.internal-trial.example .env
-# 用记事本编辑 .env：把所有 CHANGE_ME 改成你的本地密码（勿提交、勿外传）
+# 编辑 .env：把所有 CHANGE_ME 改成本地密码（勿提交、勿外传）
 
 .\scripts\windows\Start-InternalTrial.ps1
-# 等价手动：
-# docker compose -f docker-compose.internal-trial.yml --env-file .env up -d --build
 ```
 
-`Start-InternalTrial.ps1` 会：校验 `.env` 必填项（失败只打印**键名**）、`compose up`，再轮询最多 120s  
-`GET http://127.0.0.1:HOST_WEB_PORT/api/health`，仅当 HTTP 2xx 且 JSON 含 `ok: true` 与 `sales-os-api` 才打印 **OK + URL**。  
-静态 SPA 的 200 **不算**就绪；失败会打印分类诊断（不打印密钥），并以非零退出码结束。
-
-浏览器打开（脚本成功时会打印实际端口）：
+成功后浏览器：
 
 ```text
 http://127.0.0.1:18180
 ```
 
-（API 经 Web 的 `/api`；可选直连 `http://127.0.0.1:3100`。）
+自检：`.\scripts\windows\Test-InternalTrial.ps1`  
+停止（保留数据）：`.\scripts\windows\Stop-InternalTrial.ps1`  
+清空数据：`.\scripts\windows\Stop-InternalTrial.ps1 -WipeVolumes`（危险）
 
-只读自检（不改动栈）：
+Postgres/Redis **不**映射到宿主机（仅容器内网）。发布端口仅 `127.0.0.1`。
 
-```powershell
-.\scripts\windows\Test-InternalTrial.ps1
+演示账号邮箱见 `.env.internal-trial.example` 注释；密码仅在本地 `.env`。
+
+### Linux 破网兜底（仅 Linux bot / 破 bridge；非 Windows Desktop）
+
+若容器间 TCP 超时，Linux 可用：
+
+```bash
+docker compose -f docker-compose.internal-trial.yml \
+  -f docker-compose.internal-trial.linux-hostnet.yml \
+  --env-file .env up -d --build
 ```
 
-演示账号邮箱见 `.env.internal-trial.example` 注释（`manager@demo.local` / `agent@demo.local` 等）；密码仅在你本地的 `.env`。
+该 overlay 把 PG/Redis **仅**绑到 `127.0.0.1` 高位端口，api/web 用 host 网络回环访问。**不要**用于把数据库暴露到公网。
 
-## 首次初始化
+---
 
-- Postgres / Redis 使用 Docker **命名卷**；首次 `up` 会执行 `scripts/sql/001_schema.sql`，API `SEED_ON_BOOT=true` 写入演示账号。
-- 之后 **stop / start（不加 `-v`）会保留数据**。
+## B. Windows 原生（无 Docker）
 
-## 停止 / 清空
+详见 [`scripts/windows/native/README.md`](./scripts/windows/native/README.md)。
 
 ```powershell
-# 停止容器，保留卷（推荐）
-.\scripts\windows\Stop-InternalTrial.ps1
-# 或: docker compose -f docker-compose.internal-trial.yml --env-file .env down
-
-# 危险：连同卷删除（清空库）——仅当你明确要 wipe
-.\scripts\windows\Stop-InternalTrial.ps1 -WipeVolumes
-# 或: docker compose -f docker-compose.internal-trial.yml --env-file .env down -v
+cd sales-os-app
+# 一次性拉取 Redis 等依赖（Postgres 见 README：EDB zip 或官方安装到 PATH）
+.\scripts\windows\native\Fetch-NativeDeps.ps1
+.\scripts\windows\native\Start-InternalTrial-Native.ps1
+# 浏览器默认: http://127.0.0.1:19280
+.\scripts\windows\native\Test-InternalTrial-Native.ps1
+.\scripts\windows\native\Stop-InternalTrial-Native.ps1
 ```
+
+隔离约定：
+
+- 端口默认 **15432 / 16379 / 39300 / 19280**（拒绝占用 Sub2API 常用的 5432/6379）
+- 数据目录：仓库内 `.data/native/`（带 marker；不覆盖外来数据目录）
+- 密钥：本地 `.env.native`（gitignored；启动脚本可自动生成随机值）
+
+**切勿**复用已有 Sub2API 的 Postgres/Redis 数据目录或默认端口。
+
+---
+
+## Codex / 自动化反馈环（给本地代理）
+
+1. 先跑健康门禁（Docker：`Test-InternalTrial.ps1`；原生：`Test-InternalTrial-Native.ps1`）。  
+2. 门禁失败 → **禁止**宣称可用；按脚本分类（`docker-not-running` / `api-or-db-not-ready` / `web-proxy-broken` / `port-collision`）修复后重试。  
+3. 门禁通过后再做浏览器登录（在 `/login` **键入**账号，禁止 localStorage 注入）。  
+4. 业务回归可参考 `docs/acceptance/internal-trial/SALES-MASTER-20260923/`。
+
+---
 
 ## 说明
 
-- Postgres / Redis **不**映射到宿主机端口（仅容器内网）。
-- 发布端口仅绑定 `127.0.0.1`。
-- **不要**用 `bash scripts/supervise.sh`（依赖 `/proc`、`ss`、`pkill`、`nohup`，**不适用于 Windows PowerShell**）。
-- Linux/macOS bot 可用 `bash scripts/check-internal-trial.sh`（同 `/api/health` 门禁）。
+- **不要**用 `bash scripts/supervise.sh`（依赖 `/proc`/`ss`/`pkill`，不适用于 Windows PowerShell）。  
+- 不买新付费服务；不群发邮件/电话/私信；不买线索。  
+- 不含真实客户数据；合成线索与 `source_type=public_web_sample` 公开样例已区分标注。
