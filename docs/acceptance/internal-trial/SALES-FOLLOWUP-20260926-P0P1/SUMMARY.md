@@ -58,4 +58,4 @@ Offline units: pool-claim-race, followup-requires-next, payment-risk, dial-mock-
 - `5c87b95` — feat(acceptance): P0P1 assertions + units
 
 ## Tip
-`e660ef2` (pack ship)
+`842d363` (docs pin after pack ship e660ef2)
