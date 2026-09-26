@@ -81,7 +81,7 @@ Keys: `DEMO_AGENT_PASSWORD` / `DEMO_AGENT2_PASSWORD` / `DEMO_MANAGER_PASSWORD` /
 ## Commits
 
 - `9a00a3e` — feat(demo): AppNav + 3 packs + smoke
-- (pack ship + tip pin follow)
+-  — chore: ship demo-ready pack
 
 ## Tip
-_(filled after tip pin)_
+ (docs pin after pack ship; feat )
