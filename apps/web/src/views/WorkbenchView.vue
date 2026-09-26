@@ -1,42 +1,39 @@
 <template>
-  <div class="page">
+  <div class="page" data-testid="workbench-page">
     <div class="topbar">
       <div>
-        <h2 style="margin:0">今日作战台</h2>
-        <p class="muted" style="margin:0">{{ user?.display_name }} · {{ user?.tenant_name || '企业 AI 定制销售' }} · {{ user?.role }}</p>
+        <h2 style="margin:0">坐席工作台</h2>
+        <p class="muted" style="margin:0">{{ user?.display_name }} · {{ user?.role }}</p>
       </div>
-      <div class="row">
-        <button v-if="canFunnel" class="btn" @click="$router.push('/admin/funnel')">漏斗</button>
-        <button v-if="canFunnel" class="btn" @click="$router.push('/admin/conversion')">来源转化</button>
-        <button v-if="canFunnel" class="btn" @click="$router.push('/admin/growth')">获客配置</button>
+      <div class="nav-links">
+        <button v-if="canBoss" class="btn btn-ghost" data-testid="nav-boss" @click="$router.push('/boss')">老板三屏</button>
+        <button class="btn btn-ghost" data-testid="nav-pool" @click="$router.push('/pool')">公海</button>
+        <button class="btn btn-ghost" data-testid="nav-dial" @click="$router.push('/dial')">外呼任务</button>
+        <button class="btn btn-ghost" data-testid="nav-scripts" @click="$router.push('/scripts')">话术库</button>
+        <button class="btn btn-ghost" data-testid="nav-import" @click="$router.push('/import')">导入</button>
+        <button v-if="canFunnel" class="btn btn-ghost" @click="$router.push('/admin/funnel')">漏斗</button>
+        <button v-if="canFunnel" class="btn btn-ghost" @click="$router.push('/admin/growth')">获客配置</button>
         <button class="btn" @click="logout">退出</button>
       </div>
     </div>
 
-    <div class="row" style="margin-bottom:8px;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-      <span class="muted" style="font-size:12px" data-testid="workbench-last-updated">
-        最近更新 {{ lastUpdatedLabel }}
-      </span>
-      <span
-        v-if="loadError"
-        class="tag warn"
-        style="font-size:12px"
-        data-testid="workbench-load-error"
-      >{{ loadError }}</span>
+    <div class="row" style="margin-bottom:8px;justify-content:space-between;flex-wrap:wrap">
+      <span class="muted" style="font-size:12px" data-testid="workbench-last-updated">最近更新 {{ lastUpdatedLabel }}</span>
+      <span v-if="loadError" class="tag warn" data-testid="workbench-load-error">{{ loadError }}</span>
     </div>
 
     <div class="grid-3" style="margin-bottom:12px">
-      <div class="card"><div class="muted">我的在办</div><div style="font-size:28px">{{ data?.stats?.my_open ?? '—' }}</div></div>
-      <div class="card"><div class="muted">待确认预约</div><div style="font-size:28px">{{ data?.stats?.pending_confirm ?? '—' }}</div></div>
-      <div class="card"><div class="muted">到期跟进</div><div style="font-size:28px" data-testid="due-follow-count">{{ data?.stats?.due_follow_ups ?? '—' }}</div></div>
+      <div class="card"><div class="stat-label">我的在办</div><div class="stat">{{ data?.stats?.my_open ?? '—' }}</div></div>
+      <div class="card"><div class="stat-label">待确认预约</div><div class="stat">{{ data?.stats?.pending_confirm ?? '—' }}</div></div>
+      <div class="card"><div class="stat-label">到期跟进</div><div class="stat" data-testid="due-follow-count">{{ data?.stats?.due_follow_ups ?? '—' }}</div></div>
     </div>
 
     <div class="card stack" style="margin-bottom:12px" data-testid="due-follow-ups">
       <div class="row" style="justify-content:space-between">
-        <strong>到期跟进</strong>
-        <span class="tag warn">站内列表轮询 · 非 worker 推送 · 外部消息待接入</span>
+        <p class="section-title">今日待办（按下次跟进时间）</p>
+        <span class="tag warn">站内列表 · 非推送</span>
       </div>
-      <div v-if="!(data?.due_follow_ups || []).length" class="muted">暂无到期待办</div>
+      <div v-if="!(data?.due_follow_ups || []).length" class="empty">暂无到期待办</div>
       <div
         v-for="r in data?.due_follow_ups || []"
         :key="r.case_id"
@@ -59,40 +56,13 @@
       </div>
     </div>
 
-    <div v-if="isAdmin" class="card stack" style="margin-bottom:12px" data-testid="authorized-public-import">
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <strong>企业线索导入（公开来源 / 授权名单）</strong>
-        <span class="tag">真实公开来源 · 未知字段存 UNKNOWN · 非合成夹具</span>
-      </div>
-      <p class="muted" style="margin:0;font-size:12px">
-        只读抓取官网摘要作 provenance；不发明联系人/同意/需求；不外发邮件/电话/私信。合成演示请用下方「新建演示线索」。
-      </p>
-      <div class="row" style="gap:8px;flex-wrap:wrap">
-        <input class="input" style="flex:1;min-width:140px" v-model="importForm.company_name" placeholder="公司名" />
-        <input class="input" style="flex:2;min-width:200px" v-model="importForm.official_site_url" placeholder="官网 URL https://…" />
-      </div>
-      <div class="row" style="gap:8px;flex-wrap:wrap">
-        <select class="input" style="width:auto" v-model="importForm.product_code">
-          <option value="ai-cs">AI客服</option>
-          <option value="kb-crm">知识库/CRM流程自动化</option>
-          <option value="sales-agent">销售智能体</option>
-        </select>
-        <input class="input" style="flex:1;min-width:200px" v-model="importForm.match_reason_vs_icp" placeholder="ICP 匹配理由" />
-        <button class="btn btn-primary" :disabled="importBusy || !canWrite" data-testid="authorized-public-import-submit" @click="runAuthorizedImport">
-          {{ importBusy ? '导入中…' : '导入公开来源' }}
-        </button>
-      </div>
-      <p v-if="importMsg" class="muted" style="margin:0;font-size:12px" data-testid="authorized-public-import-msg">{{ importMsg }}</p>
-    </div>
-
-    <div class="grid-3">
-      <div class="card stack" style="grid-column: span 2">
+    <div class="grid-2" style="margin-bottom:12px">
+      <div class="card stack" data-testid="my-cases">
         <div class="row" style="justify-content:space-between">
-          <strong>案件列表</strong>
-          <button v-if="canWrite" class="btn btn-primary" :disabled="busy" @click="runHappyPath">{{ busy ? '处理中…' : '新建合成演示线索并跑通' }}</button>
-          <span v-else class="tag">只读演示</span>
+          <p class="section-title">我的案件</p>
+          <button v-if="canWrite" class="btn btn-primary" :disabled="busy" @click="runHappyPath">{{ busy ? '…' : '合成演示' }}</button>
         </div>
-        <div v-if="!data?.cases?.length" class="muted">暂无案件。可从落地页留资，或点击上方按钮跑通演示路径。</div>
+        <div v-if="!data?.cases?.length" class="empty">暂无案件</div>
         <div
           v-for="c in data?.cases || []"
           :key="c.id"
@@ -104,20 +74,56 @@
               <span v-if="c.product_code" class="tag" style="margin-left:6px">{{ c.product_code }}</span>
               <span v-if="c.follow_up_status === 'open' && c.next_follow_at" class="tag warn" style="margin-left:6px">下次跟进</span>
             </div>
-            <div class="muted" style="font-size:12px">路径 {{ c.path }} · 更新 {{ formatTime(c.updated_at) }}</div>
+            <div class="muted" style="font-size:12px">更新 {{ formatTime(c.updated_at) }}</div>
           </div>
           <span class="tag">{{ c.stage }}</span>
         </div>
       </div>
 
-      <div class="card stack">
-        <strong>待确认预约</strong>
-        <div v-if="!data?.pending_appointments?.length" class="muted">暂无草稿预约</div>
-        <div v-for="a in data?.pending_appointments || []" :key="a.id" class="list-item" @click="$router.push(`/cases/${a.case_id}`)">
-          <div>{{ a.product_or_program }}</div>
-          <div class="muted" style="font-size:12px">{{ formatTime(a.slot_start) }}</div>
+      <div class="card stack" data-testid="public-sea-claim">
+        <div class="row" style="justify-content:space-between">
+          <p class="section-title">公海领取</p>
+          <button class="btn btn-ghost" @click="loadPool">刷新</button>
+        </div>
+        <p v-if="poolRules" class="muted" style="margin:0;font-size:12px">
+          上限 {{ poolRules.max_private_cases }} · 保护 {{ poolRules.protect_hours }}h · 闲置 {{ poolRules.idle_days_to_recycle }} 天回收
+        </p>
+        <div v-if="!(poolItems || []).length" class="empty">公海暂无可领案件</div>
+        <div v-for="p in poolItems || []" :key="p.case_id" class="list-item row">
+          <div class="grow" style="cursor:pointer" @click="$router.push(`/cases/${p.case_id}`)">
+            <div>{{ p.company_name || p.name || p.case_id.slice(0, 8) }}
+              <span class="tag" style="margin-left:6px">{{ p.stage }}</span>
+            </div>
+            <div class="muted" style="font-size:12px">{{ p.phone_masked || '—' }}</div>
+          </div>
+          <button
+            v-if="canWrite"
+            class="btn btn-primary"
+            data-testid="pool-claim-btn"
+            :disabled="claimBusy === p.case_id"
+            @click.stop="doClaim(p.case_id)"
+          >领取</button>
         </div>
       </div>
+    </div>
+
+    <div v-if="showAdvanced" class="card stack disclosure" data-testid="authorized-public-import">
+      <div class="row" style="justify-content:space-between">
+        <p class="section-title">公开来源导入（高级）</p>
+        <button class="btn btn-ghost" @click="showAdvanced = false">收起</button>
+      </div>
+      <p class="muted" style="margin:0;font-size:12px">真实公开来源 · 未知存 UNKNOWN · 完整导入见「导入」页</p>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <input class="input" style="flex:1;min-width:140px" v-model="importForm.company_name" placeholder="公司名" />
+        <input class="input" style="flex:2;min-width:200px" v-model="importForm.official_site_url" placeholder="官网 URL https://…" />
+        <button class="btn btn-primary" :disabled="importBusy || !canWrite" data-testid="authorized-public-import-submit" @click="runAuthorizedImport">
+          {{ importBusy ? '…' : '导入' }}
+        </button>
+      </div>
+      <p v-if="importMsg" class="muted" style="margin:0;font-size:12px" data-testid="authorized-public-import-msg">{{ importMsg }}</p>
+    </div>
+    <div v-else-if="isAdmin" style="margin-top:8px">
+      <button class="btn btn-ghost" @click="showAdvanced = true">展开公开来源导入…</button>
     </div>
   </div>
 </template>
@@ -125,10 +131,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, inject } from 'vue';
 import { useRouter } from 'vue-router';
-import { LeadApi } from '../api/client';
+import { LeadApi, PoolApi } from '../api/client';
 
 const POLL_MS = 5000;
-
 const router = useRouter();
 const toast = inject('toast', () => {});
 const data = ref(null);
@@ -140,20 +145,23 @@ const lastUpdatedAt = ref(null);
 const inFlight = ref(false);
 const importBusy = ref(false);
 const importMsg = ref('');
+const showAdvanced = ref(false);
 const importForm = ref({
   company_name: '',
   official_site_url: '',
   product_code: 'sales-agent',
   match_reason_vs_icp: '',
 });
+const poolItems = ref([]);
+const poolRules = ref(null);
+const claimBusy = ref('');
 let pollTimer = null;
 
-try { user.value = JSON.parse(localStorage.getItem('salesos_user') || 'null'); } catch { /* ignore */ }
+try { user.value = JSON.parse(localStorage.getItem('salesos_user') || 'null'); } catch { /* */ }
 const isAdmin = computed(() => ['admin', 'supervisor'].includes(user.value?.role));
-const isViewer = computed(() => user.value?.role === 'viewer');
-const canWrite = computed(() => !isViewer.value);
-const canFunnel = computed(() => isAdmin.value || isViewer.value);
-
+const canWrite = computed(() => user.value?.role !== 'viewer');
+const canFunnel = computed(() => isAdmin.value || user.value?.role === 'viewer');
+const canBoss = computed(() => isAdmin.value || user.value?.role === 'viewer');
 const lastUpdatedLabel = computed(() => {
   if (!lastUpdatedAt.value) return '—';
   try { return new Date(lastUpdatedAt.value).toLocaleString('zh-CN'); } catch { return String(lastUpdatedAt.value); }
@@ -163,7 +171,7 @@ function stageLabel(s) {
   const map = {
     NEW: '新建', QUALIFIED: '已合格', ASSIGNED: '已分配', REACHING: '触达中', IN_DIALOG: '会话中',
     APPOINTMENT_PENDING: '待确认预约', APPOINTED: '已预约', NURTURE: '培育', BLOCKED: '冻结',
-    WON: '演示赢单（非客户成交）', LOST: '丢单',
+    WON: '赢单', LOST: '丢单',
   };
   return map[s] || s;
 }
@@ -183,6 +191,27 @@ async function load() {
     loadError.value = e?.message || '作战台刷新失败';
   } finally {
     inFlight.value = false;
+  }
+}
+
+async function loadPool() {
+  try {
+    const res = await PoolApi.publicList(20);
+    poolItems.value = res.items || [];
+    poolRules.value = res.rules || null;
+  } catch { /* soft */ }
+}
+
+async function doClaim(caseId) {
+  claimBusy.value = caseId;
+  try {
+    await PoolApi.claim(caseId);
+    toast('已领取到私海');
+    await Promise.all([load(), loadPool()]);
+  } catch (e) {
+    toast(e.message || '领取失败');
+  } finally {
+    claimBusy.value = '';
   }
 }
 
@@ -218,13 +247,11 @@ async function runAuthorizedImport() {
     });
     const first = res?.items?.[0];
     importMsg.value = first
-      ? `已导入 ${first.company_name} · verification=${first.verification_status || '?'} · real=${first.real_public_source ? 'yes' : 'no'} · hist=${first.historically_verified ? 'yes' : 'no'} · ${first.verification_explanation || ''} · consent=${first.consent_status} · case=${String(first.case_id).slice(0, 8)}`
+      ? `已导入 ${first.company_name} · verification=${first.verification_status || '?'} · case=${String(first.case_id).slice(0, 8)}`
       : `已导入 ${res?.imported || 0} 条`;
-    toast('公开来源导入成功（UNKNOWN 字段未发明）');
-    importForm.value.company_name = '';
-    importForm.value.official_site_url = '';
-    importForm.value.match_reason_vs_icp = '';
+    toast('公开来源导入成功');
     await load();
+    await loadPool();
   } catch (e) {
     importMsg.value = e.message || '导入失败';
     toast(importMsg.value);
@@ -276,13 +303,10 @@ function logout() {
 
 onMounted(() => {
   load();
+  loadPool();
   pollTimer = setInterval(() => { load(); }, POLL_MS);
 });
-
 onUnmounted(() => {
-  if (pollTimer != null) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
+  if (pollTimer != null) { clearInterval(pollTimer); pollTimer = null; }
 });
 </script>

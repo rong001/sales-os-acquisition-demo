@@ -8,6 +8,12 @@ import ContentPageView from '../views/ContentPageView.vue';
 import RedirectView from '../views/RedirectView.vue';
 import ConversionView from '../views/ConversionView.vue';
 import GrowthAdminView from '../views/GrowthAdminView.vue';
+import BossView from '../views/BossView.vue';
+import PoolRulesView from '../views/PoolRulesView.vue';
+import DialTasksView from '../views/DialTasksView.vue';
+import ScriptsView from '../views/ScriptsView.vue';
+import ImportView from '../views/ImportView.vue';
+import WecomSidepanelView from '../views/WecomSidepanelView.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -15,6 +21,12 @@ const router = createRouter({
     { path: '/login', component: LoginView },
     { path: '/', component: WorkbenchView, meta: { auth: true } },
     { path: '/cases/:id', component: CaseDetailView, meta: { auth: true } },
+    { path: '/boss', component: BossView, meta: { auth: true, boss: true } },
+    { path: '/pool', component: PoolRulesView, meta: { auth: true } },
+    { path: '/dial', component: DialTasksView, meta: { auth: true } },
+    { path: '/scripts', component: ScriptsView, meta: { auth: true } },
+    { path: '/import', component: ImportView, meta: { auth: true } },
+    { path: '/wecom/sidepanel', component: WecomSidepanelView, meta: { auth: true } },
     { path: '/admin/funnel', component: FunnelView, meta: { auth: true, funnel: true } },
     { path: '/admin/conversion', component: ConversionView, meta: { auth: true, funnel: true } },
     { path: '/admin/growth', component: GrowthAdminView, meta: { auth: true, funnel: true } },
@@ -31,7 +43,7 @@ router.beforeEach((to) => {
   const token = localStorage.getItem('salesos_token');
   if (to.meta.auth && !token) return '/login';
   if (to.path === '/login' && token) return '/';
-  if (to.meta.funnel) {
+  if (to.meta.funnel || to.meta.boss) {
     try {
       const u = JSON.parse(localStorage.getItem('salesos_user') || '{}');
       if (!['admin', 'supervisor', 'viewer'].includes(u.role)) return '/';
