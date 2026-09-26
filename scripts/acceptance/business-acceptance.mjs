@@ -35,9 +35,9 @@ const ROOT = path.resolve(__dirname, '../..');
 const ENV_FILE = path.join(ROOT, '.env.native');
 const SAMPLES_FILE = path.join(__dirname, 'public-company-samples.json');
 const OUT_DIR = process.env.SALES_OS_ACCEPTANCE_OUT
-  || path.join(ROOT, 'docs/acceptance/internal-trial/SALES-FOLLOWUP-20260923-1331');
+  || path.join(ROOT, 'docs/acceptance/internal-trial/SALES-FOLLOWUP-20260926-P0P1');
 
-const PACK = 'SALES-FOLLOWUP-20260923-1331';
+const PACK = 'SALES-FOLLOWUP-20260926-P0P1';
 
 function parseDotEnv(filePath) {
   const map = Object.create(null);
@@ -111,7 +111,9 @@ async function api(base, method, p, { token, body } = {}) {
 }
 
 async function login(base, email, password) {
-  const r = await api(base, 'POST', '/api/auth/login', { body: { email, password } });
+  const directApi = /:(39300|3100)(\/|$)/.test(base);
+  const path = directApi ? '/auth/login' : '/api/auth/login';
+  const r = await api(base, 'POST', path, { body: { email, password } });
   if (r.status !== 200 && r.status !== 201) {
     return { ok: false, status: r.status, token: null, role: null };
   }
@@ -824,6 +826,214 @@ async function main() {
         : `FAIL exit=${unit.status} ${String(unit.stderr || unit.stdout).slice(0, 240)}`,
       { layer: 'api_subsuite' },
     );
+  }
+
+  // --- P0+P1 assertions (2026-09-26) ---
+  {
+    // Follow-up requires next_follow_at → 400
+    const miss = await api(base, 'POST', `${pfx}/leads/${synA.caseId}/activities`, {
+      token: s1.token,
+      body: { kind: 'followup', body: 'missing next should 400' },
+    });
+    record(
+      'followup-requires-next-follow-at',
+      miss.status === 400,
+      `HTTP ${miss.status} msg=${String(miss.json?.message || '').slice(0, 80)}`,
+      { layer: 'api_subsuite' },
+    );
+
+    // Pool rules get/put + public list + concurrent claim
+    const rulesGet = await api(base, 'GET', `${pfx}/pool/rules`, { token: mgr.token });
+    record('pool-rules-get', rulesGet.status === 200 && rulesGet.json?.max_private_cases != null, `HTTP ${rulesGet.status}`, { layer: 'api_subsuite' });
+    const rulesPut = await api(base, 'PUT', `${pfx}/pool/rules`, {
+      token: mgr.token,
+      body: {
+        max_private_cases: rulesGet.json?.max_private_cases || 50,
+        protect_hours: rulesGet.json?.protect_hours || 48,
+        idle_days_to_recycle: rulesGet.json?.idle_days_to_recycle || 7,
+        enabled: true,
+      },
+    });
+    record('pool-rules-put', rulesPut.status === 200 && rulesPut.json?.enabled === true, `HTTP ${rulesPut.status}`, { layer: 'api_subsuite' });
+
+    // Create a public-sea case for claim race
+    const phonePool = `139${String(Date.now()).slice(-8)}`;
+    const poolIntake = await api(base, 'POST', `${pfx}/leads/intake`, {
+      token: mgr.token,
+      body: {
+        phone: phonePool,
+        name: 'POOL_CLAIM_FIXTURE',
+        company_name: 'POOL claim race co',
+        source_type: 'synthetic_fixture',
+        source_channel: 'acceptance',
+        consent_accepted: true,
+        product_code: 'sales-agent',
+        path: 'STANDARD',
+      },
+    });
+    const poolCaseId = poolIntake.json?.case?.id;
+    await api(base, 'POST', `${pfx}/leads/${poolCaseId}/qualify`, { token: mgr.token, body: {} });
+    // ensure public
+    await api(base, 'POST', `${pfx}/pool/${poolCaseId}/release`, { token: mgr.token, body: { reason: 'acceptance_to_public' } }).catch(() => null);
+    // force public via release if owned; if never assigned, case should already be public
+    const pub = await api(base, 'GET', `${pfx}/pool/public`, { token: s1.token });
+    record('pool-public-list', pub.status === 200 && Array.isArray(pub.json?.items), `items=${pub.json?.items?.length ?? 'n/a'}`, { layer: 'api_subsuite' });
+
+    const [c1, c2] = await Promise.all([
+      api(base, 'POST', `${pfx}/pool/${poolCaseId}/claim`, { token: s1.token, body: {} }),
+      api(base, 'POST', `${pfx}/pool/${poolCaseId}/claim`, { token: s2.token, body: {} }),
+    ]);
+    const wins = [c1, c2].filter((x) => x.status < 300).length;
+    const loses = [c1, c2].filter((x) => x.status >= 400).length;
+    record(
+      'pool-claim-race-one-winner',
+      wins === 1 && loses >= 1,
+      `wins=${wins} loses=${loses} s1=${c1.status} s2=${c2.status}`,
+      { layer: 'api_subsuite' },
+    );
+
+    // Boss screens
+    const boss = await api(base, 'GET', `${pfx}/boss/screens`, { token: mgr.token });
+    record(
+      'boss-screens',
+      boss.status === 200
+        && boss.json?.screen1_team_todos
+        && boss.json?.screen2_funnel
+        && boss.json?.screen3_payment_risk
+        && typeof boss.json.screen3_payment_risk.empty === 'boolean',
+      `HTTP ${boss.status} empty_risk=${boss.json?.screen3_payment_risk?.empty}`,
+      { layer: 'api_subsuite' },
+    );
+    const bossAgent = await api(base, 'GET', `${pfx}/boss/screens`, { token: s1.token });
+    record('boss-rbac-agent-denied', bossAgent.status === 403, `HTTP ${bossAgent.status}`, { layer: 'api_subsuite' });
+
+    // CSV import polish
+    const csvTpl = await api(base, 'GET', `${pfx}/import/csv/template`, { token: mgr.token });
+    record('csv-template', csvTpl.status === 200 && csvTpl.bytes > 20, `HTTP ${csvTpl.status} bytes=${csvTpl.bytes}`, { layer: 'api_subsuite' });
+    // api() JSON-parses; template is CSV text — handle via raw fetch path: status may be 200 with raw
+    const csvBody = [
+      'company_name,contact_name,phone,email,source,product_code,demand,note',
+      `"CSV Good Co","李四","137${String(Date.now()).slice(-8)}","","展会名录","sales-agent","UNKNOWN","ok"`,
+      '"CSV Bad Co","王五","","","","sales-agent","UNKNOWN","missing source"',
+    ].join('\n');
+    const csvImp = await api(base, 'POST', `${pfx}/import/csv`, {
+      token: mgr.token,
+      body: { csv: csvBody },
+    });
+    record(
+      'csv-import-partial-success',
+      csvImp.status < 300
+        && csvImp.json?.success_count >= 1
+        && csvImp.json?.failed_count >= 1
+        && typeof csvImp.json?.summary_zh === 'string',
+      `success=${csvImp.json?.success_count} failed=${csvImp.json?.failed_count} HTTP ${csvImp.status}`,
+      { layer: 'api_subsuite' },
+    );
+
+    // Contract + payment risk feed
+    const wonCase = synA.caseId;
+    await api(base, 'POST', `${pfx}/leads/${wonCase}/mark-result`, {
+      token: s1.token, body: { result: 'won', note: 'acceptance won for contract' },
+    });
+    const contract = await api(base, 'POST', `${pfx}/contracts`, {
+      token: mgr.token,
+      body: { case_id: wonCase, amount: '10000', status: 'signed', currency: 'CNY' },
+    });
+    record('contract-create', contract.status < 300 && contract.json?.contract?.id, `HTTP ${contract.status}`, { layer: 'api_subsuite' });
+    const plan = await api(base, 'POST', `${pfx}/payment-plans`, {
+      token: mgr.token,
+      body: {
+        contract_id: contract.json?.contract?.id,
+        amount: '5000',
+        due_at: new Date(Date.now() - 86400000).toISOString(),
+      },
+    });
+    record('payment-plan-create', plan.status < 300 && plan.json?.id, `HTTP ${plan.status}`, { layer: 'api_subsuite' });
+    const boss2 = await api(base, 'GET', `${pfx}/boss/screens`, { token: mgr.token });
+    const overdueN = boss2.json?.screen3_payment_risk?.overdue_plans?.length || 0;
+    record('payment-risk-overdue-visible', boss2.status === 200 && overdueN >= 1, `overdue=${overdueN}`, { layer: 'api_subsuite' });
+    const receipt = await api(base, 'POST', `${pfx}/payment-receipts`, {
+      token: mgr.token,
+      body: {
+        contract_id: contract.json?.contract?.id,
+        plan_id: plan.json?.id,
+        amount: '5000',
+      },
+    });
+    record('payment-receipt-create', receipt.status < 300 && receipt.json?.id, `HTTP ${receipt.status}`, { layer: 'api_subsuite' });
+
+    // Dial task mock flow
+    const dialTask = await api(base, 'POST', `${pfx}/dial-tasks`, {
+      token: mgr.token,
+      body: { name: 'acceptance-dial', case_ids: [synB.caseId] },
+    });
+    record('dial-task-create', dialTask.status < 300 && dialTask.json?.id, `HTTP ${dialTask.status}`, { layer: 'api_subsuite' });
+    const nextItem = await api(base, 'POST', `${pfx}/dial-tasks/${dialTask.json?.id}/next`, {
+      token: s2.token, body: {},
+    });
+    record('dial-task-next', nextItem.status < 300 && nextItem.json?.item?.id, `HTTP ${nextItem.status}`, { layer: 'api_subsuite' });
+    const dialRes = await api(base, 'POST', `${pfx}/dial-items/${nextItem.json?.item?.id}/result`, {
+      token: s2.token,
+      body: { result: 'connected', note: 'mock ok', start_call: true },
+    });
+    record(
+      'dial-mock-result-call',
+      dialRes.status < 300 && dialRes.json?.call_record?.mode === 'mock',
+      `mode=${dialRes.json?.call_record?.mode} HTTP ${dialRes.status}`,
+      { layer: 'api_subsuite' },
+    );
+
+    // Scripts CRUD + recommend
+    const script = await api(base, 'POST', `${pfx}/scripts`, {
+      token: mgr.token,
+      body: { scene: '开场', title: '验收开场', body: '您好，我们是…', tags: ['sales-agent'] },
+    });
+    record('script-create', script.status < 300 && script.json?.id, `HTTP ${script.status}`, { layer: 'api_subsuite' });
+    const rec = await api(base, 'GET', `${pfx}/scripts/recommend/${synB.caseId}`, { token: s2.token });
+    record('script-recommend', rec.status === 200 && Array.isArray(rec.json?.items), `items=${rec.json?.items?.length ?? 0}`, { layer: 'api_subsuite' });
+
+    // WeCom mock sidepanel
+    const wecomSt = await api(base, 'GET', `${pfx}/wecom/status`, { token: mgr.token });
+    record(
+      'wecom-status-mock',
+      wecomSt.status === 200 && (wecomSt.json?.mode === 'mock' || wecomSt.json?.honest_label),
+      `mode=${wecomSt.json?.mode}`,
+      { layer: 'api_subsuite' },
+    );
+    const wecomCtx = await api(base, 'GET', `${pfx}/wecom/sidepanel/context?external_userid=mock-ext-acc&mock=1`, { token: s1.token });
+    record('wecom-context-mock', wecomCtx.status === 200, `case=${wecomCtx.json?.case?.id ? 'yes' : 'no'}`, { layer: 'api_subsuite' });
+    if (wecomCtx.json?.case?.id) {
+      const wf = await api(base, 'POST', `${pfx}/wecom/sidepanel/follow-up`, {
+        token: s1.token,
+        body: {
+          case_id: wecomCtx.json.case.id,
+          body: 'wecom mock follow',
+          next_follow_at: new Date(Date.now() + 3600000).toISOString(),
+          tags: ['企微'],
+        },
+      });
+      record('wecom-followup-mock', wf.status < 300 && wf.json?.activity?.id, `HTTP ${wf.status}`, { layer: 'api_subsuite' });
+    } else {
+      skip('wecom-followup-mock', 'no case resolved in mock context', 'optional');
+    }
+
+    // Offline unit pack for P0P1
+    {
+      const { spawnSync } = await import('node:child_process');
+      const unit = spawnSync(process.execPath, ['--test',
+        'scripts/acceptance/unit/pool-claim-race.test.mjs',
+        'scripts/acceptance/unit/followup-requires-next.test.mjs',
+        'scripts/acceptance/unit/payment-risk.test.mjs',
+        'scripts/acceptance/unit/dial-mock-call.test.mjs',
+        'scripts/acceptance/unit/wecom-mock.test.mjs',
+      ], { cwd: process.cwd(), encoding: 'utf8', env: process.env });
+      record(
+        'p0p1-offline-units',
+        unit.status === 0,
+        unit.status === 0 ? 'pool/followup/payment/dial/wecom units PASS' : `FAIL ${String(unit.stderr || unit.stdout).slice(0, 200)}`,
+        { layer: 'api_subsuite' },
+      );
+    }
   }
 
   // UI pending — always SKIP tier ui_pending, never PASS; cannot make product全绿

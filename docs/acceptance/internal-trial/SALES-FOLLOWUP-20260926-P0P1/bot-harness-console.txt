@@ -1,0 +1,76 @@
+== business-acceptance pack=SALES-FOLLOWUP-20260926-P0P1 base=http://127.0.0.1:3100 proxy=false ==
+(credentials from .env.native; secrets never printed; JWT memory-only)
+UI_PENDING: typed browser login / list UI — NOT tested by this harness
+PASS [api_subsuite] health-liveness — HTTP 200 check=liveness
+PASS [api_subsuite] health-readiness — HTTP 200 pg=true redis=true ( /health = readiness )
+PASS [api_subsuite] login-manager — HTTP 201 role=supervisor
+PASS [api_subsuite] login-sales1 — ok
+PASS [api_subsuite] login-sales2 — ok
+PASS [api_subsuite] neg-anon-401 — HTTP 401
+PASS [api_subsuite] neg-wrong-password-401 — HTTP 401
+PASS [api_subsuite] resolve-seats — seats=2
+PASS [api_subsuite] import-auth-required — no-token HTTP 401 (must not fall back anonymous)
+PASS [api_subsuite] import-authorized-public-submitted — submitted=5 verified=4 failed=1 batch=authpub-muhsjnpo
+PASS [real_source_gate] real-source-gate-ge3-verified — fetch_verified=4 (≥3)
+PASS [real_source_gate] import-verification-status-split — statuses=Stripe, Inc.:fetch_verified|HashiCorp:fetch_failed|GitLab Inc.:fetch_verified|Cloudflare, Inc.:fetch_verified|Notion Labs, Inc.:fetch_verified
+PASS [real_source_gate] import-failed-fetch-no-error-html-facts — failed=1 facts_clean=true
+PASS [api_subsuite] import-provenance-unknowns — contact/demand/consent=UNKNOWN; URL+fetch_time+ICP present
+PASS [api_subsuite] import-enterprise-products — ai-cs|kb-crm|sales-agent
+PASS [api_subsuite] synthetic-fixture-a — alias=cd1cdfc2
+PASS [api_subsuite] synthetic-fixture-b — alias=1ef60b2c
+PASS [real_source_gate] real-vs-synthetic-separation — source_type=authorized_public_list_import real_public_source=true verification=fetch_verified hist=true
+PASS [api_subsuite] normalize-dedupe-synthetic-identity — merged=true HTTP 201
+PASS [api_subsuite] company-dedupe-reimport-same-case — case_merged=true same_case_id=true HTTP 201
+PASS [api_subsuite] company-dedupe-parallel-single-case — unique_cases=1 responses=3
+PASS [api_subsuite] company-dedupe-source-history-append — source_history_len=20
+PASS [api_subsuite] verification-current-vs-historical — current=source_provided real=false hist=true expl=previously verified, current status=source_provided — use current status for fac
+PASS [api_subsuite] import-title-honesty-cloudflare — company=Cloudflare, Inc. status=fetch_verified (bare cloudflare title must not force error_page)
+PASS [api_subsuite] redis-enqueue-recovery-synthetic — enqueue fail→recover→idempotent PASS (in-memory)
+PASS [api_subsuite] assign-manager — A→sales1
+PASS [api_subsuite] assign-manager-b — B→sales2
+PASS [api_subsuite] agent-isolation — sales1→sales2 case HTTP 403
+PASS [api_subsuite] agent-isolation-workbench — HTTP 200 structure ok cases=50
+PASS [api_subsuite] neg-overreach-no-write — HTTP 403 stage_unchanged=true
+PASS [api_subsuite] follow-set-future — HTTP 201 future=+2500ms
+PASS [api_subsuite] due-reminder-wallclock — honesty=future→past wall-clock crossing; mechanism=list_polling/workbench_query_only (NOT worker timed push); before=false after=true
+PASS [api_subsuite] due-reminder-dual-sales-isolation — s2_sees_s1_due=false s1_sees_s2_due=false
+PASS [api_subsuite] due-reminder-no-duplicate-after-handle — handled HTTP 201 still_due=false
+PASS [api_subsuite] opportunity-win-synthetic — stage=WON demo_not_customer_deal=true
+PASS [api_subsuite] opportunity-lose-synthetic — stage=LOST
+PASS [api_subsuite] real-import-not-won-as-deal — real stage=NEW (must not invent 成交)
+PASS [api_subsuite] manager-funnel — HTTP 200
+PASS [api_subsuite] manager-board-read — manager sees synthetic WON
+SKIP [api_subsuite] persist-restart-cmd — SKIP: SALES_OS_ACCEPTANCE_RESTART_CMD not set. Full Stop→Start cited to Windows user PASS (prior followups); bot verifies re-login same-process only.
+PASS [api_subsuite] business-persistence-relogin — mode=relogin_same_process stage=WON owner_match=true
+PASS [api_subsuite] fault-api-wrong-port-classify — classify=connection_error port=47077 (NOT dependency-fault proof)
+SKIP [api_subsuite] fault-dependency-controlled-stop — SKIP: controlled PG/Redis stop not run (allow=0; native redis:56380=ECONNREFUSED pg:55433=ECONNREFUSED). Wrong-port redis 57491=ECONNREFUSED is NOT a dependency fault test. User Windows Stop PG/Redis already PASS. Sub2API 15432/16379 untouched.
+PASS [api_subsuite] fault-recovery-readiness — readiness HTTP 200 liveness HTTP 200; Sub2API 15432/16379 never operated
+PASS [api_subsuite] ssrf-reject-loopback — verification=fetch_failed facts=UNKNOWN HTTP 201
+PASS [api_subsuite] ssrf-unit-title-ip-dns-pin — offline title honesty + IPv4-mapped hex + fe80/10 + DNS rebind mock PASS
+PASS [api_subsuite] followup-requires-next-follow-at — HTTP 400 msg=下次跟进时间必填（next_follow_at）
+PASS [api_subsuite] pool-rules-get — HTTP 200
+PASS [api_subsuite] pool-rules-put — HTTP 200
+PASS [api_subsuite] pool-public-list — items=50
+PASS [api_subsuite] pool-claim-race-one-winner — wins=1 loses=1 s1=201 s2=400
+PASS [api_subsuite] boss-screens — HTTP 200 empty_risk=true
+PASS [api_subsuite] boss-rbac-agent-denied — HTTP 403
+PASS [api_subsuite] csv-template — HTTP 200 bytes=158
+PASS [api_subsuite] csv-import-partial-success — success=1 failed=1 HTTP 201
+PASS [api_subsuite] contract-create — HTTP 201
+PASS [api_subsuite] payment-plan-create — HTTP 201
+PASS [api_subsuite] payment-risk-overdue-visible — overdue=1
+PASS [api_subsuite] payment-receipt-create — HTTP 201
+PASS [api_subsuite] dial-task-create — HTTP 201
+PASS [api_subsuite] dial-task-next — HTTP 201
+PASS [api_subsuite] dial-mock-result-call — mode=mock HTTP 201
+PASS [api_subsuite] script-create — HTTP 201
+PASS [api_subsuite] script-recommend — items=1
+PASS [api_subsuite] wecom-status-mock — mode=mock
+PASS [api_subsuite] wecom-context-mock — case=yes
+PASS [api_subsuite] wecom-followup-mock — HTTP 201
+PASS [api_subsuite] p0p1-offline-units — pool/followup/payment/dial/wecom units PASS
+SKIP [ui] ui-typed-browser-login — 本侧 UI 未测: typed browser password login + list UI isolation. API login ≠ UI. Codex/user must verify on Windows.
+wrote /workspace/sales-os-app/docs/acceptance/internal-trial/SALES-FOLLOWUP-20260926-P0P1/business-acceptance-results.json
+OVERALL PASS (fail=0 skip=3 required_skip=0)
+LAYERS api_subsuite=PASS real_source_gate=PASS ui=SKIP product_green=NO
+SKIP_LIST persist-restart-cmd,fault-dependency-controlled-stop,ui-typed-browser-login
