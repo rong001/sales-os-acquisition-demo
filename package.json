@@ -2,7 +2,7 @@
   "name": "sales-os-app",
   "private": true,
   "version": "0.1.0",
-  "description": "\u9500\u552e\u83b7\u5ba2 OS\uff1a\u5185\u90e8\u9500\u552e\u83b7\u5ba2\u4e0e\u8ddf\u8fdb\uff08\u5bfc\u5165\u2192\u5206\u914d\u2192\u8ddf\u8fdb\u2192\u7ed3\u679c\uff09+ ToC \u843d\u5730\u9875\u6f14\u793a\u6e20\u9053",
+  "description": "销售获客 OS：内部销售获客与跟进（导入→分配→跟进→结果）+ ToC 落地页演示渠道",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -20,7 +20,13 @@
     "e2e:confirm-appt": "bash scripts/e2e-confirm-appointment-rbac.sh",
     "e2e:followup": "bash scripts/e2e-followup-reminders.sh",
     "e2e:followup-live": "bash scripts/e2e-followup-live-poll.sh",
-    "acceptance:business": "node scripts/acceptance/business-acceptance.mjs"
+    "acceptance:business": "node scripts/acceptance/business-acceptance.mjs",
+    "seed:demo": "node scripts/seed-demo-packs.mjs --pack=all",
+    "seed:demo:tele": "node scripts/seed-demo-packs.mjs --pack=tele",
+    "seed:demo:b2b": "node scripts/seed-demo-packs.mjs --pack=b2b",
+    "seed:demo:finance": "node scripts/seed-demo-packs.mjs --pack=finance",
+    "smoke:demo": "node scripts/smoke-demo-walkthrough.mjs",
+    "demo:ready": "npm run seed && npm run seed:demo && npm run smoke:demo"
   },
   "devDependencies": {
     "playwright": "^1.48.0"

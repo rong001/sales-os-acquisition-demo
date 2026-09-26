@@ -12,7 +12,7 @@ export class FinanceController {
   constructor(private readonly finance: FinanceService) {}
 
   @Get('contracts')
-  listContracts(@CurrentUser() user: AuthUser, @Query('case_id') caseId: string) {
+  listContracts(@CurrentUser() user: AuthUser, @Query('case_id') caseId?: string) {
     return this.finance.listContracts(user, caseId);
   }
 

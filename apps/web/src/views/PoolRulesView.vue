@@ -2,9 +2,9 @@
   <div class="page" data-testid="pool-page">
     <div class="topbar">
       <div>
-        <button class="btn btn-ghost" @click="$router.push('/')">← 工作台</button>
         <h2 style="margin:8px 0 0">公海规则</h2>
       </div>
+      <AppNav />
     </div>
     <div class="grid-2">
       <div class="card stack" data-testid="pool-rules-form">
@@ -42,6 +42,7 @@
   </div>
 </template>
 <script setup>
+import AppNav from '../components/AppNav.vue';
 import { ref, computed, onMounted, inject } from 'vue';
 import { PoolApi } from '../api/client';
 const toast = inject('toast', () => {});

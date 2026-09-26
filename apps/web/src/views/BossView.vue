@@ -2,11 +2,13 @@
   <div class="page" data-testid="boss-page">
     <div class="topbar">
       <div>
-        <button class="btn btn-ghost" @click="$router.push('/')">← 工作台</button>
         <h2 style="margin:8px 0 0">老板三屏</h2>
         <p class="muted" style="margin:0">今日待办 · 团队漏斗 · 回款风险</p>
       </div>
-      <button class="btn" @click="load">刷新</button>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <AppNav />
+        <button class="btn" @click="load">刷新</button>
+      </div>
     </div>
     <p v-if="error" class="tag warn">{{ error }}</p>
     <div class="boss-screens" v-if="data">
@@ -53,6 +55,7 @@
   </div>
 </template>
 <script setup>
+import AppNav from '../components/AppNav.vue';
 import { ref, onMounted, inject } from 'vue';
 import { BossApi } from '../api/client';
 const toast = inject('toast', () => {});

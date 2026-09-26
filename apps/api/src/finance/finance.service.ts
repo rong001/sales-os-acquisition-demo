@@ -34,12 +34,24 @@ export class FinanceService {
     return c;
   }
 
-  async listContracts(user: AuthUser, caseId: string) {
-    await this.assertCase(user, caseId);
-    return this.contracts.find({
-      where: { tenant_id: user.tenant_id, case_id: caseId },
-      order: { created_at: 'DESC' },
-    });
+  async listContracts(user: AuthUser, caseId?: string) {
+    if (caseId) {
+      await this.assertCase(user, caseId);
+      return this.contracts.find({
+        where: { tenant_id: user.tenant_id, case_id: caseId },
+        order: { created_at: 'DESC' },
+      });
+    }
+    // No case_id: list tenant contracts (admin/viewer: all; agent: owned cases only)
+    const qb = this.contracts.createQueryBuilder('c')
+      .where('c.tenant_id = :tid', { tid: user.tenant_id })
+      .orderBy('c.created_at', 'DESC');
+    if (!this.isAdmin(user) && user.role !== 'viewer') {
+      if (!user.agent_seat_id) return [];
+      qb.innerJoin(LeadCase, 'lc', 'lc.id = c.case_id')
+        .andWhere('lc.owner_agent_id = :seat', { seat: user.agent_seat_id });
+    }
+    return qb.getMany();
   }
 
   async createContract(user: AuthUser, body: {

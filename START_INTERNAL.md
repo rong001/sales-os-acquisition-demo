@@ -61,3 +61,14 @@ bash scripts/supervise.sh restart
 - 不含 `.env`、真实密码、真实客户数据
 - 不含 `node_modules`（Compose 路径由镜像构建；supervise 路径需本地 `npm ci`）
 - 未新建 Cloudflare Named Tunnel / 付费服务
+
+## 演示故事包（demo-ready）
+
+```bash
+npm run seed                 # 账号 + 获客配置
+npm run seed:demo            # A电销班 + B B2B跟进 + C成交回款（可 --pack=tele|b2b|finance）
+npm run smoke:demo           # 端到端 API 走通，期望 exit 0；JWT 仅内存
+```
+
+详见 `docs/acceptance/internal-trial/SALES-FOLLOWUP-20260926-DEMO/START_DEMO.md`。  
+密码仅来自本地 `.env` / `.env.native` 的 `DEMO_*_PASSWORD`。`product_green=NO` 直至 Windows 输密 UI 真测。

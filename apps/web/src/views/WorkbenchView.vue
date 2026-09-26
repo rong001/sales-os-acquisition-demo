@@ -5,16 +5,7 @@
         <h2 style="margin:0">坐席工作台</h2>
         <p class="muted" style="margin:0">{{ user?.display_name }} · {{ user?.role }}</p>
       </div>
-      <div class="nav-links">
-        <button v-if="canBoss" class="btn btn-ghost" data-testid="nav-boss" @click="$router.push('/boss')">老板三屏</button>
-        <button class="btn btn-ghost" data-testid="nav-pool" @click="$router.push('/pool')">公海</button>
-        <button class="btn btn-ghost" data-testid="nav-dial" @click="$router.push('/dial')">外呼任务</button>
-        <button class="btn btn-ghost" data-testid="nav-scripts" @click="$router.push('/scripts')">话术库</button>
-        <button class="btn btn-ghost" data-testid="nav-import" @click="$router.push('/import')">导入</button>
-        <button v-if="canFunnel" class="btn btn-ghost" @click="$router.push('/admin/funnel')">漏斗</button>
-        <button v-if="canFunnel" class="btn btn-ghost" @click="$router.push('/admin/growth')">获客配置</button>
-        <button class="btn" @click="logout">退出</button>
-      </div>
+      <AppNav />
     </div>
 
     <div class="row" style="margin-bottom:8px;justify-content:space-between;flex-wrap:wrap">
@@ -132,6 +123,7 @@
 import { ref, computed, onMounted, onUnmounted, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import { LeadApi, PoolApi } from '../api/client';
+import AppNav from '../components/AppNav.vue';
 
 const POLL_MS = 5000;
 const router = useRouter();

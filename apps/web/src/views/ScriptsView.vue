@@ -2,10 +2,12 @@
   <div class="page" data-testid="scripts-page">
     <div class="topbar">
       <div>
-        <button class="btn btn-ghost" @click="$router.push('/')">← 工作台</button>
         <h2 style="margin:8px 0 0">话术库</h2>
       </div>
-      <button class="btn btn-primary" @click="showForm = !showForm">新建话术</button>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <AppNav />
+        <button class="btn btn-primary" @click="showForm = !showForm">新建话术</button>
+      </div>
     </div>
     <div v-if="showForm" class="card stack" style="margin-bottom:12px">
       <input class="input" v-model="form.scene" placeholder="场景（开场/异议/邀约…）" />
@@ -34,6 +36,7 @@
   </div>
 </template>
 <script setup>
+import AppNav from '../components/AppNav.vue';
 import { ref, onMounted, inject } from 'vue';
 import { ScriptsApi, DialApi } from '../api/client';
 const toast = inject('toast', () => {});

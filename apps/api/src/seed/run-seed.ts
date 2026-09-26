@@ -79,6 +79,22 @@ async function main() {
   }
   console.log('Seed OK. Logins: agent@ / agent2@ / manager@ / admin@ / viewer@demo.local (passwords from .env)');
   await ds.destroy();
+
+  // Optional demo story packs (tele/b2b/finance). Default: all when SEED_DEMO_PACKS unset/true.
+  const pack = process.env.SEED_DEMO_PACKS || process.env.DEMO_PACK || 'all';
+  if (pack && pack !== 'false' && pack !== '0' && pack !== 'none') {
+    const { spawnSync } = await import('child_process');
+    const { join } = await import('path');
+    const script = join(__dirname, '..', '..', '..', '..', 'scripts', 'seed-demo-packs.mjs');
+    const r = spawnSync(process.execPath, [script, `--pack=${pack === 'true' ? 'all' : pack}`], {
+      cwd: join(__dirname, '..', '..', '..', '..'),
+      env: process.env,
+      stdio: 'inherit',
+    });
+    if (r.status !== 0) {
+      console.warn('demo packs seed exited', r.status, '(accounts still OK)');
+    }
+  }
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

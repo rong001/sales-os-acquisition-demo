@@ -1,8 +1,8 @@
 <template>
   <div class="page" v-if="detail" data-testid="case-detail-page">
     <div class="topbar">
+      <AppNav />
       <div>
-        <button class="btn btn-ghost" @click="$router.push('/')">← 返回</button>
         <h2 style="margin:8px 0 0">案件详情</h2>
         <p class="muted" style="margin:0">{{ detail.case.id.slice(0, 8) }}
           <span v-if="detail.case.product_code" class="tag" style="margin-left:6px">{{ detail.case.product_code }}</span>
@@ -182,6 +182,7 @@
 </template>
 
 <script setup>
+import AppNav from '../components/AppNav.vue';
 import { ref, computed, reactive, onMounted, inject } from 'vue';
 import { useRoute } from 'vue-router';
 import { LeadApi, FinanceApi, DialApi, ScriptsApi } from '../api/client';

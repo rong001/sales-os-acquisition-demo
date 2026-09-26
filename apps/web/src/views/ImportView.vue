@@ -2,10 +2,12 @@
   <div class="page" data-testid="import-page">
     <div class="topbar">
       <div>
-        <button class="btn btn-ghost" @click="$router.push('/')">← 工作台</button>
         <h2 style="margin:8px 0 0">导入中心</h2>
       </div>
-      <a class="btn" :href="templateUrl" data-testid="csv-template-download">下载 CSV 模板</a>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <AppNav />
+        <a class="btn" :href="templateUrl" data-testid="csv-template-download">下载 CSV 模板</a>
+      </div>
     </div>
     <div class="card stack">
       <p class="section-title">批量 CSV 导入</p>
@@ -30,6 +32,7 @@
   </div>
 </template>
 <script setup>
+import AppNav from '../components/AppNav.vue';
 import { ref, computed, inject } from 'vue';
 import { LeadApi } from '../api/client';
 const toast = inject('toast', () => {});

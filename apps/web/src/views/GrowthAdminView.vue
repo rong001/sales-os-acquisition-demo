@@ -1,8 +1,8 @@
 <template>
   <div class="page">
     <div class="topbar">
+      <AppNav />
       <div>
-        <button class="btn" @click="$router.push('/')">← 作战台</button>
         <h2 style="margin:8px 0 0">获客配置</h2>
         <p class="muted" style="margin:0">渠道短链 / 邀请码 / 活动 / 审计（管理员可写；viewer 只读）</p>
       </div>
@@ -42,6 +42,7 @@
   </div>
 </template>
 <script setup>
+import AppNav from '../components/AppNav.vue';
 import { ref, onMounted } from 'vue';
 import { LeadApi } from '../api/client';
 const links = ref([]); const invites = ref([]); const campaigns = ref([]); const audits = ref([]);

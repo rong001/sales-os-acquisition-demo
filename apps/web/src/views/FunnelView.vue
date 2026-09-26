@@ -1,8 +1,8 @@
 <template>
   <div class="page">
     <div class="topbar">
+      <AppNav />
       <div>
-        <button class="btn" @click="$router.push('/')">← 作战台</button>
         <h2 style="margin:8px 0 0">转化漏斗</h2>
         <p class="muted" style="margin:0">intake → qualified → assigned → reached/intent → appointed → ordered(stub)</p>
       </div>
@@ -46,6 +46,7 @@
 </template>
 
 <script setup>
+import AppNav from '../components/AppNav.vue';
 import { ref, computed, onMounted, inject } from 'vue';
 import { LeadApi } from '../api/client';
 

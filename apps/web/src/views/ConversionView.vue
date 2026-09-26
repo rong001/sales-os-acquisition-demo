@@ -1,8 +1,8 @@
 <template>
   <div class="page">
     <div class="topbar">
+      <AppNav />
       <div>
-        <button class="btn" @click="$router.push('/admin/funnel')">← 漏斗</button>
         <h2 style="margin:8px 0 0">来源转化</h2>
         <p class="muted" style="margin:0">按 utm_source / 邀请码 / 活动聚合（合成演示数据）</p>
       </div>
@@ -36,6 +36,7 @@
   </div>
 </template>
 <script setup>
+import AppNav from '../components/AppNav.vue';
 import { ref, onMounted } from 'vue';
 import { LeadApi } from '../api/client';
 const data = ref(null);

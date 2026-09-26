@@ -2,11 +2,13 @@
   <div class="page" data-testid="dial-page">
     <div class="topbar">
       <div>
-        <button class="btn btn-ghost" @click="$router.push('/')">← 工作台</button>
         <h2 style="margin:8px 0 0">外呼任务</h2>
         <p class="muted" style="margin:0">供应商 <span class="tag mock">{{ provider }}</span></p>
       </div>
-      <button v-if="isAdmin" class="btn btn-primary" @click="showCreate = !showCreate">新建任务包</button>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <AppNav />
+        <button v-if="isAdmin" class="btn btn-primary" @click="showCreate = !showCreate">新建任务包</button>
+      </div>
     </div>
     <div v-if="showCreate" class="card stack" style="margin-bottom:12px">
       <input class="input" v-model="createForm.name" placeholder="任务名称" />
@@ -43,6 +45,7 @@
   </div>
 </template>
 <script setup>
+import AppNav from '../components/AppNav.vue';
 import { ref, computed, onMounted, inject } from 'vue';
 import { DialApi } from '../api/client';
 const toast = inject('toast', () => {});
