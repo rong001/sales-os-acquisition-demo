@@ -44,4 +44,18 @@ Offline units: pool-claim-race, followup-requires-next, payment-risk, dial-mock-
 
 ## Pack
 
-See SHA256SUMS after ship. Symlink `sales-os-internal-trial-local.tar.gz` → this pack.
+- `sales-os-internal-trial-local-20260926-p0p1.tar.gz`
+- bytes: 5133737
+- SHA256: `ec546299f33faec3b31a1ee2d46c44568a657cb0d39a95bb877c0072e5b08d48`
+- Overlay: `sales-os-internal-trial-local-20260926-p0p1-overlay.tar.gz` (96663 bytes, SHA256 `8c563b1cd58ee493b1786396cca11cd9b83a43649fcd2ce8d03d06954ad0634f`)
+- Symlink `sales-os-internal-trial-local.tar.gz` → p0p1 under `/workspace` and `releases/`
+
+## Commits
+
+- `65a644f` — docs(product): P0+P1 PRD
+- `c67bf41` — feat(api): pool/follow-up/boss/finance/dial/scripts/wecom
+- `f9bfbb7` — feat(web): restrained UI + new pages
+- `5c87b95` — feat(acceptance): P0P1 assertions + units
+
+## Tip
+(pack ship commit follows)
