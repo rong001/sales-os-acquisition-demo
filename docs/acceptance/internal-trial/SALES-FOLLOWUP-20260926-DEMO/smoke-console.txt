@@ -1,0 +1,27 @@
+
+> sales-os-app@0.1.0 smoke:demo
+> node scripts/smoke-demo-walkthrough.mjs
+
+smoke-demo-walkthrough base=http://127.0.0.1:3100
+PASS  health.live
+PASS  login.agent — role=agent
+PASS  login.manager — role=supervisor
+PASS  pool.public — items=20
+PASS  pool.rules
+PASS  pool.claim — case=b0174e08
+PASS  workbench.today — due=6 open=15
+PASS  follow.requires_next — 400 without next; 2xx with next
+PASS  boss.screens — todos=12 overdue_plans=2 empty=false
+PASS  contracts.list — n=4
+PASS  payment.plans — n=7
+PASS  payment.receipts — n=3
+PASS  dial.tasks — n=2
+PASS  dial.provider_mock — 当前 MOCK：演示写假通话与录音占位 URL
+PASS  dial.next — item=43a5af63
+PASS  scripts.list — n=4
+PASS  wecom.status_mock — MOCK 演示模式（无企微官方密钥；不调用企微 API）
+PASS  wecom.context — case=1887f00f
+PASS  wecom.follow_up
+PASS  funnel — won=16
+
+SUMMARY pass=20 fail=0 total=20

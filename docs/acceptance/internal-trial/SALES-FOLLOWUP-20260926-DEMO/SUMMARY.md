@@ -68,4 +68,20 @@ Keys: `DEMO_AGENT_PASSWORD` / `DEMO_AGENT2_PASSWORD` / `DEMO_MANAGER_PASSWORD` /
 ## Pack
 
 - `sales-os-internal-trial-local-20260926-demo-ready.tar.gz`
-- See `README_PACK.txt` / `*.SHA256SUMS.txt` after ship commit
+- bytes: 5018643
+- SHA256: `edb37e8ab25df2f8ff3992bdbfa25d429b65b9a3fae8d9997367d074c3d859b5`
+- Overlay: `sales-os-internal-trial-local-20260926-demo-ready-overlay.tar.gz` (32919 bytes, SHA256 `00a12e9520d14157d3ca8abc45499fa6ec8bca0e440f66cd04ba083457beeaad`)
+- Symlink `sales-os-internal-trial-local.tar.gz` → demo-ready under `/workspace` and `releases/`
+
+## Smoke (bot local)
+
+- `npm run smoke:demo` → **exit 0** · pass=20 fail=0
+- Idle recycle on demo b2b case: `POST /pool/recycle` recycled=1
+
+## Commits
+
+- `9a00a3e` — feat(demo): AppNav + 3 packs + smoke
+- (pack ship + tip pin follow)
+
+## Tip
+_(filled after tip pin)_
