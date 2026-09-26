@@ -85,4 +85,4 @@ Keys: `DEMO_AGENT_PASSWORD` / `DEMO_AGENT2_PASSWORD` / `DEMO_MANAGER_PASSWORD` /
 - `9bbdb08` — docs: pin tip to pack ship
 
 ## Tip
-`9bbdb08` (docs pin after pack ship 5b7ca61 / feat 9a00a3e)
+`079e139` (docs pin after pack ship 5b7ca61 / feat 9a00a3e)
