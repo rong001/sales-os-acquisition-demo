@@ -102,6 +102,53 @@ async function consumeLoop(redis: Redis) {
   }
 }
 
+async function recycleIdlePool(pg: Client) {
+  // Load enabled pool_rules; recycle private cases past idle_days (and past protect)
+  const { rows: rules } = await pg.query(
+    `SELECT tenant_id, idle_days_to_recycle FROM pool_rules WHERE enabled = true`,
+  ).catch(() => ({ rows: [] as { tenant_id: string; idle_days_to_recycle: number }[] }));
+  for (const rule of rules) {
+    const { rows: candidates } = await pg.query(
+      `SELECT id, owner_agent_id AS prev_owner FROM lead_cases c
+       WHERE c.tenant_id = $1
+         AND c.sea_status = 'private'
+         AND (c.protected_until IS NULL OR c.protected_until < now())
+         AND (c.last_touch_at IS NULL OR c.last_touch_at < now() - ($2 || ' days')::interval)`,
+      [rule.tenant_id, String(rule.idle_days_to_recycle)],
+    );
+    const rows: { id: string; prev_owner: string | null }[] = [];
+    for (const cand of candidates) {
+      const upd = await pg.query(
+        `UPDATE lead_cases SET sea_status='public', owner_agent_id=NULL, protected_until=NULL, updated_at=now()
+         WHERE id=$1 AND sea_status='private' RETURNING id`,
+        [cand.id],
+      );
+      if ((upd.rowCount ?? 0) > 0) rows.push(cand);
+    }
+    for (const r of rows) {
+      await pg.query(
+        `INSERT INTO pool_audit_logs (id, tenant_id, actor_user_id, case_id, action, detail, created_at)
+         VALUES (gen_random_uuid(), $1, NULL, $2, 'pool.idle_recycle', $3::jsonb, now())`,
+        [rule.tenant_id, r.id, JSON.stringify({ prev_owner: r.prev_owner, via: 'worker' })],
+      ).catch(() => undefined);
+      await pg.query(
+        `INSERT INTO pool_items (id, tenant_id, case_id, reason, claimable_from, last_owner_id, status, created_at)
+         VALUES (gen_random_uuid(), $1, $2, 'idle_recycle', now(), $3, 'open', now())
+         ON CONFLICT DO NOTHING`,
+        [rule.tenant_id, r.id, r.prev_owner],
+      ).catch(async () => {
+        // pool_items may not have unique on case_id — upsert via update
+        await pg.query(
+          `UPDATE pool_items SET status='open', reason='idle_recycle', last_owner_id=$2, claimable_from=now()
+           WHERE case_id=$1`,
+          [r.id, r.prev_owner],
+        ).catch(() => undefined);
+      });
+      console.log(`[pool.idle_recycle] case=${r.id}`);
+    }
+  }
+}
+
 async function main() {
   const redis = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
   const pg = new Client({ connectionString: DATABASE_URL });
@@ -109,6 +156,9 @@ async function main() {
   await ensureGroup(redis);
   console.log(`Sales OS worker online. stream=${STREAM} group=${GROUP}`);
   setInterval(() => { pollOutbox(pg, redis).catch((e) => console.error(e)); }, 3000);
+  setInterval(() => { recycleIdlePool(pg).catch((e) => console.error('[idle_recycle]', e)); }, 60000);
+  // run once shortly after boot
+  setTimeout(() => { recycleIdlePool(pg).catch((e) => console.error('[idle_recycle]', e)); }, 5000);
   await consumeLoop(redis);
 }
 

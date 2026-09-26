@@ -145,4 +145,19 @@ export class LeadsController {
     res.setHeader('Content-Disposition', 'attachment; filename="leads-export.csv"');
     res.send('\uFEFF' + csv);
   }
+
+  @Get('import/csv/template')
+  @Roles('admin', 'supervisor', 'agent')
+  csvTemplate(@Res() res: Response) {
+    const csv = this.leads.csvImportTemplate();
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="sales-os-import-template.csv"');
+    res.send(csv);
+  }
+
+  @Post('import/csv')
+  @Roles('admin', 'supervisor')
+  importCsv(@CurrentUser() user: AuthUser, @Body() body: Record<string, unknown>) {
+    return this.leads.importCsv(user, body as never);
+  }
 }

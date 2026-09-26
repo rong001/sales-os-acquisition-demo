@@ -174,6 +174,8 @@ export class LeadsService {
       stage: 'NEW',
       scene_id: `landing:${product.code}`,
       product_code: product.code,
+      sea_status: 'public',
+      last_touch_at: new Date(),
     }));
 
     const consentText = body.consent_text || CONSENT_TEXT_V1;
@@ -351,6 +353,9 @@ export class LeadsService {
 
     c.owner_agent_id = seat.id;
     c.skill_group_id = seat.skill_group_id;
+    c.sea_status = 'private';
+    c.protected_until = protectUntil;
+    c.last_touch_at = new Date();
     if (c.stage === 'QUALIFIED') c.stage = 'ASSIGNED';
     await this.cases.save(c);
 
@@ -665,10 +670,20 @@ export class LeadsService {
     this.assertCaseAccess(user, c, 'write');
     if (!body.body?.trim()) throw new BadRequestException('跟进内容不能为空');
 
+    const kind = body.kind || 'note';
+    const followKinds = new Set(['note', 'followup', 'follow_up', 'call', 'wecom_followup']);
     const meta = { ...(body.meta || {}) };
     const rawNext = body.next_follow_at !== undefined
       ? body.next_follow_at
       : (meta.next_follow_at as string | null | undefined);
+
+    // P0-2: 极简跟进强制下次时间 — 跟进类活动缺 next_follow_at → 400
+    if (followKinds.has(kind)) {
+      if (rawNext === undefined || rawNext === null || rawNext === '') {
+        throw new BadRequestException('下次跟进时间必填（next_follow_at）');
+      }
+    }
+
     let parsedNext: Date | null | undefined;
     if (rawNext === null || rawNext === '') {
       parsedNext = null;
@@ -683,14 +698,17 @@ export class LeadsService {
       tenant_id: user.tenant_id,
       case_id: caseId,
       actor_user_id: user.sub,
-      kind: body.kind || 'note',
+      kind,
       body: body.body.trim(),
       meta,
     }));
 
+    c.last_touch_at = new Date();
     if (parsedNext !== undefined) {
       c.next_follow_at = parsedNext;
       c.follow_up_status = parsedNext ? 'open' : null;
+      await this.cases.save(c);
+    } else {
       await this.cases.save(c);
     }
 
@@ -1169,6 +1187,8 @@ export class LeadsService {
             stage: 'NEW',
             scene_id: `authorized_public:${product.code}`,
             product_code: product.code,
+            sea_status: 'public',
+            last_touch_at: new Date(),
             flags: {
               source_type: 'authorized_public_list_import',
               contact_person: contactPerson,
@@ -1389,4 +1409,166 @@ export class LeadsService {
     });
     return rows.join('\n');
   }
+
+  /** CSV 模板（中文表头） */
+  csvImportTemplate(): string {
+    const header = [
+      'company_name', 'contact_name', 'phone', 'email', 'source', 'product_code', 'demand', 'note',
+    ].join(',');
+    const sample = [
+      '示例科技有限公司', '张三', '13800138000', 'zhang@example.com', '展会名录', 'sales-agent', 'UNKNOWN', '备注可选',
+    ].map((v) => `"${v}"`).join(',');
+    return '\uFEFF' + header + '\n' + sample + '\n';
+  }
+
+  /**
+   * 批量 CSV 导入：source 必填；坏行不影响好行；返回成功/失败/合并与失败行导出。
+   */
+  async importCsv(user: AuthUser, body: { csv?: string; rows?: Record<string, string>[] }) {
+    if (!this.isAdmin(user)) throw new ForbiddenException('需要经理/管理员权限导入');
+    let rows: Record<string, string>[] = [];
+    if (Array.isArray(body.rows) && body.rows.length) {
+      rows = body.rows;
+    } else if (typeof body.csv === 'string' && body.csv.trim()) {
+      rows = this.parseCsv(body.csv);
+    } else {
+      throw new BadRequestException('请提供 csv 文本或 rows 数组');
+    }
+
+    const succeeded: Record<string, unknown>[] = [];
+    const failed: Record<string, unknown>[] = [];
+    let mergedCount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const line = i + 2; // header = 1
+      try {
+        const source = (row.source || row['来源'] || '').trim();
+        if (!source) {
+          failed.push({ line, row, error: '来源（source）必填', error_zh: '来源必填，未填写无法入库' });
+          continue;
+        }
+        const phone = (row.phone || row['手机'] || '').trim() || undefined;
+        const email = (row.email || row['邮箱'] || '').trim() || undefined;
+        const company = (row.company_name || row['公司名'] || '').trim();
+        const name = (row.contact_name || row.name || row['联系人'] || '').trim() || 'UNKNOWN';
+        if (!phone && !email && !company) {
+          failed.push({ line, row, error: 'phone/email/company_name 至少填一项', error_zh: '手机、邮箱、公司名至少填一项' });
+          continue;
+        }
+        const intake = await this.intake(user, {
+          phone,
+          email,
+          name,
+          company_name: company || undefined,
+          source_type: 'csv_batch_import',
+          source_channel: source,
+          campaign: source,
+          product_code: (row.product_code || row['产品'] || 'sales-agent').trim(),
+          consent_accepted: true,
+          path: 'STANDARD',
+          raw: {
+            demand: (row.demand || row['需求'] || 'UNKNOWN').trim() || 'UNKNOWN',
+            note: (row.note || row['备注'] || '').trim() || null,
+            import_line: line,
+            label: 'csv_batch_import',
+          },
+        });
+        const merged = !!(intake as { merged?: boolean }).merged;
+        if (merged) mergedCount += 1;
+        succeeded.push({
+          line,
+          case_id: (intake as { case?: { id: string } }).case?.id,
+          merged,
+          merge_message_zh: merged
+            ? '已与已有客户合并（相同手机/邮箱），未新建重复案件'
+            : '新建案件成功',
+          company_name: company || null,
+          source,
+        });
+      } catch (e) {
+        failed.push({
+          line,
+          row,
+          error: String((e as Error)?.message || e).slice(0, 200),
+          error_zh: String((e as Error)?.message || e).slice(0, 200),
+        });
+      }
+    }
+
+    const failedCsv = this.rowsToCsv(
+      ['line', 'company_name', 'contact_name', 'phone', 'email', 'source', 'product_code', 'error_zh'],
+      failed.map((f) => ({
+        line: f.line,
+        company_name: (f.row as Record<string, string>)?.company_name || (f.row as Record<string, string>)?.['公司名'] || '',
+        contact_name: (f.row as Record<string, string>)?.contact_name || (f.row as Record<string, string>)?.name || '',
+        phone: (f.row as Record<string, string>)?.phone || '',
+        email: (f.row as Record<string, string>)?.email || '',
+        source: (f.row as Record<string, string>)?.source || '',
+        product_code: (f.row as Record<string, string>)?.product_code || '',
+        error_zh: f.error_zh || f.error,
+      })),
+    );
+
+    await this.events.audit({
+      tenant_id: user.tenant_id, actor_user_id: user.sub, action: 'leads.import_csv',
+      resource_type: 'LeadCase',
+      detail: { success: succeeded.length, failed: failed.length, merged: mergedCount },
+    });
+
+    return {
+      success_count: succeeded.length,
+      failed_count: failed.length,
+      merged_count: mergedCount,
+      items: succeeded,
+      failed_rows: failed,
+      failed_csv: failedCsv,
+      summary_zh: `成功 ${succeeded.length} 行，失败 ${failed.length} 行，合并 ${mergedCount} 行。坏行未阻断好行。`,
+    };
+  }
+
+  private parseCsv(text: string): Record<string, string>[] {
+    const raw = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = raw.split('\n').filter((l) => l.trim().length);
+    if (lines.length < 2) return [];
+    const headers = this.splitCsvLine(lines[0]).map((h) => h.trim());
+    const rows: Record<string, string>[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = this.splitCsvLine(lines[i]);
+      const row: Record<string, string> = {};
+      headers.forEach((h, idx) => { row[h] = (cols[idx] ?? '').trim(); });
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  private splitCsvLine(line: string): string[] {
+    const out: string[] = [];
+    let cur = '';
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i += 1; }
+          else inQ = false;
+        } else cur += ch;
+      } else if (ch === '"') inQ = true;
+      else if (ch === ',') { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    out.push(cur);
+    return out;
+  }
+
+  private rowsToCsv(headers: string[], rows: Record<string, unknown>[]): string {
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [headers.join(',')];
+    for (const r of rows) {
+      lines.push(headers.map((h) => esc(r[h])).join(','));
+    }
+    return '\uFEFF' + lines.join('\n') + '\n';
+  }
+
+
 }

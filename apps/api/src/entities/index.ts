@@ -104,6 +104,10 @@ export class LeadCase {
   @Column({ type: 'timestamptz', nullable: true }) next_follow_at!: Date | null;
   /** open=待处理；handled=已处理（不再出现在到期列表） */
   @Column({ type: 'varchar', nullable: true, default: null }) follow_up_status!: string | null;
+  /** private=私海；public=公海可领 */
+  @Column({ type: 'varchar', default: 'public' }) sea_status!: string;
+  @Column({ type: 'timestamptz', nullable: true }) protected_until!: Date | null;
+  @Column({ type: 'timestamptz', nullable: true }) last_touch_at!: Date | null;
   @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
   @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
 }
@@ -351,11 +355,177 @@ export class Campaign {
   @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
 }
 
+
+@Entity('pool_rules')
+@Index(['tenant_id'], { unique: true })
+export class PoolRule {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'int', default: 50 }) max_private_cases!: number;
+  @Column({ type: 'int', default: 48 }) protect_hours!: number;
+  @Column({ type: 'int', default: 7 }) idle_days_to_recycle!: number;
+  @Column({ default: true }) enabled!: boolean;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
+}
+
+@Entity('pool_audit_logs')
+@Index(['tenant_id', 'created_at'])
+export class PoolAuditLog {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid', { nullable: true }) actor_user_id!: string | null;
+  @Column('uuid', { nullable: true }) case_id!: string | null;
+  @Column({ type: 'varchar' }) action!: string;
+  @Column({ type: 'jsonb', default: {} }) detail!: Record<string, unknown>;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('contracts')
+@Index(['tenant_id', 'case_id'])
+export class Contract {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') case_id!: string;
+  @Column({ type: 'varchar' }) amount!: string;
+  @Column({ type: 'varchar', default: 'CNY' }) currency!: string;
+  @Column({ type: 'varchar', default: 'draft' }) status!: string;
+  @Column({ type: 'timestamptz', nullable: true }) signed_at!: Date | null;
+  @Column({ type: 'text', nullable: true }) attachment_url!: string | null;
+  @Column({ type: 'text', nullable: true }) note!: string | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
+}
+
+@Entity('payment_plans')
+@Index(['tenant_id', 'due_at'])
+export class PaymentPlan {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') contract_id!: string;
+  @Column('uuid') case_id!: string;
+  @Column({ type: 'timestamptz' }) due_at!: Date;
+  @Column({ type: 'varchar' }) amount!: string;
+  @Column({ type: 'varchar', default: 'pending' }) status!: string;
+  @Column({ type: 'text', nullable: true }) note!: string | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
+}
+
+@Entity('payment_receipts')
+@Index(['tenant_id', 'paid_at'])
+export class PaymentReceipt {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') contract_id!: string;
+  @Column('uuid') case_id!: string;
+  @Column('uuid', { nullable: true }) plan_id!: string | null;
+  @Column({ type: 'timestamptz' }) paid_at!: Date;
+  @Column({ type: 'varchar' }) amount!: string;
+  @Column({ type: 'varchar', default: 'transfer' }) method!: string;
+  @Column({ type: 'text', nullable: true }) note!: string | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('dial_tasks')
+@Index(['tenant_id', 'status'])
+export class DialTask {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar' }) name!: string;
+  @Column({ type: 'text', nullable: true }) description!: string | null;
+  @Column('uuid', { nullable: true }) created_by!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) due_at!: Date | null;
+  @Column({ type: 'varchar', default: 'open' }) status!: string;
+  @Column({ type: 'int', default: 0 }) total_items!: number;
+  @Column({ type: 'int', default: 0 }) done_items!: number;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
+}
+
+@Entity('dial_task_items')
+@Index(['tenant_id', 'task_id', 'status'])
+export class DialTaskItem {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') task_id!: string;
+  @Column('uuid') case_id!: string;
+  @Column({ type: 'varchar', default: 'pending' }) status!: string;
+  @Column('uuid', { nullable: true }) claimed_by_seat_id!: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) claimed_at!: Date | null;
+  @Column({ type: 'varchar', nullable: true }) result!: string | null;
+  @Column({ type: 'text', nullable: true }) note!: string | null;
+  @Column('uuid', { nullable: true }) call_record_id!: string | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
+}
+
+@Entity('call_records')
+@Index(['tenant_id', 'case_id'])
+export class CallRecord {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') case_id!: string;
+  @Column('uuid', { nullable: true }) dial_item_id!: string | null;
+  @Column({ type: 'varchar', default: 'mock' }) provider!: string;
+  @Column({ type: 'varchar', default: 'mock' }) mode!: string;
+  @Column({ type: 'int', nullable: true }) duration_sec!: number | null;
+  @Column({ type: 'text', nullable: true }) recording_url!: string | null;
+  @Column({ type: 'varchar', nullable: true }) result!: string | null;
+  @Column({ default: false }) starred!: boolean;
+  @Column('uuid', { nullable: true }) starred_script_id!: string | null;
+  @Column({ type: 'jsonb', default: {} }) meta!: Record<string, unknown>;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('sales_scripts')
+@Index(['tenant_id', 'scene'])
+export class SalesScript {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar' }) scene!: string;
+  @Column({ type: 'varchar' }) title!: string;
+  @Column({ type: 'text' }) body!: string;
+  @Column('text', { array: true, default: '{}' }) tags!: string[];
+  @Column({ default: true }) enabled!: boolean;
+  @Column('uuid', { nullable: true }) created_by!: string | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+  @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
+}
+
+@Entity('script_stars')
+@Index(['tenant_id', 'call_record_id'], { unique: true })
+export class ScriptStar {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column('uuid') call_record_id!: string;
+  @Column('uuid', { nullable: true }) script_id!: string | null;
+  @Column({ type: 'varchar', nullable: true }) scene!: string | null;
+  @Column('uuid', { nullable: true }) starred_by!: string | null;
+  @Column({ type: 'text', nullable: true }) note!: string | null;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
+@Entity('wecom_link_cache')
+@Index(['tenant_id', 'external_userid'], { unique: true })
+export class WecomLinkCache {
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @Column('uuid') tenant_id!: string;
+  @Column({ type: 'varchar' }) external_userid!: string;
+  @Column({ type: 'varchar', nullable: true }) phone!: string | null;
+  @Column('uuid', { nullable: true }) case_id!: string | null;
+  @Column({ type: 'jsonb', default: {} }) raw!: Record<string, unknown>;
+  @UpdateDateColumn({ type: 'timestamptz' }) updated_at!: Date;
+  @CreateDateColumn({ type: 'timestamptz' }) created_at!: Date;
+}
+
 export const ALL_ENTITIES = [
   Tenant, User, SkillGroup, AgentSeat, LeadIdentity, LeadSource, LeadCase,
   ConsentGrant, Ownership, PoolItem, ReachPlan, ReachAttempt, ReachReceipt,
   Appointment, Order, CaseActivity, DomainEvent, Outbox, AuditLog,
   ContentPage, ChannelLink, InviteCode, Campaign,
+  PoolRule, PoolAuditLog, Contract, PaymentPlan, PaymentReceipt,
+  DialTask, DialTaskItem, CallRecord, SalesScript, ScriptStar, WecomLinkCache,
 ];
 
 export const CONSENT_TEXT_V1 =

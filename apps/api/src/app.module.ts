@@ -7,6 +7,12 @@ import { LeadsModule } from './leads/leads.module';
 import { SeedModule } from './seed/seed.module';
 import { PublicModule } from './public/public.module';
 import { GrowthModule } from './growth/growth.module';
+import { PoolModule } from './pool/pool.module';
+import { BossModule } from './boss/boss.module';
+import { FinanceModule } from './finance/finance.module';
+import { DialModule } from './dial/dial.module';
+import { ScriptsModule } from './scripts-lib/scripts.module';
+import { WecomModule } from './wecom/wecom.module';
 import { HealthService } from './common/health.service';
 import { DependencyExceptionFilter } from './common/dependency.filter';
 
@@ -60,6 +66,12 @@ class HealthController {
     GrowthModule,
     PublicModule,
     SeedModule,
+    PoolModule,
+    BossModule,
+    FinanceModule,
+    DialModule,
+    ScriptsModule,
+    WecomModule,
   ],
   controllers: [HealthController],
   providers: [HealthService, DependencyExceptionFilter],
